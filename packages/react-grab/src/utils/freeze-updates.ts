@@ -14,7 +14,8 @@ import {
   type ReactRenderer,
   type FiberRoot,
 } from "bippy";
-import { logRecoverableError } from "./log-recoverable-error.js";
+import { RecoverableError } from "../errors.js";
+import { reportRecoverableError } from "./report-recoverable-error.js";
 import { IS_DEMO } from "./runtime-mode.js";
 
 interface FiberRootLike extends FiberRoot {
@@ -522,13 +523,15 @@ const scheduleReactUpdate = (fiberRoots: Set<FiberRootLike>): void => {
             try {
               renderer.scheduleUpdate(fiberRoot.current);
             } catch (error) {
-              logRecoverableError("scheduleUpdate failed during unfreeze", error);
+              reportRecoverableError(
+                new RecoverableError("scheduleUpdate failed during unfreeze", error),
+              );
             }
           }
         }
       }
     } catch (error) {
-      logRecoverableError("scheduleReactUpdate failed", error);
+      reportRecoverableError(new RecoverableError("scheduleReactUpdate failed", error));
     }
   });
 };
@@ -538,7 +541,7 @@ const invokeCallbacks = (callbacks: Array<() => void>): void => {
     try {
       callback();
     } catch (error) {
-      logRecoverableError("Callback failed during state replay", error);
+      reportRecoverableError(new RecoverableError("Callback failed during state replay", error));
     }
   }
 };
@@ -564,7 +567,9 @@ const resumeUpdates = (): void => {
       fiberRootsToResume.add(fiberRoot);
     }
   } catch (error) {
-    logRecoverableError("Collecting fiber roots failed during unfreeze", error);
+    reportRecoverableError(
+      new RecoverableError("Collecting fiber roots failed during unfreeze", error),
+    );
   }
 
   pausedFiberRoots.clear();
@@ -574,7 +579,9 @@ const resumeUpdates = (): void => {
     try {
       traverseFibersAndResume(fiberRoot.current);
     } catch (error) {
-      logRecoverableError("Resuming a fiber root failed during unfreeze", error);
+      reportRecoverableError(
+        new RecoverableError("Resuming a fiber root failed during unfreeze", error),
+      );
     }
   }
 
@@ -591,7 +598,7 @@ const resumeUpdates = (): void => {
   }
 };
 
-export const freezeUpdates = (): (() => void) => {
+export const freezeUpdatesOrThrow = (): (() => void) => {
   // Demo mode is display-only and must never pause the host app's React renders,
   // even via the toolbar's own (ungated) freeze path.
   if (IS_DEMO) return () => {};
@@ -611,9 +618,8 @@ export const freezeUpdates = (): (() => void) => {
       }
     } catch (error) {
       freezeOwnerCount -= 1;
-      logRecoverableError("Pausing React updates failed", error);
       if (isUpdatesPaused) resumeUpdates();
-      return () => {};
+      throw error;
     }
   }
 
@@ -625,4 +631,13 @@ export const freezeUpdates = (): (() => void) => {
     freezeOwnerCount -= 1;
     if (freezeOwnerCount === 0) resumeUpdates();
   };
+};
+
+export const freezeUpdates = (): (() => void) => {
+  try {
+    return freezeUpdatesOrThrow();
+  } catch (error) {
+    reportRecoverableError(new RecoverableError("Pausing React updates failed", error));
+    return () => {};
+  }
 };

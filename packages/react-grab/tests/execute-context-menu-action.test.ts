@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vite-plus/test";
+import { ContextMenuActionEnabledError, ContextMenuActionError } from "../src/errors.js";
 import type { ContextMenuActionContext } from "../src/types.js";
 import { executeContextMenuAction } from "../src/utils/execute-context-menu-action.js";
 
@@ -19,13 +20,14 @@ describe("executeContextMenuAction", () => {
   it("contains enabled predicate failures and skips the action", () => {
     const warning = vi.spyOn(console, "warn").mockImplementation(() => {});
     const onAction = vi.fn();
+    const enabledError = new Error("enabled failed");
 
     const didExecute = executeContextMenuAction(
       {
         id: "throwing-enabled",
         label: "Throwing Enabled",
         enabled: () => {
-          throw new Error("enabled failed");
+          throw enabledError;
         },
         onAction,
       },
@@ -34,26 +36,35 @@ describe("executeContextMenuAction", () => {
 
     expect(didExecute).toBe(false);
     expect(onAction).not.toHaveBeenCalled();
-    expect(warning).toHaveBeenCalledOnce();
+    expect(warning).toHaveBeenCalledWith("[react-grab]", expect.any(ContextMenuActionEnabledError));
+    expect(warning.mock.calls[0]?.[1]).toMatchObject({
+      actionId: "throwing-enabled",
+      cause: enabledError,
+    });
     warning.mockRestore();
   });
 
   it("contains synchronous action failures after accepting the action", () => {
     const warning = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const actionError = new Error("action failed");
 
     const didExecute = executeContextMenuAction(
       {
         id: "throwing-action",
         label: "Throwing Action",
         onAction: () => {
-          throw new Error("action failed");
+          throw actionError;
         },
       },
       createContext(),
     );
 
     expect(didExecute).toBe(true);
-    expect(warning).toHaveBeenCalledOnce();
+    expect(warning).toHaveBeenCalledWith("[react-grab]", expect.any(ContextMenuActionError));
+    expect(warning.mock.calls[0]?.[1]).toMatchObject({
+      actionId: "throwing-action",
+      cause: actionError,
+    });
     warning.mockRestore();
   });
 

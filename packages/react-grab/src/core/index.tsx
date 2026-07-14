@@ -13,7 +13,7 @@ import {
 } from "solid-js";
 import { render } from "solid-js/web";
 import { createGrabStore } from "./store.js";
-import { CopyFailedError } from "../errors.js";
+import { CopyFailedError, RecoverableError } from "../errors.js";
 import {
   isKeyboardEventTriggeredByInput,
   hasTextSelectionInInput,
@@ -151,7 +151,7 @@ import {
 } from "../utils/freeze-global-interactions.js";
 import { freezeUpdates } from "../utils/freeze-updates.js";
 import { generateId } from "../utils/generate-id.js";
-import { logRecoverableError } from "../utils/log-recoverable-error.js";
+import { reportRecoverableError } from "../utils/report-recoverable-error.js";
 import { getNearestEdge } from "../utils/get-nearest-edge.js";
 import { findShortcutAction } from "../utils/action-shortcuts.js";
 import { createKeyboardSelectionController } from "./keyboard-selection.js";
@@ -890,7 +890,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             (!didStartCopyOperation && pendingCopyMetadataIdentity !== metadataIdentity)
           )
             return;
-          logRecoverableError("Copy operation failed", error);
+          reportRecoverableError(new RecoverableError("Copy operation failed", error));
           const normalizedMessage = normalizeErrorMessage(error, "Action failed");
           for (const labelInstanceId of copy.labelInstanceIds) {
             labelController.updateAfterCopy(labelInstanceId, false, normalizedMessage);
@@ -3674,7 +3674,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             try {
               await action();
             } catch (error) {
-              logRecoverableError("Action failed without feedback bounds", error);
+              reportRecoverableError(
+                new RecoverableError("Action failed without feedback bounds", error),
+              );
             }
           }
 

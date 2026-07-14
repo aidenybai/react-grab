@@ -2,6 +2,7 @@ import { FROZEN_ELEMENT_ATTRIBUTE, WAAPI_GLOBAL_FREEZE_MAX_ANIMATIONS } from "..
 import { createStyleElement } from "./create-style-element.js";
 import { freezeGsap, unfreezeGsap } from "./freeze-gsap.js";
 import { IS_DEMO } from "./runtime-mode.js";
+import { throwCollectedErrors } from "./throw-collected-errors.js";
 
 const FROZEN_STYLES = `
 [${FROZEN_ELEMENT_ATTRIBUTE}],
@@ -36,6 +37,11 @@ let globalUsedCssFreeze = false;
 // a depth counter per element and only unpause when all layers are removed.
 const svgFreezeDepthMap = new Map<SVGSVGElement, number>();
 let frozenWaapiAnimations: Animation[] = [];
+
+const hasGlobalAnimationFreeze = (): boolean =>
+  globalAnimationStyleElement !== null ||
+  globalFrozenSvgElements.length > 0 ||
+  globalFrozenWaapiAnimations.length > 0;
 
 const ensureStylesInjected = (): void => {
   if (styleElement) return;
@@ -75,29 +81,46 @@ const callSvgAnimationMethod = (
   animationMethod.call(svgElement);
 };
 
-const pauseSvgAnimations = (svgElements: SVGSVGElement[]): void => {
+const pauseSvgAnimations = (
+  svgElements: SVGSVGElement[],
+  frozenSvgElementStorage: SVGSVGElement[],
+): void => {
   for (const svgElement of svgElements) {
     const currentFreezeDepth = svgFreezeDepthMap.get(svgElement) ?? 0;
     if (currentFreezeDepth === 0) {
+      svgFreezeDepthMap.set(svgElement, 1);
+      frozenSvgElementStorage.push(svgElement);
       callSvgAnimationMethod(svgElement, "pauseAnimations");
+      continue;
     }
     svgFreezeDepthMap.set(svgElement, currentFreezeDepth + 1);
+    frozenSvgElementStorage.push(svgElement);
   }
 };
 
-const resumeSvgAnimations = (svgElements: SVGSVGElement[]): void => {
+const resumeSvgAnimations = (
+  svgElements: SVGSVGElement[],
+  cleanupErrors: unknown[],
+): SVGSVGElement[] => {
+  const svgElementsStillFrozen: SVGSVGElement[] = [];
   for (const svgElement of svgElements) {
     const currentFreezeDepth = svgFreezeDepthMap.get(svgElement);
     if (!currentFreezeDepth) continue;
 
     if (currentFreezeDepth === 1) {
-      svgFreezeDepthMap.delete(svgElement);
-      callSvgAnimationMethod(svgElement, "unpauseAnimations");
+      try {
+        callSvgAnimationMethod(svgElement, "unpauseAnimations");
+        svgFreezeDepthMap.delete(svgElement);
+      } catch (error) {
+        svgElementsStillFrozen.push(svgElement);
+        cleanupErrors.push(error);
+      }
       continue;
     }
 
     svgFreezeDepthMap.set(svgElement, currentFreezeDepth - 1);
   }
+  return svgElementsStillFrozen;
 };
 
 const collectWaapiAnimations = (elements: Element[]): Animation[] => {
@@ -122,6 +145,20 @@ const finishAnimations = (animations: Iterable<Animation>): void => {
   }
 };
 
+const restorePausedAnimations = (animations: Iterable<Animation>): void => {
+  for (const animation of animations) {
+    try {
+      animation.finish();
+    } catch {
+      try {
+        animation.play();
+      } catch {
+        // animation was cancelled or its target detached during the freeze
+      }
+    }
+  }
+};
+
 // Animations whose target lives in a shadow root are react-grab's own toolbar/
 // label animations — the global freeze must leave them running.
 // @see https://github.com/aidenybai/react-grab/issues/163
@@ -138,19 +175,31 @@ export const freezeAllAnimations = (elements: Element[]): void => {
 
   unfreezeAllAnimations();
   const elementSnapshot = [...elements];
-  lastInputElements = elementSnapshot;
   ensureStylesInjected();
   frozenElements = elementSnapshot;
-  frozenSvgElements = collectFrozenSvgElements(frozenElements);
-  pauseSvgAnimations(frozenSvgElements);
+  frozenSvgElements = [];
+  try {
+    const svgElementsToFreeze = collectFrozenSvgElements(frozenElements);
+    pauseSvgAnimations(svgElementsToFreeze, frozenSvgElements);
 
-  for (const element of frozenElements) {
-    element.setAttribute(FROZEN_ELEMENT_ATTRIBUTE, "");
-  }
+    for (const element of frozenElements) {
+      element.setAttribute(FROZEN_ELEMENT_ATTRIBUTE, "");
+    }
 
-  frozenWaapiAnimations = collectWaapiAnimations(frozenElements);
-  for (const animation of frozenWaapiAnimations) {
-    animation.pause();
+    const animationsToFreeze = collectWaapiAnimations(frozenElements);
+    frozenWaapiAnimations = [];
+    for (const animation of animationsToFreeze) {
+      animation.pause();
+      frozenWaapiAnimations.push(animation);
+    }
+    lastInputElements = elementSnapshot;
+  } catch (error) {
+    try {
+      unfreezeAllAnimations();
+    } catch (rollbackError) {
+      throw new AggregateError([error, rollbackError], "Rolling back animation freeze failed");
+    }
+    throw error;
   }
 };
 
@@ -162,17 +211,26 @@ const unfreezeAllAnimations = (): void => {
   )
     return;
 
-  for (const element of frozenElements) {
-    element.removeAttribute(FROZEN_ELEMENT_ATTRIBUTE);
-  }
-  resumeSvgAnimations(frozenSvgElements);
+  const elementsToUnfreeze = frozenElements;
+  const svgElementsToUnfreeze = frozenSvgElements;
+  const animationsToFinish = frozenWaapiAnimations;
 
-  finishAnimations(frozenWaapiAnimations);
-
-  frozenElements = [];
-  frozenSvgElements = [];
-  frozenWaapiAnimations = [];
+  const cleanupErrors: unknown[] = [];
+  const elementsStillFrozen: Element[] = [];
   lastInputElements = [];
+  for (const element of elementsToUnfreeze) {
+    try {
+      element.removeAttribute(FROZEN_ELEMENT_ATTRIBUTE);
+    } catch (error) {
+      elementsStillFrozen.push(element);
+      cleanupErrors.push(error);
+    }
+  }
+  frozenElements = elementsStillFrozen;
+  frozenSvgElements = resumeSvgAnimations(svgElementsToUnfreeze, cleanupErrors);
+  restorePausedAnimations(animationsToFinish);
+  frozenWaapiAnimations = [];
+  throwCollectedErrors(cleanupErrors, "Unfreezing element animations failed");
 };
 
 export const freezeAnimations = (elements: Element[]): (() => void) => {
@@ -194,7 +252,7 @@ export const collectGlobalAnimationsToFreeze = (): Animation[] => {
   // Demo mode is display-only and must never freeze (or force a style flush
   // on) the host page.
   if (IS_DEMO) return [];
-  if (globalAnimationStyleElement) return [];
+  if (hasGlobalAnimationFreeze()) return [];
   const runningAnimations: Animation[] = [];
   for (const animation of document.getAnimations()) {
     if (isShadowAnimation(animation)) continue;
@@ -207,7 +265,7 @@ export const collectGlobalAnimationsToFreeze = (): Animation[] => {
 // layout reads, so it never forces a recalc on its own.
 export const applyGlobalAnimationFreeze = (runningAnimations: Animation[]): void => {
   if (IS_DEMO) return;
-  if (globalAnimationStyleElement) return;
+  if (hasGlobalAnimationFreeze()) return;
 
   // Marker element; also carries the `*` freeze rule on the CSS path below. Its
   // presence signals the global freeze is active (asserted by the e2e suite).
@@ -222,61 +280,75 @@ export const applyGlobalAnimationFreeze = (runningAnimations: Animation[]): void
   } else {
     // Few animations (the common case): pause them directly. This touches only
     // the animating elements instead of forcing a full-document style recalc.
-    for (const animation of runningAnimations) animation.pause();
-    globalFrozenWaapiAnimations = runningAnimations;
+    globalFrozenWaapiAnimations = [];
+    for (const animation of runningAnimations) {
+      animation.pause();
+      globalFrozenWaapiAnimations.push(animation);
+    }
     globalUsedCssFreeze = false;
   }
 
-  globalFrozenSvgElements = collectFrozenSvgElements(
+  const svgElementsToFreeze = collectFrozenSvgElements(
     Array.from(document.querySelectorAll(SVG_ROOT_SELECTOR)),
   );
-  pauseSvgAnimations(globalFrozenSvgElements);
+  globalFrozenSvgElements = [];
+  pauseSvgAnimations(svgElementsToFreeze, globalFrozenSvgElements);
   freezeGsap();
 };
 
 export const unfreezeGlobalAnimations = (): void => {
-  if (!globalAnimationStyleElement) return;
+  if (!hasGlobalAnimationFreeze()) return;
 
-  if (globalUsedCssFreeze) {
-    // CSS path. All paused animations must be finished before the freeze
-    // stylesheet is removed, because simply removing animation-play-state:paused
-    // would resume them from their mid-point and create visual jumps. finish()
-    // advances them to their end state; the interim transition:none rule
-    // prevents any visual flash during cleanup. Shadow-root animations are
-    // skipped so react-grab's own toolbar/label animations aren't finished.
-    globalAnimationStyleElement.textContent = `
+  const styleElementToRemove = globalAnimationStyleElement;
+  const didUseCssFreeze = globalUsedCssFreeze;
+  const waapiAnimationsToRestore = globalFrozenWaapiAnimations;
+  const svgElementsToUnfreeze = globalFrozenSvgElements;
+  const cleanupErrors: unknown[] = [];
+
+  if (styleElementToRemove) {
+    try {
+      if (didUseCssFreeze) {
+        // CSS path. All paused animations must be finished before the freeze
+        // stylesheet is removed, because simply removing animation-play-state:paused
+        // would resume them from their mid-point and create visual jumps. finish()
+        // advances them to their end state; the interim transition:none rule
+        // prevents any visual flash during cleanup. Shadow-root animations are
+        // skipped so react-grab's own toolbar/label animations aren't finished.
+        styleElementToRemove.textContent = `
 *, *::before, *::after {
   transition: none !important;
 }
 `;
-    const animationsToFinish: Animation[] = [];
-    for (const animation of document.getAnimations()) {
-      if (isShadowAnimation(animation)) continue;
-      animationsToFinish.push(animation);
-    }
-    finishAnimations(animationsToFinish);
-    globalUsedCssFreeze = false;
-  } else {
-    // WAAPI path: restore the specific animations we paused. Finite animations
-    // advance to their end (finish()) so they don't jump backward through their
-    // timeline; infinite ones (finish() throws) resume looping (play()).
-    for (const animation of globalFrozenWaapiAnimations) {
-      try {
-        animation.finish();
-      } catch {
-        try {
-          animation.play();
-        } catch {
-          // animation was cancelled or its target detached during the freeze
+        const animationsToFinish: Animation[] = [];
+        for (const animation of document.getAnimations()) {
+          if (isShadowAnimation(animation)) continue;
+          animationsToFinish.push(animation);
         }
+        finishAnimations(animationsToFinish);
+      } else {
+        // WAAPI path: restore the specific animations we paused. Finite animations
+        // advance to their end (finish()) so they don't jump backward through their
+        // timeline; infinite ones (finish() throws) resume looping (play()).
+        restorePausedAnimations(waapiAnimationsToRestore);
       }
+    } catch (error) {
+      cleanupErrors.push(error);
     }
+    globalUsedCssFreeze = false;
     globalFrozenWaapiAnimations = [];
-  }
 
-  globalAnimationStyleElement.remove();
-  globalAnimationStyleElement = null;
-  resumeSvgAnimations(globalFrozenSvgElements);
-  globalFrozenSvgElements = [];
-  unfreezeGsap();
+    try {
+      styleElementToRemove.remove();
+      globalAnimationStyleElement = null;
+    } catch (error) {
+      cleanupErrors.push(error);
+    }
+  }
+  globalFrozenSvgElements = resumeSvgAnimations(svgElementsToUnfreeze, cleanupErrors);
+  try {
+    unfreezeGsap();
+  } catch (error) {
+    cleanupErrors.push(error);
+  }
+  throwCollectedErrors(cleanupErrors, "Unfreezing global animations failed");
 };
