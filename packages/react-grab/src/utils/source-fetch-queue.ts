@@ -52,12 +52,11 @@ export const runQueuedSourceFetch = async <T>(
     }, timeoutMs);
   });
 
-  const taskPromise = task(controller.signal);
-  // Swallow a late rejection from a fetch that already lost the timeout race, so
-  // an aborted request never surfaces as an unhandled rejection.
-  taskPromise.catch(() => {});
-
   try {
+    const taskPromise = task(controller.signal);
+    // Swallow a late rejection from a fetch that already lost the timeout race, so
+    // an aborted request never surfaces as an unhandled rejection.
+    taskPromise.catch(() => {});
     return await Promise.race([taskPromise, timeout]);
   } finally {
     clearTimeout(timeoutId);

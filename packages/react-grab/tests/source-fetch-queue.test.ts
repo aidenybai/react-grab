@@ -195,4 +195,29 @@ describe("runQueuedSourceFetch", () => {
     expect(await laterResult).toBe("later");
     expect(laterStarted).toBe(true);
   });
+
+  it("releases a slot when a task throws synchronously", async () => {
+    const failures = Array.from({ length: 3 }, () =>
+      runQueuedSourceFetch(
+        () => {
+          throw new Error("fetch failed");
+        },
+        "fallback",
+        TEST_TIMEOUT_MS,
+      ).catch((error: unknown) => error),
+    );
+
+    const laterResult = runQueuedSourceFetch(
+      () => Promise.resolve("later"),
+      "fallback",
+      TEST_TIMEOUT_MS,
+    );
+
+    expect(await Promise.all(failures)).toEqual([
+      new Error("fetch failed"),
+      new Error("fetch failed"),
+      new Error("fetch failed"),
+    ]);
+    expect(await laterResult).toBe("later");
+  });
 });
