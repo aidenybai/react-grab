@@ -426,4 +426,41 @@ describe("createPluginRegistry", () => {
     );
     warning.mockRestore();
   });
+
+  it("uses one plugin snapshot for each hook dispatch", () => {
+    const registry = createPluginRegistry();
+    const api = createNoopApi();
+    const lateHook = vi.fn();
+    const registeringHook = vi.fn(() => {
+      registry.register({ name: "late", hooks: { onActivate: lateHook } }, api);
+    });
+    registry.register({ name: "registering", hooks: { onActivate: registeringHook } }, api);
+
+    registry.hooks.onActivate();
+
+    expect(registeringHook).toHaveBeenCalledOnce();
+    expect(lateHook).not.toHaveBeenCalled();
+
+    registry.hooks.onActivate();
+
+    expect(lateHook).toHaveBeenCalledOnce();
+  });
+
+  it("does not revisit a plugin that replaces itself during dispatch", () => {
+    const registry = createPluginRegistry();
+    const api = createNoopApi();
+    const selfReplacingHook = vi.fn(() => {
+      if (selfReplacingHook.mock.calls.length === 1) {
+        registry.register(
+          { name: "self-replacing", hooks: { onActivate: selfReplacingHook } },
+          api,
+        );
+      }
+    });
+    registry.register({ name: "self-replacing", hooks: { onActivate: selfReplacingHook } }, api);
+
+    registry.hooks.onActivate();
+
+    expect(selfReplacingHook).toHaveBeenCalledOnce();
+  });
 });
