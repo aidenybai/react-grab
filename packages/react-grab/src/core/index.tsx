@@ -157,6 +157,7 @@ import { getNearestEdge } from "../utils/get-nearest-edge.js";
 import { findShortcutAction } from "../utils/action-shortcuts.js";
 import { createKeyboardSelectionController } from "./keyboard-selection.js";
 import { executeContextMenuAction } from "../utils/execute-context-menu-action.js";
+import { notifyToolbarStateChangeSubscribers } from "../utils/notify-toolbar-state-change-subscribers.js";
 
 const builtInPlugins = [copyPlugin, editPlugin, commentPlugin, openPlugin];
 
@@ -427,9 +428,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       };
       saveToolbarState(newState);
       setCurrentToolbarState(newState);
-      for (const callback of toolbarStateChangeCallbacks) {
-        callback(newState);
-      }
+      notifyToolbarStateChangeSubscribers(toolbarStateChangeCallbacks, newState);
     };
 
     const clearHoldTimer = () => {
@@ -4150,7 +4149,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                       dismissAllPopups();
                     }
                   }
-                  toolbarStateChangeCallbacks.forEach((callback) => callback(state));
+                  notifyToolbarStateChangeSubscribers(toolbarStateChangeCallbacks, state);
                 }}
                 onSubscribeToToolbarStateChanges={(callback) => {
                   toolbarStateChangeCallbacks.add(callback);
@@ -4256,7 +4255,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             dismissAllPopups();
           }
         }
-        toolbarStateChangeCallbacks.forEach((callback) => callback(newState));
+        notifyToolbarStateChangeSubscribers(toolbarStateChangeCallbacks, newState);
       },
       onToolbarStateChange: (callback: (state: ToolbarState) => void) => {
         toolbarStateChangeCallbacks.add(callback);
