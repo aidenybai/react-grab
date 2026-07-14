@@ -137,9 +137,10 @@ export const freezeAllAnimations = (elements: Element[]): void => {
   if (areElementsSame(elements, lastInputElements)) return;
 
   unfreezeAllAnimations();
-  lastInputElements = [...elements];
+  const elementSnapshot = [...elements];
+  lastInputElements = elementSnapshot;
   ensureStylesInjected();
-  frozenElements = elements;
+  frozenElements = elementSnapshot;
   frozenSvgElements = collectFrozenSvgElements(frozenElements);
   pauseSvgAnimations(frozenSvgElements);
 
