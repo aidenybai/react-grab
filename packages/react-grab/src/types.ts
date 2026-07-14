@@ -135,10 +135,13 @@ export type ActivationMode = "toggle" | "hold";
 
 export type OverlayDismissSource = "keyboard" | "pointer";
 
-export interface ActionContextHooks {
-  transformHtmlContent: (html: string, elements: Element[]) => Promise<string>;
+export interface OpenFileActionHooks {
   onOpenFile: (filePath: string, lineNumber?: number) => boolean | void;
   transformOpenFileUrl: (url: string, filePath: string, lineNumber?: number) => string;
+}
+
+export interface ActionContextHooks extends OpenFileActionHooks {
+  transformHtmlContent: (html: string, elements: Element[]) => Promise<string>;
 }
 
 export interface ActionContext {
@@ -571,6 +574,7 @@ export interface ReactGrabRendererProps {
   onToggleExpand?: () => void;
   selectionLabelShakeCount?: number;
   onConfirmDismiss?: () => void;
+  onOpenSelectionFile?: () => void;
   discardPrompt?: SelectionDiscardPrompt;
   toolbarVisible?: boolean;
   isActive?: boolean;

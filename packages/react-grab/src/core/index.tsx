@@ -102,7 +102,7 @@ import { isCLikeKey } from "../utils/is-c-like-key.js";
 import { isTargetKeyCombination } from "../utils/is-target-key-combination.js";
 import { parseActivationKey } from "../utils/parse-activation-key.js";
 import { isEventFromOverlay } from "../utils/is-event-from-overlay.js";
-import { requestOpenFile } from "../utils/open-file.js";
+import { executeOpenFileAction } from "./open-file-action.js";
 import { combineBounds } from "../utils/combine-bounds.js";
 import type {
   Position,
@@ -2619,25 +2619,22 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return true;
     };
 
+    const openSelectionFile = (): void => {
+      const filePath = store.selectionFilePath;
+      const lineNumber = store.selectionLineNumber;
+      if (!filePath) return;
+
+      executeOpenFileAction(filePath, lineNumber ?? undefined, pluginRegistry.hooks);
+    };
+
     const tryHandleOpenFileShortcut = (event: KeyboardEvent): boolean => {
       if (event.key?.toLowerCase() !== "o") return false;
       if (!isActivated() || !(event.metaKey || event.ctrlKey)) return false;
-
-      const filePath = store.selectionFilePath;
-      const lineNumber = store.selectionLineNumber;
-      if (!filePath) return false;
+      if (!store.selectionFilePath) return false;
 
       event.preventDefault();
       event.stopPropagation();
-
-      const wasHandled = pluginRegistry.hooks.onOpenFile(filePath, lineNumber ?? undefined);
-      if (!wasHandled) {
-        requestOpenFile(
-          filePath,
-          lineNumber ?? undefined,
-          pluginRegistry.hooks.transformOpenFileUrl,
-        );
-      }
+      openSelectionFile();
       return true;
     };
 
@@ -4119,6 +4116,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 onToggleExpand={handleToggleExpand}
                 selectionLabelShakeCount={selectionLabelShakeCount()}
                 onConfirmDismiss={handleConfirmDismiss}
+                onOpenSelectionFile={openSelectionFile}
                 discardPrompt={
                   keyboardSelection.isPendingDismiss()
                     ? {

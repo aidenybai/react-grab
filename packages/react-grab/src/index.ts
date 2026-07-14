@@ -8,6 +8,7 @@ export {
 export { commentPlugin } from "./core/plugins/comment.js";
 export { openPlugin } from "./core/plugins/open.js";
 export { FreezeError } from "./errors.js";
+export { OpenFileError } from "./errors.js";
 export { generateSnippet } from "./utils/generate-snippet.js";
 export { PluginSetupError, ReactGrabError } from "./errors.js";
 export type {
@@ -33,6 +34,7 @@ export type {
   ContextMenuActionContext,
   ActionContext,
   ActionContextHooks,
+  OpenFileActionHooks,
   Plugin,
   PluginConfig,
   PluginHooks,

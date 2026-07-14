@@ -1,7 +1,6 @@
 import { For, Show, type Component } from "solid-js";
 import type { ReactGrabRendererProps } from "../types.js";
 import { DEFAULT_ACTION_ID } from "../constants.js";
-import { requestOpenFile } from "../utils/open-file.js";
 import { isElementConnected } from "../utils/is-element-connected.js";
 import { OverlayCanvas } from "./overlay-canvas.js";
 import { FrozenGlow } from "./frozen-glow.js";
@@ -82,11 +81,7 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           selectionLabelShakeCount={props.selectionLabelShakeCount}
           onConfirmDismiss={props.onConfirmDismiss}
           discardPrompt={props.discardPrompt}
-          onOpen={() => {
-            if (props.selectionFilePath) {
-              requestOpenFile(props.selectionFilePath, props.selectionLineNumber);
-            }
-          }}
+          onOpen={props.onOpenSelectionFile}
           isContextMenuOpen={props.contextMenuPosition !== null}
         />
       </Show>
