@@ -1,5 +1,15 @@
 import { test, expect } from "./fixtures.js";
 
+interface CopyCancellationCase {
+  method: "deactivate" | "dispose";
+  label: string;
+}
+
+const COPY_CANCELLATION_CASES: CopyCancellationCase[] = [
+  { method: "deactivate", label: "deactivation" },
+  { method: "dispose", label: "disposal" },
+];
+
 test.describe("API Methods", () => {
   test.describe("Activation APIs", () => {
     test("activate() should activate the overlay", async ({ reactGrab }) => {
@@ -207,6 +217,108 @@ test.describe("API Methods", () => {
         getContentCallCount: 1,
       });
     });
+
+    test("keeps a copy completed when deactivated during the clipboard write", async ({
+      reactGrab,
+    }) => {
+      const result = await reactGrab.page.evaluate(async () => {
+        const api = (
+          window as {
+            __REACT_GRAB__?: {
+              copyElement: (element: Element) => Promise<boolean>;
+              deactivate: () => void;
+              registerPlugin: (plugin: {
+                name: string;
+                options: { getContent: () => string };
+              }) => void;
+            };
+          }
+        ).__REACT_GRAB__;
+        const element = document.querySelector("[data-testid='todo-list'] h1");
+        if (!api || !element) throw new Error("React Grab API or test element unavailable");
+
+        api.registerPlugin({
+          name: "copy-commit-test",
+          options: { getContent: () => "content" },
+        });
+        const originalExecCommand = document.execCommand;
+        let copyCommandCount = 0;
+        document.execCommand = () => {
+          copyCommandCount += 1;
+          api.deactivate();
+          return true;
+        };
+
+        try {
+          return { didCopy: await api.copyElement(element), copyCommandCount };
+        } finally {
+          document.execCommand = originalExecCommand;
+        }
+      });
+
+      expect(result).toEqual({ didCopy: true, copyCommandCount: 1 });
+    });
+
+    for (const cancellationCase of COPY_CANCELLATION_CASES) {
+      test(`does not write after ${cancellationCase.label} cancels a pending copy`, async ({
+        reactGrab,
+      }) => {
+        const result = await reactGrab.page.evaluate(async (cancellationMethod) => {
+          const api = (
+            window as {
+              __REACT_GRAB__?: {
+                copyElement: (element: Element) => Promise<boolean>;
+                deactivate: () => void;
+                dispose: () => void;
+                registerPlugin: (plugin: {
+                  name: string;
+                  options: { getContent: () => Promise<string> };
+                }) => void;
+              };
+            }
+          ).__REACT_GRAB__;
+          const element = document.querySelector("[data-testid='todo-list'] h1");
+          if (!api || !element) throw new Error("React Grab API or test element unavailable");
+
+          let resolveContent = (_content: string): void => {};
+          let markContentRequested = (): void => {};
+          const content = new Promise<string>((resolve) => {
+            resolveContent = resolve;
+          });
+          const contentRequested = new Promise<void>((resolve) => {
+            markContentRequested = () => resolve();
+          });
+          api.registerPlugin({
+            name: "pending-copy-test",
+            options: {
+              getContent: () => {
+                markContentRequested();
+                return content;
+              },
+            },
+          });
+
+          const originalExecCommand = document.execCommand;
+          let copyCommandCount = 0;
+          document.execCommand = () => {
+            copyCommandCount += 1;
+            return true;
+          };
+
+          try {
+            const pendingCopy = api.copyElement(element);
+            await contentRequested;
+            api[cancellationMethod]();
+            resolveContent("late content");
+            return { didCopy: await pendingCopy, copyCommandCount };
+          } finally {
+            document.execCommand = originalExecCommand;
+          }
+        }, cancellationCase.method);
+
+        expect(result).toEqual({ didCopy: false, copyCommandCount: 0 });
+      });
+    }
   });
 
   test.describe("Theme via setOptions", () => {

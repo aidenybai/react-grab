@@ -2,6 +2,7 @@ import { getElementReferenceContext, getStack, getStackContext, resolveSource } 
 import { copyContent } from "../utils/copy-content.js";
 import { normalizeError } from "../utils/normalize-error.js";
 import { getTagName } from "../utils/get-tag-name.js";
+import { ABORTED_PROMISE_RESULT, racePromiseWithAbort } from "../utils/race-promise-with-abort.js";
 import type { StackFrame } from "bippy/source";
 import type { ReactGrabEntry, ReactGrabStackFrame } from "../types.js";
 
@@ -9,6 +10,7 @@ interface CopyFlowOptions {
   getContent?: (elements: Element[]) => Promise<string> | string;
   componentName?: string;
   maxContextLines?: number;
+  signal?: AbortSignal;
 }
 
 interface CopyFlowHooks {
@@ -23,6 +25,14 @@ interface CopyPayload {
   content: string;
   entries?: ReactGrabEntry[];
 }
+
+export interface CopyFlowResult {
+  readonly status: "cancelled" | "failed" | "succeeded";
+}
+
+const CANCELLED_COPY_FLOW_RESULT: CopyFlowResult = {
+  status: "cancelled",
+};
 
 // Strips bippy's raw `source` stack-line text and `args` from the wire payload.
 const formatStackFramePayload = (frame: StackFrame): ReactGrabStackFrame => ({
@@ -100,34 +110,48 @@ export const runCopyFlow = async (
   hooks: CopyFlowHooks,
   elements: Element[],
   prependedPrompt?: string,
-): Promise<boolean> => {
-  await hooks.onBeforeCopy(elements);
+): Promise<CopyFlowResult> => {
+  if (options.signal?.aborted) return CANCELLED_COPY_FLOW_RESULT;
+  const beforeCopyResult = await racePromiseWithAbort(hooks.onBeforeCopy(elements), options.signal);
+  if (beforeCopyResult === ABORTED_PROMISE_RESULT) return CANCELLED_COPY_FLOW_RESULT;
 
   let didCopy = false;
+  let didStartClipboardWrite = false;
   let finalContent = "";
 
   try {
-    const payload: CopyPayload | null = options.getContent
-      ? { content: await options.getContent(elements) }
-      : await buildClipboardPayload(elements, options.maxContextLines);
+    const pendingPayload: Promise<CopyPayload | null> = options.getContent
+      ? Promise.resolve(options.getContent(elements)).then((content) => ({ content }))
+      : buildClipboardPayload(elements, options.maxContextLines);
+    const payload = await racePromiseWithAbort(pendingPayload, options.signal);
+    if (payload === ABORTED_PROMISE_RESULT) return CANCELLED_COPY_FLOW_RESULT;
     const rawContent = payload?.content;
 
     if (rawContent?.trim()) {
-      const transformedContent = await hooks.transformCopyContent(rawContent, elements);
+      const transformedContent = await racePromiseWithAbort(
+        hooks.transformCopyContent(rawContent, elements),
+        options.signal,
+      );
+      if (transformedContent === ABORTED_PROMISE_RESULT) {
+        return CANCELLED_COPY_FLOW_RESULT;
+      }
       finalContent = prependedPrompt
         ? `${prependedPrompt}\n${transformedContent}`
         : transformedContent;
+      didStartClipboardWrite = true;
       didCopy = copyContent(finalContent, {
         componentName: options.componentName,
         entries: getMetadataEntries(payload, finalContent, prependedPrompt),
       });
     }
   } catch (error) {
+    if (!didStartClipboardWrite && options.signal?.aborted) return CANCELLED_COPY_FLOW_RESULT;
     hooks.onCopyError(normalizeError(error));
   }
 
+  if (!didStartClipboardWrite && options.signal?.aborted) return CANCELLED_COPY_FLOW_RESULT;
   if (didCopy) hooks.onCopySuccess(elements, finalContent);
   hooks.onAfterCopy(elements, didCopy);
 
-  return didCopy;
+  return { status: didCopy ? "succeeded" : "failed" };
 };
