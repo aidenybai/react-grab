@@ -165,6 +165,48 @@ test.describe("API Methods", () => {
       });
       expect(success).toBe(true);
     });
+
+    test("preserves a getContent callback passed to setOptions", async ({ reactGrab }) => {
+      const result = await reactGrab.page.evaluate(async () => {
+        const api = (
+          window as {
+            __REACT_GRAB__?: {
+              copyElement: (element: Element) => Promise<boolean>;
+              setOptions: (options: { getContent: () => string }) => void;
+            };
+          }
+        ).__REACT_GRAB__;
+        const element = document.querySelector("[data-testid='todo-list'] h1");
+        if (!api || !element) throw new Error("React Grab API or test element unavailable");
+
+        let getContentCallCount = 0;
+        api.setOptions({
+          getContent: () => {
+            getContentCallCount += 1;
+            return "custom content";
+          },
+        });
+        const callCountBeforeCopy = getContentCallCount;
+        const originalExecCommand = document.execCommand;
+        document.execCommand = () => true;
+
+        try {
+          return {
+            callCountBeforeCopy,
+            didCopy: await api.copyElement(element),
+            getContentCallCount,
+          };
+        } finally {
+          document.execCommand = originalExecCommand;
+        }
+      });
+
+      expect(result).toEqual({
+        callCountBeforeCopy: 0,
+        didCopy: true,
+        getContentCallCount: 1,
+      });
+    });
   });
 
   test.describe("Theme via setOptions", () => {
