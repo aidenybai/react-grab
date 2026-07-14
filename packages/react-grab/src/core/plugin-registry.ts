@@ -60,6 +60,7 @@ type HookName = keyof PluginHooks;
 
 const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
   const plugins = new Map<string, RegisteredPlugin>();
+  let registeredPluginSnapshot: readonly RegisteredPlugin[] = [];
   const directOptionOverrides: Partial<OptionsState> = {};
   let isDisposed = false;
 
@@ -106,7 +107,7 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
   };
 
   const recomputeStore = () => {
-    applyPluginStoreState(createPluginStoreState(plugins.values()));
+    applyPluginStoreState(createPluginStoreState(registeredPluginSnapshot));
   };
 
   const setOption = <OptionKey extends keyof OptionsState>(
@@ -191,6 +192,7 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
     }
 
     plugins.set(plugin.name, registeredPlugin);
+    registeredPluginSnapshot = Array.from(plugins.values());
     applyPluginStoreState(nextStore);
     if (previousPlugin) cleanupPlugin(previousPlugin);
   };
@@ -201,6 +203,7 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
     if (!registered) return;
 
     plugins.delete(name);
+    registeredPluginSnapshot = Array.from(plugins.values());
     cleanupPlugin(registered);
     recomputeStore();
   };
@@ -209,21 +212,22 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
     if (isDisposed) return;
     isDisposed = true;
 
-    const registeredPlugins = Array.from(plugins.values());
+    const pluginsToCleanup = registeredPluginSnapshot;
     plugins.clear();
-    registeredPlugins.forEach(cleanupPlugin);
+    registeredPluginSnapshot = [];
+    pluginsToCleanup.forEach(cleanupPlugin);
     recomputeStore();
   };
 
   const getPluginNames = (): string[] => {
-    return Array.from(plugins.keys());
+    return registeredPluginSnapshot.map(({ plugin }) => plugin.name);
   };
 
   const callHook = <K extends HookName>(
     hookName: K,
     ...args: Parameters<NonNullable<PluginHooks[K]>>
   ): void => {
-    for (const { plugin, config } of plugins.values()) {
+    for (const { plugin, config } of registeredPluginSnapshot) {
       const hook = config.hooks?.[hookName] as
         | ((...hookArgs: Parameters<NonNullable<PluginHooks[K]>>) => void | Promise<void>)
         | undefined;
@@ -247,7 +251,7 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
     ...args: Parameters<NonNullable<PluginHooks[K]>>
   ): boolean => {
     let handled = false;
-    for (const { plugin, config } of plugins.values()) {
+    for (const { plugin, config } of registeredPluginSnapshot) {
       const hook = config.hooks?.[hookName] as
         | ((...hookArgs: Parameters<NonNullable<PluginHooks[K]>>) => boolean | void)
         | undefined;
@@ -269,7 +273,7 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
     hookName: K,
     ...args: Parameters<NonNullable<PluginHooks[K]>>
   ): Promise<void> => {
-    for (const { plugin, config } of plugins.values()) {
+    for (const { plugin, config } of registeredPluginSnapshot) {
       const hook = config.hooks?.[hookName] as
         | ((
             ...hookArgs: Parameters<NonNullable<PluginHooks[K]>>
@@ -291,7 +295,7 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
     ...extraArgs: unknown[]
   ): Promise<T> => {
     let result = initialValue;
-    for (const { plugin, config } of plugins.values()) {
+    for (const { plugin, config } of registeredPluginSnapshot) {
       const hook = config.hooks?.[hookName] as
         | ((value: T, ...hookArgs: unknown[]) => T | Promise<T>)
         | undefined;
@@ -312,7 +316,7 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
     ...extraArgs: unknown[]
   ): T => {
     let result = initialValue;
-    for (const { plugin, config } of plugins.values()) {
+    for (const { plugin, config } of registeredPluginSnapshot) {
       const hook = config.hooks?.[hookName] as
         | ((value: T, ...hookArgs: unknown[]) => T)
         | undefined;
@@ -336,7 +340,7 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
     ): { wasIntercepted: boolean; pendingResult?: Promise<boolean> } => {
       let wasIntercepted = false;
       const pendingResults: Promise<boolean>[] = [];
-      for (const { plugin, config } of plugins.values()) {
+      for (const { plugin, config } of registeredPluginSnapshot) {
         const hook = config.hooks?.onElementSelect;
         if (hook) {
           try {
