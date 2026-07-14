@@ -26,6 +26,8 @@ import { extractElementCss, disposeBaselineStyles } from "./utils/extract-elemen
 import { findSelectorTarget } from "./utils/find-selector-target.js";
 import { requestOpenFile } from "./utils/open-file.js";
 
+export { OpenFileError } from "./errors.js";
+
 export interface ReactGrabElementContext {
   element: Element;
   snippet: string;

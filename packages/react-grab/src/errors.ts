@@ -19,6 +19,18 @@ export class FreezeError extends ReactGrabError {
   }
 }
 
+export class OpenFileError extends RecoverableError {
+  readonly filePath: string;
+  readonly lineNumber: number | undefined;
+
+  constructor(filePath: string, lineNumber: number | undefined, cause: unknown) {
+    super(`Failed to open source file "${filePath}"`, cause);
+    this.name = "OpenFileError";
+    this.filePath = filePath;
+    this.lineNumber = lineNumber;
+  }
+}
+
 export class PluginHookError extends RecoverableError {
   readonly pluginName: string;
   readonly hookName: string;

@@ -17,6 +17,7 @@ test.describe("Open File", () => {
           hooks: {
             onOpenFile: () => {
               (window as { __OPEN_FILE_CALLED__?: boolean }).__OPEN_FILE_CALLED__ = true;
+              return true;
             },
           },
         });
@@ -274,6 +275,7 @@ test.describe("Open File", () => {
 
       await reactGrab.activate();
       await reactGrab.hoverUntilSelected("li:first-child");
+      await reactGrab.waitForSelectionSource();
 
       await reactGrab.page.evaluate((attrName) => {
         const host = document.querySelector(`[${attrName}]`);
@@ -297,7 +299,7 @@ test.describe("Open File", () => {
         return (window as { __OPEN_FILE_CALLED__?: boolean }).__OPEN_FILE_CALLED__ ?? false;
       });
 
-      expect(typeof openFileCalled).toBe("boolean");
+      expect(openFileCalled).toBe(true);
     });
   });
 
