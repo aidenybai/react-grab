@@ -354,6 +354,35 @@ test.describe("API Methods", () => {
     });
   });
 
+  test.describe("Toolbar state", () => {
+    test("isolates throwing state subscribers", async ({ reactGrab }) => {
+      const result = await reactGrab.page.evaluate(() => {
+        const api = (
+          window as {
+            __REACT_GRAB__?: {
+              onToolbarStateChange: (callback: (state: { collapsed: boolean }) => void) => void;
+              setToolbarState: (state: { collapsed: boolean }) => void;
+            };
+          }
+        ).__REACT_GRAB__;
+        if (!api) throw new Error("React Grab API unavailable");
+
+        let receivedCollapsed: boolean | undefined;
+        api.onToolbarStateChange(() => {
+          throw new Error("subscriber failed");
+        });
+        api.onToolbarStateChange((state) => {
+          receivedCollapsed = state.collapsed;
+        });
+
+        api.setToolbarState({ collapsed: true });
+        return receivedCollapsed;
+      });
+
+      expect(result).toBe(true);
+    });
+  });
+
   test.describe("maxContextLines via setOptions", () => {
     test("raising maxContextLines surfaces more source lines than the compact default", async ({
       reactGrab,
