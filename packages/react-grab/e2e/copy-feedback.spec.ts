@@ -316,6 +316,89 @@ test.describe("Copy Feedback Behavior", () => {
       await expect.poll(() => reactGrab.getLabelInstancesInfo()).toEqual([]);
     });
 
+    test("deactivation cancels a copy waiting for content", async ({ reactGrab }) => {
+      await reactGrab.page.evaluate(() => {
+        const testWindow = window as {
+          __REACT_GRAB__?: {
+            registerPlugin: (plugin: {
+              name: string;
+              options: { getContent: () => Promise<string> };
+            }) => void;
+          };
+          __TEST_COPY_CONTENT_REQUESTED__?: boolean;
+          __TEST_COPY_COMMAND_COUNT__?: number;
+          __TEST_RESOLVE_COPY_CONTENT__?: (content: string) => void;
+          __TEST_RESTORE_EXEC_COMMAND__?: () => void;
+        };
+        const api = testWindow.__REACT_GRAB__;
+        if (!api) throw new Error("React Grab API unavailable");
+
+        let resolveContent = (_content: string): void => {};
+        const content = new Promise<string>((resolve) => {
+          resolveContent = resolve;
+        });
+        api.registerPlugin({
+          name: "pending-copy-feedback-test",
+          options: {
+            getContent: () => {
+              testWindow.__TEST_COPY_CONTENT_REQUESTED__ = true;
+              return content;
+            },
+          },
+        });
+        testWindow.__TEST_RESOLVE_COPY_CONTENT__ = resolveContent;
+
+        const originalExecCommand = document.execCommand;
+        testWindow.__TEST_COPY_COMMAND_COUNT__ = 0;
+        document.execCommand = () => {
+          testWindow.__TEST_COPY_COMMAND_COUNT__ =
+            (testWindow.__TEST_COPY_COMMAND_COUNT__ ?? 0) + 1;
+          return true;
+        };
+        testWindow.__TEST_RESTORE_EXEC_COMMAND__ = () => {
+          document.execCommand = originalExecCommand;
+        };
+      });
+
+      await reactGrab.activate();
+      await reactGrab.hoverUntilSelected("li:first-child");
+      await reactGrab.clickElement("li:first-child");
+      await expect
+        .poll(() =>
+          reactGrab.page.evaluate(
+            () =>
+              (window as { __TEST_COPY_CONTENT_REQUESTED__?: boolean })
+                .__TEST_COPY_CONTENT_REQUESTED__,
+          ),
+        )
+        .toBe(true);
+
+      await reactGrab.deactivate();
+      await expect.poll(() => reactGrab.getLabelInstancesInfo()).toEqual([]);
+      await reactGrab.page.evaluate(async () => {
+        (
+          window as {
+            __TEST_RESOLVE_COPY_CONTENT__?: (content: string) => void;
+          }
+        ).__TEST_RESOLVE_COPY_CONTENT__?.("late content");
+        await new Promise<void>((resolve) => {
+          requestAnimationFrame(() => resolve());
+        });
+      });
+
+      expect(await reactGrab.getLabelInstancesInfo()).toEqual([]);
+      expect(
+        await reactGrab.page.evaluate(
+          () => (window as { __TEST_COPY_COMMAND_COUNT__?: number }).__TEST_COPY_COMMAND_COUNT__,
+        ),
+      ).toBe(0);
+      await reactGrab.page.evaluate(() => {
+        (
+          window as { __TEST_RESTORE_EXEC_COMMAND__?: () => void }
+        ).__TEST_RESTORE_EXEC_COMMAND__?.();
+      });
+    });
+
     test("should enter copying state immediately on click", async ({ reactGrab }) => {
       await reactGrab.activate();
       await reactGrab.hoverUntilSelected("li:first-child");

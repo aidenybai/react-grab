@@ -42,7 +42,7 @@ import {
 import { isNextProjectRuntime } from "../utils/is-next-project-runtime.js";
 import { createNoopApi } from "./noop-api.js";
 import { createEventListenerManager } from "./events.js";
-import { runCopyFlow } from "./copy.js";
+import { runCopyFlow, type CopyFlowResult } from "./copy.js";
 import {
   clearElementPositionCache,
   getElementAtPosition,
@@ -152,6 +152,7 @@ import {
 import { freezeUpdates } from "../utils/freeze-updates.js";
 import { generateId } from "../utils/generate-id.js";
 import { reportRecoverableError } from "../utils/report-recoverable-error.js";
+import { ABORTED_PROMISE_RESULT, racePromiseWithAbort } from "../utils/race-promise-with-abort.js";
 import { getNearestEdge } from "../utils/get-nearest-edge.js";
 import { findShortcutAction } from "../utils/action-shortcuts.js";
 import { createKeyboardSelectionController } from "./keyboard-selection.js";
@@ -198,10 +199,14 @@ interface LabeledCopyOptions {
 }
 
 interface CopyRetryEntry {
-  operation: () => Promise<boolean>;
+  operation: (signal: AbortSignal) => Promise<CopyFlowResult>;
   siblingIds: Set<string>;
   shouldDeactivateAfter: boolean;
 }
+
+const CANCELLED_COPY_RESULT: CopyFlowResult = {
+  status: "cancelled",
+};
 
 let hasInited = false;
 const toolbarStateChangeCallbacks = new Set<(state: ToolbarState) => void>();
@@ -250,6 +255,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
   return createRoot((dispose) => {
     let disposed = false;
+    let copyAbortController = new AbortController();
     let pendingCopyMetadataIdentity: object | null = null;
     let disposeRenderer: (() => void) | undefined;
 
@@ -667,6 +673,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           };
         }),
       );
+      if (disposed) return;
 
       window.dispatchEvent(
         new CustomEvent("react-grab:element-selected", {
@@ -690,38 +697,77 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       () => retryCopyByInstanceId.clear(),
     );
 
-    const cancelPendingCopyMetadata = () => {
-      if (!pendingCopyMetadataIdentity) return;
+    const dismissCopyingLabels = (labelInstanceIds: string[]) => {
+      for (const labelInstanceId of labelInstanceIds) {
+        const labelInstance = store.labelInstances.find(
+          (currentInstance) => currentInstance.id === labelInstanceId,
+        );
+        if (labelInstance?.status !== "copying") continue;
+        retryCopyByInstanceId.delete(labelInstanceId);
+        labelController.dismissInstance(labelInstanceId);
+      }
+    };
+
+    const abortCopyOperations = () => {
+      copyAbortController.abort();
+    };
+
+    const getCopySignal = (): AbortSignal => {
+      if (copyAbortController.signal.aborted && !disposed) {
+        copyAbortController = new AbortController();
+      }
+      return copyAbortController.signal;
+    };
+
+    const startCopyOperation = (): AbortSignal => {
+      abortCopyOperations();
+      return getCopySignal();
+    };
+
+    const cancelPendingCopies = () => {
+      abortCopyOperations();
       pendingCopyMetadataIdentity = null;
-      if (current().state === "copying") labelController.clearAll();
+      dismissCopyingLabels(
+        store.labelInstances
+          .filter((labelInstance) => labelInstance.status === "copying")
+          .map((labelInstance) => labelInstance.id),
+      );
     };
 
     const attemptClipboardAndLabel = async (
-      clipboardOperation: () => Promise<boolean>,
+      clipboardOperation: (signal: AbortSignal) => Promise<CopyFlowResult>,
       labelInstanceIds: string[] | null,
-    ): Promise<boolean> => {
-      let didSucceed = false;
+      signal: AbortSignal,
+    ): Promise<CopyFlowResult> => {
+      let copyResult: CopyFlowResult;
       let errorMessage: string | undefined;
 
       try {
-        didSucceed = await clipboardOperation();
-        if (!didSucceed) errorMessage = "Failed to copy";
+        copyResult = await clipboardOperation(signal);
+        if (copyResult.status === "cancelled") return copyResult;
+        if (copyResult.status === "failed") errorMessage = "Failed to copy";
       } catch (error) {
+        if (signal.aborted) return CANCELLED_COPY_RESULT;
+        copyResult = { status: "failed" };
         errorMessage = normalizeErrorMessage(error, "Action failed");
       }
 
       if (labelInstanceIds) {
         for (const labelInstanceId of labelInstanceIds) {
-          labelController.updateAfterCopy(labelInstanceId, didSucceed, errorMessage);
+          labelController.updateAfterCopy(
+            labelInstanceId,
+            copyResult.status === "succeeded",
+            errorMessage,
+          );
         }
       }
 
-      return didSucceed;
+      return copyResult;
     };
 
     const registerCopyRetry = (
       didSucceed: boolean,
-      clipboardOperation: () => Promise<boolean>,
+      clipboardOperation: (signal: AbortSignal) => Promise<CopyFlowResult>,
       labelInstanceIds: string[],
       shouldDeactivateAfter: boolean,
     ) => {
@@ -743,16 +789,24 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const executeCopyOperation = async (
-      clipboardOperation: () => Promise<boolean>,
+      clipboardOperation: (signal: AbortSignal) => Promise<CopyFlowResult>,
       labelInstanceIds: string[] | null,
       shouldDeactivateAfter?: boolean,
-    ) => {
+      signal: AbortSignal = startCopyOperation(),
+    ): Promise<boolean> => {
+      if (signal.aborted) return false;
       clearCopyFeedbackCooldown();
       if (current().state !== "copying") {
         actions.startCopy();
       }
 
-      const didSucceed = await attemptClipboardAndLabel(clipboardOperation, labelInstanceIds);
+      const copyResult = await attemptClipboardAndLabel(
+        clipboardOperation,
+        labelInstanceIds,
+        signal,
+      );
+      if (copyResult.status === "cancelled") return false;
+      const didSucceed = copyResult.status === "succeeded";
 
       if (labelInstanceIds) {
         registerCopyRetry(
@@ -763,7 +817,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         );
       }
 
-      if (current().state !== "copying") return;
+      if (current().state !== "copying") return true;
 
       if (didSucceed) {
         actions.completeCopy();
@@ -781,6 +835,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         actions.activate();
         actions.unfreeze();
       }
+      return true;
     };
 
     const handleRetryInstance = (instanceId: string) => {
@@ -794,7 +849,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       // Route through the full copy path (not just the clipboard attempt) so a
       // recovered copy runs the same completion side effects as a first-try
       // success: completeCopy, re-activate or deactivate, and feedback cooldown.
-      void executeCopyOperation(entry.operation, idsToRetry, entry.shouldDeactivateAfter);
+      void executeCopyOperation(entry.operation, idsToRetry, entry.shouldDeactivateAfter).then(
+        (didComplete) => {
+          if (!didComplete) dismissCopyingLabels(idsToRetry);
+        },
+      );
     };
 
     const handleAcknowledgeErrorInstance = (instanceId: string) => {
@@ -805,6 +864,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const copyResolvedElements = (
       elements: Element[],
+      signal: AbortSignal,
       extraPrompt?: string,
       resolvedComponentName?: string,
     ) => {
@@ -819,6 +879,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           getContent: pluginRegistry.store.options.getContent,
           componentName: elementName,
           maxContextLines: pluginRegistry.store.options.maxContextLines,
+          signal,
         },
         pluginRegistry.hooks,
         elements,
@@ -830,8 +891,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       targetElements: Element[],
       extraPrompt?: string,
       resolvedComponentName?: string,
-    ): Promise<boolean> => {
-      if (targetElements.length === 0) return false;
+      signal: AbortSignal = getCopySignal(),
+    ): Promise<CopyFlowResult> => {
+      if (targetElements.length === 0 || signal.aborted) return CANCELLED_COPY_RESULT;
 
       const unhandledElements: Element[] = [];
       const pendingResults: Promise<boolean>[] = [];
@@ -848,43 +910,72 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         }
       }
       await waitUntilNextFrame();
+      if (signal.aborted) return CANCELLED_COPY_RESULT;
 
-      let didCopy = true;
+      let copyResult: CopyFlowResult | undefined;
       if (unhandledElements.length > 0) {
-        didCopy = await copyResolvedElements(unhandledElements, extraPrompt, resolvedComponentName);
+        copyResult = await copyResolvedElements(
+          unhandledElements,
+          signal,
+          extraPrompt,
+          resolvedComponentName,
+        );
+        if (copyResult.status === "cancelled") return copyResult;
       }
       if (pendingResults.length > 0) {
-        const results = await Promise.all(pendingResults);
+        const results = await racePromiseWithAbort(Promise.all(pendingResults), signal);
+        if (results === ABORTED_PROMISE_RESULT) {
+          return copyResult?.status === "succeeded" ? copyResult : CANCELLED_COPY_RESULT;
+        }
         if (!results.every(Boolean)) {
           throw new CopyFailedError();
         }
       }
-      void notifyElementsSelected(targetElements);
-      return didCopy;
+      if (signal.aborted && !copyResult) return CANCELLED_COPY_RESULT;
+      void notifyElementsSelected(targetElements).catch((error) => {
+        reportRecoverableError(
+          new RecoverableError("Element selection notification failed", error),
+        );
+      });
+      return copyResult ?? { status: "succeeded" };
     };
 
     const runLabeledCopy = (copy: LabeledCopyOptions) => {
+      const signal = startCopyOperation();
       const metadataIdentity = {};
       let didStartCopyOperation = false;
       pendingCopyMetadataIdentity = metadataIdentity;
       void getNearestComponentName(copy.primaryElement)
         .then(async (componentName) => {
-          if (disposed || pendingCopyMetadataIdentity !== metadataIdentity) return;
+          if (signal.aborted || pendingCopyMetadataIdentity !== metadataIdentity) {
+            dismissCopyingLabels(copy.labelInstanceIds);
+            return;
+          }
           pendingCopyMetadataIdentity = null;
           didStartCopyOperation = true;
-          await executeCopyOperation(
-            () =>
+          const didComplete = await executeCopyOperation(
+            (copySignal) =>
               copyElementsToClipboard(
                 copy.targetElements,
                 copy.extraPrompt,
                 componentName ?? undefined,
+                copySignal,
               ),
             copy.labelInstanceIds.length > 0 ? copy.labelInstanceIds : null,
             copy.shouldDeactivateAfter,
+            signal,
           );
-          copy.onComplete?.();
+          if (didComplete) {
+            copy.onComplete?.();
+          } else {
+            dismissCopyingLabels(copy.labelInstanceIds);
+          }
         })
         .catch((error) => {
+          if (signal.aborted) {
+            dismissCopyingLabels(copy.labelInstanceIds);
+            return;
+          }
           if (
             disposed ||
             (!didStartCopyOperation && pendingCopyMetadataIdentity !== metadataIdentity)
@@ -898,14 +989,16 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           if (copy.labelInstanceIds.length > 0) {
             registerCopyRetry(
               false,
-              () =>
-                getNearestComponentName(copy.primaryElement).then((componentName) =>
-                  copyElementsToClipboard(
+              (retrySignal) =>
+                getNearestComponentName(copy.primaryElement).then((componentName) => {
+                  if (retrySignal.aborted) return CANCELLED_COPY_RESULT;
+                  return copyElementsToClipboard(
                     copy.targetElements,
                     copy.extraPrompt,
                     componentName ?? undefined,
-                  ),
-                ),
+                    retrySignal,
+                  );
+                }),
               copy.labelInstanceIds,
               Boolean(copy.shouldDeactivateAfter),
             );
@@ -1609,7 +1702,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const deactivateRenderer = () => {
-      cancelPendingCopyMetadata();
+      cancelPendingCopies();
       const wasDragging = isDragging();
       const previousFocused = store.previouslyFocusedElement;
       stopSpaceDragRepositioning();
@@ -1649,8 +1742,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (isHoldingKeys()) {
         actions.releaseHold();
       }
-      if (isActivated()) {
+      if (isActivated() || isCopying()) {
         deactivateRenderer();
+      } else {
+        cancelPendingCopies();
       }
       clearCopyFeedbackCooldown();
     };
@@ -1788,6 +1883,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const handleActivateAction = (actionId: string) => {
+      if (isCopying()) {
+        deactivateRenderer();
+        return;
+      }
       if (isActivated()) {
         // While still choosing an element, clicking a different action switches
         // the pending action in place instead of tearing down selection mode;
@@ -2738,6 +2837,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           event.preventDefault();
           event.stopPropagation();
           handleInputCancel();
+          return;
+        }
+
+        if (event.key === "Escape" && isCopying()) {
+          deactivateRenderer();
           return;
         }
 
@@ -4093,7 +4197,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const copyElementAPI = async (elements: Element | Element[]): Promise<boolean> => {
       const elementsArray = Array.isArray(elements) ? elements : [elements];
       if (elementsArray.length === 0) return false;
-      return await copyResolvedElements(elementsArray);
+      const copyResult = await copyResolvedElements(elementsArray, getCopySignal());
+      return copyResult.status === "succeeded";
     };
 
     const api: ReactGrabAPI = {
@@ -4106,10 +4211,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       deactivate: () => {
         if (isActivated() || isCopying()) {
           deactivateRenderer();
+        } else {
+          cancelPendingCopies();
         }
       },
       toggle: () => {
-        if (isActivated()) {
+        if (isActivated() || isCopying()) {
           deactivateRenderer();
         } else if (isEnabled()) {
           toggleActivate();
@@ -4163,13 +4270,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         forceDeactivateAll();
         dismissAllPopups();
         actions.clearGrabbedBoxes();
-        cancelPendingCopyMetadata();
         labelController.clearAll();
         actions.setSelectionSource(null, null);
       },
       dispose: () => {
         disposed = true;
-        cancelPendingCopyMetadata();
+        cancelPendingCopies();
         labelController.clearAll();
         hasInited = false;
         disposeRenderer?.();

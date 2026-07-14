@@ -132,6 +132,87 @@ test.describe("Copy failure feedback", () => {
       .toBe(false);
   });
 
+  test("deactivation cancels a pending retry without restoring its error label", async ({
+    reactGrab,
+  }) => {
+    await forceCopyResult(reactGrab, false);
+
+    await reactGrab.activate();
+    await reactGrab.hoverUntilSelected("li");
+    await reactGrab.clickElement("li");
+    await readErrorView(reactGrab);
+
+    await reactGrab.page.evaluate(() => {
+      const testWindow = window as {
+        __REACT_GRAB__?: {
+          registerPlugin: (plugin: {
+            name: string;
+            options: { getContent: () => Promise<string> };
+          }) => void;
+        };
+        __TEST_RETRY_CONTENT_REQUESTED__?: boolean;
+        __TEST_RETRY_COPY_COMMAND_COUNT__?: number;
+        __TEST_RESOLVE_RETRY_CONTENT__?: (content: string) => void;
+      };
+      const api = testWindow.__REACT_GRAB__;
+      if (!api) throw new Error("React Grab API unavailable");
+
+      let resolveContent = (_content: string): void => {};
+      const content = new Promise<string>((resolve) => {
+        resolveContent = resolve;
+      });
+      api.registerPlugin({
+        name: "pending-retry-test",
+        options: {
+          getContent: () => {
+            testWindow.__TEST_RETRY_CONTENT_REQUESTED__ = true;
+            return content;
+          },
+        },
+      });
+      testWindow.__TEST_RESOLVE_RETRY_CONTENT__ = resolveContent;
+      testWindow.__TEST_RETRY_COPY_COMMAND_COUNT__ = 0;
+      document.execCommand = () => {
+        testWindow.__TEST_RETRY_COPY_COMMAND_COUNT__ =
+          (testWindow.__TEST_RETRY_COPY_COMMAND_COUNT__ ?? 0) + 1;
+        return true;
+      };
+    });
+
+    await clickErrorButton(reactGrab, "data-react-grab-retry");
+    await expect
+      .poll(() =>
+        reactGrab.page.evaluate(
+          () =>
+            (window as { __TEST_RETRY_CONTENT_REQUESTED__?: boolean })
+              .__TEST_RETRY_CONTENT_REQUESTED__,
+        ),
+      )
+      .toBe(true);
+
+    await reactGrab.deactivate();
+    await expect.poll(() => reactGrab.getLabelInstancesInfo()).toEqual([]);
+    await reactGrab.page.evaluate(async () => {
+      (
+        window as {
+          __TEST_RESOLVE_RETRY_CONTENT__?: (content: string) => void;
+        }
+      ).__TEST_RESOLVE_RETRY_CONTENT__?.("late retry content");
+      await new Promise<void>((resolve) => {
+        requestAnimationFrame(() => resolve());
+      });
+    });
+
+    expect(await reactGrab.getLabelInstancesInfo()).toEqual([]);
+    expect(
+      await reactGrab.page.evaluate(
+        () =>
+          (window as { __TEST_RETRY_COPY_COMMAND_COUNT__?: number })
+            .__TEST_RETRY_COPY_COMMAND_COUNT__,
+      ),
+    ).toBe(0);
+  });
+
   test("a failed copy that keeps the overlay open leaves the copying state", async ({
     reactGrab,
   }) => {
