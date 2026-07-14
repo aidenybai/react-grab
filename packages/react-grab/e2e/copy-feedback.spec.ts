@@ -295,6 +295,27 @@ test.describe("Copy Feedback Behavior", () => {
   });
 
   test.describe("Immediate Grabbing Feedback", () => {
+    test("deactivation clears feedback waiting for component metadata", async ({ reactGrab }) => {
+      await reactGrab.page.evaluate(() => {
+        window.fetch = () => new Promise<Response>(() => {});
+      });
+
+      await reactGrab.activate();
+      await reactGrab.hoverUntilSelected("li:first-child");
+      await reactGrab.clickElement("li:first-child");
+
+      await expect
+        .poll(async () => {
+          const instances = await reactGrab.getLabelInstancesInfo();
+          return instances.some((instance) => instance.status === "copying");
+        })
+        .toBe(true);
+
+      await reactGrab.deactivate();
+
+      await expect.poll(() => reactGrab.getLabelInstancesInfo()).toEqual([]);
+    });
+
     test("should enter copying state immediately on click", async ({ reactGrab }) => {
       await reactGrab.activate();
       await reactGrab.hoverUntilSelected("li:first-child");
