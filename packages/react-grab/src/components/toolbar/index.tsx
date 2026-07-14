@@ -196,8 +196,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       () => [props.isActive, props.isContextMenuOpen] as const,
       ([isActive, isContextMenuOpen]) => {
         if (!isActive && !isContextMenuOpen && unfreezeUpdatesCallback) {
-          unfreezeUpdatesCallback();
-          unfreezeUpdatesCallback = null;
+          releaseInteractionFreeze();
         }
       },
     ),

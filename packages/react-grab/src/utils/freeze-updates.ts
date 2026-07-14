@@ -59,6 +59,7 @@ interface PausedContextState {
 }
 
 let isUpdatesPaused = false;
+let freezeOwnerCount = 0;
 
 const getOrCache = <K extends object, V>(cache: WeakMap<K, V>, key: K, create: () => V): V => {
   const cached = cache.get(key);
@@ -88,6 +89,7 @@ const pausedQueueStates = new WeakMap<HookQueue, PausedQueueState>();
 const pausedContextStates = new WeakMap<ContextDependency, PausedContextState>();
 const renderersWithPatchedDispatcher = new WeakSet<ReactRenderer>();
 const typedFiberRoots = _fiberRoots as Set<FiberRootLike>;
+const pausedFiberRoots = new Set<FiberRootLike>();
 
 const getFiberRoot = (fiber: Fiber): FiberRootLike | null => {
   let current: Fiber | null = fiber;
@@ -549,43 +551,78 @@ const initializeFreezeSupport = (): void => {
   }
 };
 
+const clearPendingUpdates = (): void => {
+  pendingStoreCallbacks.clear();
+  pendingTransitionCallbacks.length = 0;
+  pendingStateUpdates.length = 0;
+};
+
+const resumeUpdates = (): void => {
+  const fiberRootsToResume = new Set(pausedFiberRoots);
+  try {
+    for (const fiberRoot of collectFiberRoots()) {
+      fiberRootsToResume.add(fiberRoot);
+    }
+  } catch (error) {
+    logRecoverableError("Collecting fiber roots failed during unfreeze", error);
+  }
+
+  pausedFiberRoots.clear();
+  isUpdatesPaused = false;
+
+  for (const fiberRoot of fiberRootsToResume) {
+    try {
+      traverseFibersAndResume(fiberRoot.current);
+    } catch (error) {
+      logRecoverableError("Resuming a fiber root failed during unfreeze", error);
+    }
+  }
+
+  const storeCallbacksToInvoke = Array.from(pendingStoreCallbacks);
+  const transitionCallbacksToInvoke = pendingTransitionCallbacks.slice();
+  const stateUpdatesToInvoke = pendingStateUpdates.slice();
+  clearPendingUpdates();
+
+  invokeCallbacks(storeCallbacksToInvoke);
+  invokeCallbacks(transitionCallbacksToInvoke);
+  invokeCallbacks(stateUpdatesToInvoke);
+  if (!isUpdatesPaused) {
+    scheduleReactUpdate(fiberRootsToResume);
+  }
+};
+
 export const freezeUpdates = (): (() => void) => {
   // Demo mode is display-only and must never pause the host app's React renders,
   // even via the toolbar's own (ungated) freeze path.
   if (IS_DEMO) return () => {};
-  if (isUpdatesPaused) return () => {};
 
-  initializeFreezeSupport();
-  isUpdatesPaused = true;
+  const isFirstFreezeOwner = freezeOwnerCount === 0;
+  freezeOwnerCount += 1;
 
-  const fiberRoots = collectFiberRoots();
-  for (const fiberRoot of fiberRoots) {
-    traverseFibersAndPause(fiberRoot.current);
+  if (isFirstFreezeOwner) {
+    try {
+      initializeFreezeSupport();
+      isUpdatesPaused = true;
+
+      const fiberRoots = collectFiberRoots();
+      for (const fiberRoot of fiberRoots) {
+        pausedFiberRoots.add(fiberRoot);
+        traverseFibersAndPause(fiberRoot.current);
+      }
+    } catch (error) {
+      freezeOwnerCount -= 1;
+      logRecoverableError("Pausing React updates failed", error);
+      if (isUpdatesPaused) resumeUpdates();
+      return () => {};
+    }
   }
 
+  let didReleaseFreeze = false;
+
   return () => {
-    if (!isUpdatesPaused) return;
-
-    try {
-      const fiberRootsToResume = collectFiberRoots();
-      for (const fiberRoot of fiberRootsToResume) {
-        traverseFibersAndResume(fiberRoot.current);
-      }
-
-      const storeCallbacksToInvoke = Array.from(pendingStoreCallbacks);
-      const transitionCallbacksToInvoke = pendingTransitionCallbacks.slice();
-      const stateUpdatesToInvoke = pendingStateUpdates.slice();
-
-      isUpdatesPaused = false;
-
-      invokeCallbacks(storeCallbacksToInvoke);
-      invokeCallbacks(transitionCallbacksToInvoke);
-      invokeCallbacks(stateUpdatesToInvoke);
-      scheduleReactUpdate(fiberRootsToResume);
-    } finally {
-      pendingStoreCallbacks.clear();
-      pendingTransitionCallbacks.length = 0;
-      pendingStateUpdates.length = 0;
-    }
+    if (didReleaseFreeze) return;
+    didReleaseFreeze = true;
+    freezeOwnerCount -= 1;
+    if (freezeOwnerCount === 0) resumeUpdates();
   };
 };
