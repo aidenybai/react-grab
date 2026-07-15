@@ -407,6 +407,7 @@ export const captureDomMutationAttribution = async (
   const scriptsById = new Map<string, DebuggerScriptParsedEvent>();
   let pendingPauseHandling = Promise.resolve();
   let debuggerPausedListener: ((event: DebuggerPausedEvent) => void) | null = null;
+  let pauseHandlingError: string | undefined;
   let didReachHitLimit = false;
   try {
     session = await page.context().newCDPSession(page);
@@ -415,48 +416,55 @@ export const captureDomMutationAttribution = async (
       scriptsById.set(event.scriptId, event);
     });
     debuggerPausedListener = (event: DebuggerPausedEvent): void => {
-      pendingPauseHandling = pendingPauseHandling.then(async () => {
-        try {
-          if (event.reason !== "DOM") return;
-          if (hits.length >= PERF_DOM_BREAKPOINT_HIT_LIMIT) return;
-          const data = event.data ?? {};
-          const nodeIdValue = data.targetNodeId ?? data.nodeId;
-          const nodeId = typeof nodeIdValue === "number" ? nodeIdValue : Number(nodeIdValue);
-          let node: PerfDomMutationNode | undefined;
-          if (Number.isFinite(nodeId) && nodeId > 0) {
-            try {
-              const response: DomDescribeNodeResponse = await activeSession.send(
-                "DOM.describeNode",
-                { nodeId, depth: 0 },
-              );
-              node = {
-                nodeId,
-                backendNodeId: response.node.backendNodeId,
-                nodeName: response.node.nodeName,
-                selector: describeNodeSelector(response.node),
-              };
-            } catch {
-              node = undefined;
+      pendingPauseHandling = pendingPauseHandling
+        .then(async () => {
+          try {
+            if (event.reason !== "DOM") return;
+            if (hits.length >= PERF_DOM_BREAKPOINT_HIT_LIMIT) return;
+            const data = event.data ?? {};
+            const nodeIdValue = data.targetNodeId ?? data.nodeId;
+            const nodeId = typeof nodeIdValue === "number" ? nodeIdValue : Number(nodeIdValue);
+            let node: PerfDomMutationNode | undefined;
+            if (Number.isFinite(nodeId) && nodeId > 0) {
+              try {
+                const response: DomDescribeNodeResponse = await activeSession.send(
+                  "DOM.describeNode",
+                  { nodeId, depth: 0 },
+                );
+                node = {
+                  nodeId,
+                  backendNodeId: response.node.backendNodeId,
+                  nodeName: response.node.nodeName,
+                  selector: describeNodeSelector(response.node),
+                };
+              } catch {
+                node = undefined;
+              }
             }
-          }
-          hits.push({
-            breakpointType: String(data.type ?? "DOM"),
-            insertion: typeof data.insertion === "boolean" ? data.insertion : undefined,
-            node,
-            frames: createSourceFrames(event),
-          });
-          if (hits.length >= PERF_DOM_BREAKPOINT_HIT_LIMIT) {
-            didReachHitLimit = true;
-            try {
-              await activeSession.send("Debugger.setSkipAllPauses", { skip: true });
-            } catch {
-              warnings.push("Could not disable debugger pauses after reaching the hit limit");
+            hits.push({
+              breakpointType: String(data.type ?? "DOM"),
+              insertion: typeof data.insertion === "boolean" ? data.insertion : undefined,
+              node,
+              frames: createSourceFrames(event),
+            });
+            if (hits.length >= PERF_DOM_BREAKPOINT_HIT_LIMIT) {
+              didReachHitLimit = true;
+              try {
+                await activeSession.send("Debugger.setSkipAllPauses", { skip: true });
+              } catch {
+                warnings.push("Could not disable debugger pauses after reaching the hit limit");
+              }
             }
+          } finally {
+            await activeSession.send("Debugger.resume").catch(() => {});
           }
-        } finally {
-          await activeSession.send("Debugger.resume").catch(() => {});
-        }
-      });
+        })
+        .catch((handlingError) => {
+          if (pauseHandlingError) return;
+          pauseHandlingError =
+            handlingError instanceof Error ? handlingError.message : String(handlingError);
+          warnings.push(`Debugger pause attribution was incomplete: ${pauseHandlingError}`);
+        });
     };
     activeSession.on("Debugger.paused", debuggerPausedListener);
 
