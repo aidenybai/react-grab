@@ -115,6 +115,9 @@ interface ProfileSnapshotResponse {
 
 interface RuntimeEvaluateResponse {
   exceptionDetails?: unknown;
+  result?: {
+    value?: unknown;
+  };
 }
 
 const roundTo3 = (value: number): number => Number(value.toFixed(3));
@@ -226,7 +229,7 @@ const refreshStaticLayerTree = async (pageSession: CDPSession): Promise<void> =>
     expression: `new Promise((resolve) => {
       const documentElement = document.documentElement;
       if (!documentElement) {
-        resolve();
+        resolve(true);
         return;
       }
       const hadStyleAttribute = documentElement.hasAttribute("style");
@@ -234,11 +237,13 @@ const refreshStaticLayerTree = async (pageSession: CDPSession): Promise<void> =>
       const originalWillChangePriority = documentElement.style.getPropertyPriority("will-change");
       let didRestore = false;
       let didComplete = false;
-      const complete = () => {
+      let settleTimeoutHandle;
+      const complete = (didSettle) => {
         if (didComplete) return;
         didComplete = true;
         clearTimeout(timeoutHandle);
-        resolve();
+        clearTimeout(settleTimeoutHandle);
+        resolve(didSettle);
       };
       const restore = () => {
         if (didRestore) return;
@@ -255,11 +260,14 @@ const refreshStaticLayerTree = async (pageSession: CDPSession): Promise<void> =>
         if (!hadStyleAttribute && documentElement.style.length === 0) {
           documentElement.removeAttribute("style");
         }
-        requestAnimationFrame(() => requestAnimationFrame(complete));
+        requestAnimationFrame(() => requestAnimationFrame(() => complete(true)));
       };
       const timeoutHandle = setTimeout(() => {
         restore();
-        complete();
+        settleTimeoutHandle = setTimeout(
+          () => complete(false),
+          ${PERF_COMPOSITING_REFRESH_TIMEOUT_MS},
+        );
       }, ${PERF_COMPOSITING_REFRESH_TIMEOUT_MS});
       documentElement.style.setProperty("will-change", "transform", "important");
       requestAnimationFrame(() => requestAnimationFrame(restore));
@@ -268,6 +276,9 @@ const refreshStaticLayerTree = async (pageSession: CDPSession): Promise<void> =>
     returnByValue: true,
   });
   if (response.exceptionDetails) throw new Error("Could not refresh Chromium's layer tree");
+  if (response.result?.value !== true) {
+    throw new Error("Chromium's layer tree did not settle after removing the refresh layer");
+  }
 };
 
 export const startCompositingProbe = async (
@@ -375,7 +386,18 @@ export const startCompositingProbe = async (
     }
   } catch (refreshError) {
     const message = refreshError instanceof Error ? refreshError.message : String(refreshError);
-    warnings.push(`Could not request the initial layer tree: ${message}`);
+    pageSession.off("LayerTree.layerTreeDidChange", handleLayerTreeChange);
+    pageSession.off("LayerTree.layerPainted", handleLayerPainted);
+    return {
+      stop: async () => {
+        try {
+          await pageSession.send("LayerTree.disable");
+        } catch {
+          // The page can close while the best-effort layer summary is finalized.
+        }
+        return unavailableSummary(`Could not establish a stable initial layer tree: ${message}`);
+      },
+    };
   }
 
   return {
