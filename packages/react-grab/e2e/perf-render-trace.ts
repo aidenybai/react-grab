@@ -1018,6 +1018,8 @@ export const captureRenderTrace = async (
   let compositingProbe: PerfCompositingProbe | null = null;
   let validityProbe: PerfRunValidityProbe | null = null;
   let animationLifecycleInterval: ReturnType<typeof setInterval> | null = null;
+  let isAnimationLifecycleSamplingActive = false;
+  let pendingAnimationLifecycleSample = Promise.resolve();
   let isTracingActive = false;
   try {
     browserSession = await browser.newBrowserCDPSession();
@@ -1076,7 +1078,6 @@ export const captureRenderTrace = async (
     animationLifecycleTracker.handleActiveAnimationCount(await readActivePageAnimationCount(page));
     animationLifecycleTracker.start();
     const animationPageSession = pageSession;
-    let pendingAnimationLifecycleSample = Promise.resolve();
     const sampleAnimationLifecycle = async (): Promise<void> => {
       animationLifecycleTracker.handleActiveAnimationCount(
         await readActivePageAnimationCount(page),
@@ -1093,13 +1094,17 @@ export const captureRenderTrace = async (
         }
       }
     };
+    isAnimationLifecycleSamplingActive = true;
     animationLifecycleInterval = setInterval(() => {
+      if (!isAnimationLifecycleSamplingActive) return;
       pendingAnimationLifecycleSample =
         pendingAnimationLifecycleSample.then(sampleAnimationLifecycle);
+      void pendingAnimationLifecycleSample.catch(() => {});
     }, PERF_ANIMATION_LIFECYCLE_SAMPLE_INTERVAL_MS);
     await page.evaluate((markerName) => performance.mark(markerName), PERF_TRACE_MARKER_START);
     await scenarioBody();
     await page.evaluate((markerName) => performance.mark(markerName), PERF_TRACE_MARKER_END);
+    isAnimationLifecycleSamplingActive = false;
     clearInterval(animationLifecycleInterval);
     animationLifecycleInterval = null;
     await pendingAnimationLifecycleSample;
@@ -1156,7 +1161,9 @@ export const captureRenderTrace = async (
       error: captureError instanceof Error ? captureError.message : String(captureError),
     };
   } finally {
+    isAnimationLifecycleSamplingActive = false;
     if (animationLifecycleInterval) clearInterval(animationLifecycleInterval);
+    await pendingAnimationLifecycleSample.catch(() => {});
     if (validityProbe) {
       try {
         await validityProbe.stop();

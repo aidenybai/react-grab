@@ -155,63 +155,76 @@ export const startPerfRunValidityProbe = async (page: Page): Promise<PerfRunVali
     };
   }
 
-  const browserSession = await browser.newBrowserCDPSession();
-  const pageSession = await page.context().newCDPSession(page);
-  let frozenLifecycleCount = 0;
-  let hiddenLifecycleCount = 0;
-  pageSession.on("Page.lifecycleEvent", (event: PageLifecycleEvent) => {
-    if (event.name === "frozen") frozenLifecycleCount += 1;
-    if (event.name === "hidden") hiddenLifecycleCount += 1;
-  });
-  await pageSession.send("Page.enable");
-  await pageSession.send("Page.setLifecycleEventsEnabled", { enabled: true });
-  const devToolsTargetCountAtStart = await countDevToolsTargets(browserSession);
-  await page.evaluate(installPageValidityProbe);
+  let browserSession: CDPSession | null = null;
+  let pageSession: CDPSession | null = null;
+  try {
+    browserSession = await browser.newBrowserCDPSession();
+    pageSession = await page.context().newCDPSession(page);
+    const activeBrowserSession = browserSession;
+    const activePageSession = pageSession;
+    let frozenLifecycleCount = 0;
+    let hiddenLifecycleCount = 0;
+    activePageSession.on("Page.lifecycleEvent", (event: PageLifecycleEvent) => {
+      if (event.name === "frozen") frozenLifecycleCount += 1;
+      if (event.name === "hidden") hiddenLifecycleCount += 1;
+    });
+    await activePageSession.send("Page.enable");
+    await activePageSession.send("Page.setLifecycleEventsEnabled", { enabled: true });
+    const devToolsTargetCountAtStart = await countDevToolsTargets(activeBrowserSession);
+    await page.evaluate(installPageValidityProbe);
 
-  return {
-    async stop() {
-      let pageSnapshot = unavailablePageSnapshot();
-      let devToolsTargetCountAtEnd = devToolsTargetCountAtStart;
-      try {
-        const completedSnapshot = await page.evaluate(
-          () => window.__PERF_RUN_VALIDITY__?.stop() ?? null,
-        );
-        if (completedSnapshot) pageSnapshot = completedSnapshot;
-        devToolsTargetCountAtEnd = await countDevToolsTargets(browserSession);
-      } finally {
-        await Promise.allSettled([pageSession.detach(), browserSession.detach()]);
-      }
-      const violations: string[] = [];
-      if (!pageSnapshot.probeCompleted) violations.push("validity-probe-detached");
-      if (!pageSnapshot.startedVisible || !pageSnapshot.endedVisible)
-        violations.push("not-visible");
-      if (pageSnapshot.visibilityChangeCount > 0 || pageSnapshot.hiddenDurationMs > 0) {
-        violations.push("visibility-changed");
-      }
-      if (!pageSnapshot.startedFocused || !pageSnapshot.endedFocused)
-        violations.push("not-focused");
-      if (pageSnapshot.blurEventCount > 0 || pageSnapshot.unfocusedDurationMs > 0) {
-        violations.push("focus-lost");
-      }
-      if (frozenLifecycleCount > 0) violations.push("page-frozen");
-      if (hiddenLifecycleCount > 0) violations.push("page-hidden");
-      if (devToolsTargetCountAtStart > 0 || devToolsTargetCountAtEnd > 0) {
-        violations.push("devtools-open");
-      }
-      return {
-        ...pageSnapshot,
-        hiddenDurationMs: roundTo3(pageSnapshot.hiddenDurationMs),
-        unfocusedDurationMs: roundTo3(pageSnapshot.unfocusedDurationMs),
-        devToolsTargetCountAtStart,
-        devToolsTargetCountAtEnd,
-        frozenLifecycleCount,
-        hiddenLifecycleCount,
-        occlusionSignal: "document-and-page-lifecycle",
-        validForHeadedMeasurement: violations.length === 0,
-        violations,
-      };
-    },
-  };
+    return {
+      async stop() {
+        let pageSnapshot = unavailablePageSnapshot();
+        let devToolsTargetCountAtEnd = devToolsTargetCountAtStart;
+        try {
+          const completedSnapshot = await page.evaluate(
+            () => window.__PERF_RUN_VALIDITY__?.stop() ?? null,
+          );
+          if (completedSnapshot) pageSnapshot = completedSnapshot;
+          devToolsTargetCountAtEnd = await countDevToolsTargets(activeBrowserSession);
+        } finally {
+          await Promise.allSettled([activePageSession.detach(), activeBrowserSession.detach()]);
+        }
+        const violations: string[] = [];
+        if (!pageSnapshot.probeCompleted) violations.push("validity-probe-detached");
+        if (!pageSnapshot.startedVisible || !pageSnapshot.endedVisible)
+          violations.push("not-visible");
+        if (pageSnapshot.visibilityChangeCount > 0 || pageSnapshot.hiddenDurationMs > 0) {
+          violations.push("visibility-changed");
+        }
+        if (!pageSnapshot.startedFocused || !pageSnapshot.endedFocused)
+          violations.push("not-focused");
+        if (pageSnapshot.blurEventCount > 0 || pageSnapshot.unfocusedDurationMs > 0) {
+          violations.push("focus-lost");
+        }
+        if (frozenLifecycleCount > 0) violations.push("page-frozen");
+        if (hiddenLifecycleCount > 0) violations.push("page-hidden");
+        if (devToolsTargetCountAtStart > 0 || devToolsTargetCountAtEnd > 0) {
+          violations.push("devtools-open");
+        }
+        return {
+          ...pageSnapshot,
+          hiddenDurationMs: roundTo3(pageSnapshot.hiddenDurationMs),
+          unfocusedDurationMs: roundTo3(pageSnapshot.unfocusedDurationMs),
+          devToolsTargetCountAtStart,
+          devToolsTargetCountAtEnd,
+          frozenLifecycleCount,
+          hiddenLifecycleCount,
+          occlusionSignal: "document-and-page-lifecycle",
+          validForHeadedMeasurement: violations.length === 0,
+          violations,
+        };
+      },
+    };
+  } catch (setupError) {
+    await page.evaluate(() => window.__PERF_RUN_VALIDITY__?.stop()).catch(() => {});
+    const sessionDetachments: Promise<void>[] = [];
+    if (pageSession) sessionDetachments.push(pageSession.detach());
+    if (browserSession) sessionDetachments.push(browserSession.detach());
+    await Promise.allSettled(sessionDetachments);
+    throw setupError;
+  }
 };
 
 export const aggregatePerfRunValidity = (
