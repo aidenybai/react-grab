@@ -134,11 +134,11 @@ const INSTALLER_REGISTRY: Record<keyof PerfDomHelpers, string> = {
 };
 
 export const test = reactGrabTest.extend<PerfTestFixtures>({
-  // Calibrate on Playwright's pristine page before a heavy fixture can turn
-  // missed frames into a false display refresh rate.
+  // Depend on the lightweight root fixture so its navigation is complete,
+  // then calibrate before a heavy workload can distort the display cadence.
   perfRefreshIntervalCalibration: [
-    async ({ page }, use) => {
-      await calibratePerfRefreshInterval(page);
+    async ({ reactGrab }, use) => {
+      await calibratePerfRefreshInterval(reactGrab.page);
       await use();
     },
     { auto: true },
