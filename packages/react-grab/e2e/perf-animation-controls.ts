@@ -22,6 +22,7 @@ import {
   PERF_ANIMATION_INDICATOR_SIZE_PX,
   PERF_ANIMATION_LOW_OPACITY,
   PERF_ANIMATION_PRODUCTION_INDICATOR_COUNT,
+  PERF_ANIMATION_SINGLE_INDICATOR_COUNT,
   PERF_REPORT_SCHEMA_VERSION,
 } from "./perf-constants.js";
 import { capturePerfEnvironment, type PerfEnvironment } from "./perf-environment.js";
@@ -64,6 +65,7 @@ export interface PerfAnimationControlFixtureOptions {
 
 export interface PerfAnimationControlSample {
   mode: PerfAnimationControlMode;
+  indicatorCount: number;
   repetition: number;
   order: number;
   processCpu: PerfProcessCpuSample;
@@ -72,6 +74,7 @@ export interface PerfAnimationControlSample {
 
 export interface PerfAnimationControlComparison {
   mode: Exclude<PerfAnimationControlMode, "animations-paused">;
+  indicatorCount: number;
   sequence: PerfAnimationControlMode[];
   active: {
     processCpu: PerfProcessCpuMetrics;
@@ -89,6 +92,7 @@ export interface PerfAnimationControlComparison {
 
 export interface PerfAnimationControlTrace {
   mode: PerfAnimationControlMode;
+  indicatorCount: number;
   renderTrace: PerfRenderTraceReport;
 }
 
@@ -122,6 +126,11 @@ const controlModes: Array<Exclude<PerfAnimationControlMode, "animations-paused">
   "infinite-stepped",
   "finite-static-holds",
 ];
+
+const getAnimationControlIndicatorCount = (mode: PerfAnimationControlMode): number =>
+  mode === "legacy-one-indicator"
+    ? PERF_ANIMATION_SINGLE_INDICATOR_COUNT
+    : PERF_ANIMATION_PRODUCTION_INDICATOR_COUNT;
 
 const installAnimationControlFixture = (options: PerfAnimationControlFixtureOptions): void => {
   window.__PERF_ANIMATION_CONTROL__?.cleanup();
@@ -218,9 +227,11 @@ const cleanupAnimationControl = async (page: Page): Promise<void> => {
   }
 };
 
-const setupAnimationControl = async (page: Page, mode: PerfAnimationControlMode): Promise<void> => {
-  const indicatorCount =
-    mode === "legacy-one-indicator" ? 1 : PERF_ANIMATION_PRODUCTION_INDICATOR_COUNT;
+const setupAnimationControl = async (
+  page: Page,
+  mode: PerfAnimationControlMode,
+  indicatorCount: number,
+): Promise<void> => {
   await pauseRunningAnimations(page);
   try {
     await page.evaluate(installAnimationControlFixture, {
@@ -251,11 +262,12 @@ const captureControlSample = async (
   page: Page,
   scenarioName: string,
   mode: PerfAnimationControlMode,
+  indicatorCount: number,
   logicalCpuCount: number,
   repetition: number,
   order: number,
 ): Promise<PerfAnimationControlSample> => {
-  await setupAnimationControl(page, mode);
+  await setupAnimationControl(page, mode, indicatorCount);
   let validityProbe: PerfRunValidityProbe | undefined;
   let processCpuProbe: PerfProcessCpuProbe | undefined;
   let processCpu: PerfProcessCpuSample | undefined;
@@ -277,7 +289,7 @@ const captureControlSample = async (
   }
   if (!processCpu || !validity) throw new Error(`${scenarioName} ${mode} produced no sample`);
   assertValidHeadedPerfRun(validity, `${scenarioName} ${mode} repetition ${repetition}`);
-  return { mode, repetition, order, processCpu, validity };
+  return { mode, indicatorCount, repetition, order, processCpu, validity };
 };
 
 const buildComparison = (
@@ -296,6 +308,7 @@ const buildComparison = (
   const pausedCpu = summarizeAnimationCpu(pausedProcessCpu);
   return {
     mode,
+    indicatorCount: getAnimationControlIndicatorCount(mode),
     sequence: samples.map((sample) => sample.mode),
     active: {
       processCpu: activeProcessCpu,
@@ -321,6 +334,7 @@ export const captureAnimationSchedulingControls = async (
   let order = 0;
   for (const mode of controlModes) {
     const samples: PerfAnimationControlSample[] = [];
+    const indicatorCount = getAnimationControlIndicatorCount(mode);
     for (let repetition = 0; repetition < PERF_ANIMATION_COUNTERFACTUAL_REPETITIONS; repetition++) {
       const pair: PerfAnimationControlMode[] =
         repetition % 2 === 0 ? [mode, "animations-paused"] : ["animations-paused", mode];
@@ -331,6 +345,7 @@ export const captureAnimationSchedulingControls = async (
             page,
             CONTROL_SCENARIO_NAME,
             sampleMode,
+            indicatorCount,
             environment.host.logicalCpuCount,
             repetition + 1,
             order,
@@ -344,7 +359,8 @@ export const captureAnimationSchedulingControls = async (
   const traces: PerfAnimationControlTrace[] = [];
   const traceModes: PerfAnimationControlMode[] = [...controlModes, "animations-paused"];
   for (const mode of traceModes) {
-    await setupAnimationControl(page, mode);
+    const indicatorCount = getAnimationControlIndicatorCount(mode);
+    await setupAnimationControl(page, mode, indicatorCount);
     try {
       const renderTrace = await captureRenderTrace(
         page,
@@ -356,7 +372,7 @@ export const captureAnimationSchedulingControls = async (
       if (renderTrace.validity) {
         assertValidHeadedPerfRun(renderTrace.validity, `${CONTROL_SCENARIO_NAME} ${mode} trace`);
       }
-      traces.push({ mode, renderTrace });
+      traces.push({ mode, indicatorCount, renderTrace });
     } finally {
       await cleanupAnimationControl(page);
     }

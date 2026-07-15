@@ -187,6 +187,7 @@ export interface PerfProtocolAnimation {
   startTime: number;
   currentTime: number;
   source?: PerfProtocolAnimationSource;
+  viewOrScrollTimeline?: unknown;
 }
 
 export interface PerfProtocolAnimationSource {
@@ -280,12 +281,17 @@ interface AnimationCurrentTimeResponse {
   currentTime: number;
 }
 
+interface ActivePageAnimationSample {
+  activeAnimationCount: number;
+  timelineTimeMs: number | null;
+}
+
 interface AnimationLifecycleTracker {
   handleStarted(animation: PerfProtocolAnimation): void;
   handleUpdated(animation: PerfProtocolAnimation): void;
   handleCanceled(animationId: string): void;
   handleCurrentTime(animationId: string, currentTime: number): void;
-  handleActiveAnimationCount(activeAnimationCount: number): void;
+  handleActiveAnimationSample(sample: ActivePageAnimationSample): void;
   getActiveAnimationIds(): string[];
   start(): void;
   stop(): PerfAnimationLifecycleSummary;
@@ -396,6 +402,7 @@ const createAnimationLifecycleTracker = (): AnimationLifecycleTracker => {
   let lastStateChangeAtMs = 0;
   let currentActiveCount = 0;
   let untrackedActiveCount = 0;
+  let lastSampleTimelineTimeMs: number | null = null;
   let activeAtStart = 0;
   let activeAnimationMilliseconds = 0;
   let activeTimelineMilliseconds = 0;
@@ -436,19 +443,34 @@ const createAnimationLifecycleTracker = (): AnimationLifecycleTracker => {
     if (hadActiveTimeline !== currentActiveCount > 0) currentIntervalMilliseconds = 0;
   };
 
-  const updateActiveState = (animation: PerfProtocolAnimation, timestampMs: number): void => {
+  const updateActiveState = (
+    animation: PerfProtocolAnimation,
+    timestampMs: number,
+    wasPreviouslyTracked: boolean,
+  ): void => {
     const wasActive = activeAnimationIds.has(animation.id);
     const isActive = animation.playState === "running" && !animation.pausedState;
     if (wasActive === isActive) return;
-    if (isActive) activeAnimationIds.add(animation.id);
-    else activeAnimationIds.delete(animation.id);
+    if (isActive) {
+      activeAnimationIds.add(animation.id);
+      const wasIncludedInLatestPageSample =
+        !wasPreviouslyTracked &&
+        lastSampleTimelineTimeMs !== null &&
+        (animation.viewOrScrollTimeline !== undefined ||
+          animation.startTime <= lastSampleTimelineTimeMs);
+      if (wasIncludedInLatestPageSample) {
+        untrackedActiveCount = Math.max(0, untrackedActiveCount - 1);
+      }
+    } else {
+      activeAnimationIds.delete(animation.id);
+    }
     updateCurrentActiveCount(activeAnimationIds.size + untrackedActiveCount, timestampMs);
   };
 
   const markFinished = (record: MutableAnimationLifecycleRecord, timestampMs: number): void => {
     if (record.finishedAtMs !== undefined) return;
     record.animation.playState = "finished";
-    updateActiveState(record.animation, timestampMs);
+    updateActiveState(record.animation, timestampMs, true);
     if (!isTrackingScenario) return;
     record.finishedAtMs = timestampMs - scenarioStartedAtMs;
     finishedDuringScenario += 1;
@@ -457,11 +479,12 @@ const createAnimationLifecycleTracker = (): AnimationLifecycleTracker => {
   return {
     handleStarted(animation) {
       const timestampMs = performance.now();
+      const wasPreviouslyTracked = recordsById.has(animation.id);
       recordsById.set(animation.id, {
         animation,
         startedAtMs: isTrackingScenario ? timestampMs - scenarioStartedAtMs : 0,
       });
-      updateActiveState(animation, timestampMs);
+      updateActiveState(animation, timestampMs, wasPreviouslyTracked);
       if (isTrackingScenario) startedDuringScenario += 1;
     },
     handleUpdated(animation) {
@@ -474,7 +497,7 @@ const createAnimationLifecycleTracker = (): AnimationLifecycleTracker => {
           startedAtMs: isTrackingScenario ? timestampMs - scenarioStartedAtMs : 0,
         });
       }
-      updateActiveState(animation, timestampMs);
+      updateActiveState(animation, timestampMs, Boolean(record));
       const lifecycleRecord = recordsById.get(animation.id);
       if (animation.playState === "finished" && lifecycleRecord) {
         markFinished(lifecycleRecord, timestampMs);
@@ -509,9 +532,10 @@ const createAnimationLifecycleTracker = (): AnimationLifecycleTracker => {
       if (expectedEndTime === undefined) return;
       if (currentTime >= expectedEndTime) markFinished(record, performance.now());
     },
-    handleActiveAnimationCount(activeAnimationCount) {
-      const normalizedActiveAnimationCount = Math.max(0, activeAnimationCount);
+    handleActiveAnimationSample(sample) {
+      const normalizedActiveAnimationCount = Math.max(0, sample.activeAnimationCount);
       untrackedActiveCount = Math.max(0, normalizedActiveAnimationCount - activeAnimationIds.size);
+      lastSampleTimelineTimeMs = sample.timelineTimeMs;
       updateCurrentActiveCount(normalizedActiveAnimationCount, performance.now());
     },
     getActiveAnimationIds() {
@@ -996,10 +1020,14 @@ const withDeadline = async <Result>(work: Promise<Result>): Promise<Result> => {
   }
 };
 
-const readActivePageAnimationCount = async (page: Page): Promise<number> =>
-  page.evaluate(
-    () => document.getAnimations().filter((animation) => animation.playState === "running").length,
-  );
+const readActivePageAnimationSample = async (page: Page): Promise<ActivePageAnimationSample> =>
+  page.evaluate(() => ({
+    activeAnimationCount: document
+      .getAnimations()
+      .filter((animation) => animation.playState === "running").length,
+    timelineTimeMs:
+      typeof document.timeline.currentTime === "number" ? document.timeline.currentTime : null,
+  }));
 
 export const captureRenderTrace = async (
   page: Page,
@@ -1079,8 +1107,8 @@ export const captureRenderTrace = async (
     const animationPageSession = pageSession;
     const sampleAnimationLifecycle = async (): Promise<void> => {
       try {
-        animationLifecycleTracker.handleActiveAnimationCount(
-          await readActivePageAnimationCount(page),
+        animationLifecycleTracker.handleActiveAnimationSample(
+          await readActivePageAnimationSample(page),
         );
         for (const animationId of animationLifecycleTracker.getActiveAnimationIds()) {
           try {

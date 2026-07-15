@@ -130,7 +130,8 @@ const captureWorkloadInPage = (animationInventoryLimit: number): PerfWorkloadSna
     stylesheetCount: document.styleSheets.length,
     accessibleCssRuleCount,
     inaccessibleStylesheetCount,
-    activeAnimationCount: allAnimations.length,
+    activeAnimationCount: allAnimations.filter((animation) => animation.playState === "running")
+      .length,
     animationsTruncated: allAnimations.length > animations.length,
     animations,
     canvasCount: canvasElements.length,
