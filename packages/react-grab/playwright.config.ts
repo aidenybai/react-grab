@@ -12,9 +12,11 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const isCoverageRun = Boolean(process.env.COVERAGE);
 
 const VITE_PLUS_DEVELOPMENT_DEFAULT_PORT = 5175;
-const VITE_PLUS_DEVELOPMENT_PORT = Number(
-  process.env.E2E_VITE_PLUS_DEVELOPMENT_PORT ?? VITE_PLUS_DEVELOPMENT_DEFAULT_PORT,
-);
+const configuredVitePlusDevelopmentPort = Number(process.env.E2E_VITE_PLUS_DEVELOPMENT_PORT);
+const VITE_PLUS_DEVELOPMENT_PORT =
+  Number.isInteger(configuredVitePlusDevelopmentPort) && configuredVitePlusDevelopmentPort > 0
+    ? configuredVitePlusDevelopmentPort
+    : VITE_PLUS_DEVELOPMENT_DEFAULT_PORT;
 const VITE_PLUS_DEVELOPMENT_URL = `http://localhost:${VITE_PLUS_DEVELOPMENT_PORT}`;
 const NEXT_DEVELOPMENT_URL = "http://localhost:5176";
 const NEXT_PRODUCTION_URL = "http://localhost:5177";
@@ -33,10 +35,10 @@ const FRAMEWORK_SPEC_PATTERN = /framework\/.*\.spec\.ts/;
 // projects so those runs stay isolated from servers they don't use.
 const isPerfRun = Boolean(
   process.env.PERF_LABEL ||
-  process.env.PERF_TRACE ||
-  process.env.PERF_RENDER_TRACE ||
-  process.env.PERF_DOM_BREAKPOINTS ||
-  process.env.PERF_HEADED ||
+  process.env.PERF_TRACE === "1" ||
+  process.env.PERF_RENDER_TRACE === "1" ||
+  process.env.PERF_DOM_BREAKPOINTS === "1" ||
+  process.env.PERF_HEADED === "1" ||
   process.env.PERF_BROWSER_CHANNEL,
 );
 const isDeepPerfRun =
@@ -280,10 +282,9 @@ export default defineConfig({
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 2 : 1,
   workers: process.env.CI ? 4 : undefined,
-  // Traced runs (PERF_TRACE=1) add a profiled extra pass per scenario, and the
-  // V8 sampler can sporadically wedge the headless renderer for minutes (see
-  // perf-recorder.ts); the extra headroom lets the wedge clear instead of
-  // failing the run.
+  // Deep profiler, render-trace, and DOM-breakpoint replays add extra passes.
+  // The V8 sampler can sporadically wedge the headless renderer for minutes
+  // (see perf-recorder.ts), so these modes receive enough headroom to recover.
   timeout: isDeepPerfRun ? 360_000 : 60_000,
   reporter: "html",
   use: {

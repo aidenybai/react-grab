@@ -25,10 +25,12 @@ An opt-in render replay (`PERF_RENDER_TRACE=1`) adds:
 - submitted/drawn/presented/dropped frame-stage counts;
 - compositor frame-production rate, no-damage skips, and production duty cycle;
 - composited-layer count, churn, paint count, viewport-normalized surface/paint area, and top-layer promotion reasons;
-- selector and invalidation event counts;
+- selector-engine timings by selector and stylesheet: elapsed time, match attempts, matches, fast rejects, invalidation count, and slow-path non-match percentage;
+- invalidation event counts;
+- DevTools advanced-paint picture/display-list trace snapshots plus isolated LayerTree Paint Profiler replays for the largest content layers, including canvas command logs and per-command replay timing;
 - top trace events plus the compressed raw trace (`*.render-trace.json.gz`).
 
-The render trace, V8 profiler, and deopt tracer are separate replay passes. Their instrumentation never supplies the clean benchmark's wall-time, frame, CPU, or memory regression numbers.
+The render trace, V8 profiler, and deopt tracer are separate replay passes. Their instrumentation never supplies the clean benchmark's wall-time, frame, CPU, or memory regression numbers. Chromium disables selector stats and advanced paint instrumentation by default because both add tracing overhead. Their results are forensic evidence for comparing equivalent replays, not clean-pass timings. Layer paint profiles replay captured paint commands after the marked scenario window. Summed display-item visual areas can overlap and must not be read as unique painted pixels.
 
 An opt-in DOM-mutation attribution replay (`PERF_DOM_BREAKPOINTS=1`) sets a subtree breakpoint on the document plus attribute/removal breakpoints on the clean run's most frequently mutated targets. Each pause records mutation type, target node, synchronous and async call frames, generated URL/line/column, source-map-resolved application location, and source-line snippet. It resumes immediately, stops after 40 hits, compacts repetitive framework frames, and writes `*.dom-mutation-attribution.json`. DOM breakpoints fundamentally perturb scheduling, so this artifact explains which code owns a mutation but never contributes timing or regression metrics.
 

@@ -98,6 +98,7 @@ export const summarizeProcessCpuSnapshots = (
   wallTimeMs: number,
   logicalCpuCount: number,
   harnessCpuMicroseconds: number,
+  error?: string,
 ): PerfProcessCpuSample => {
   if (snapshots.length === 0) return unavailableSample("No process snapshots were captured");
 
@@ -116,6 +117,8 @@ export const summarizeProcessCpuSnapshots = (
             ? processInfo.cpuTime - previousCpuTime
             : processInfo.cpuTime;
       } else if (snapshotIndex > 0 && !initialPids.has(processInfo.id)) {
+        // A process first observed after the initial census was created inside the measurement
+        // window, so its first cumulative reading is in-window work.
         cpuDelta = processInfo.cpuTime;
       }
       previousCpuTimeByPid.set(processInfo.id, processInfo.cpuTime);
@@ -134,7 +137,12 @@ export const summarizeProcessCpuSnapshots = (
     }
   }
 
-  const safeWallTimeSeconds = Math.max(wallTimeMs / 1000, Number.EPSILON);
+  const firstCapturedAtMs = snapshots[0].capturedAtMs;
+  const lastCapturedAtMs = snapshots.at(-1)?.capturedAtMs ?? firstCapturedAtMs;
+  const sampledWallTimeMs =
+    snapshots.length > 1 ? Math.max(lastCapturedAtMs - firstCapturedAtMs, 0) : wallTimeMs;
+  const safeWallTimeSeconds = Math.max(sampledWallTimeMs / 1000, Number.EPSILON);
+  const safeHarnessWallTimeSeconds = Math.max(wallTimeMs / 1000, Number.EPSILON);
   const byTypeSeconds = new Map<string, number>();
   let totalCpuSeconds = 0;
   for (const processTotal of totalsByPid.values()) {
@@ -154,12 +162,14 @@ export const summarizeProcessCpuSnapshots = (
   const totalCorePercent = (totalCpuSeconds / safeWallTimeSeconds) * 100;
   return {
     available: true,
-    wallTimeMs: roundTo3(wallTimeMs),
+    wallTimeMs: roundTo3(sampledWallTimeMs),
     sampleCount: snapshots.length,
     totalCpuSeconds: roundTo3(totalCpuSeconds),
     totalCorePercent: roundTo3(totalCorePercent),
     hostNormalizedPercent: roundTo3(totalCorePercent / Math.max(1, logicalCpuCount)),
-    harnessCorePercent: roundTo3((harnessCpuMicroseconds / 1_000_000 / safeWallTimeSeconds) * 100),
+    harnessCorePercent: roundTo3(
+      (harnessCpuMicroseconds / 1_000_000 / safeHarnessWallTimeSeconds) * 100,
+    ),
     byType,
     byPid: [...totalsByPid.values()]
       .sort((leftProcess, rightProcess) => rightProcess.cpuSeconds - leftProcess.cpuSeconds)
@@ -167,6 +177,7 @@ export const summarizeProcessCpuSnapshots = (
         ...processTotal,
         cpuSeconds: roundTo3(processTotal.cpuSeconds),
       })),
+    error,
   };
 };
 
@@ -207,6 +218,11 @@ export const aggregateProcessCpuSamples = (
       ),
       byType,
       byPid: [],
+      error:
+        availableSamples
+          .map((sample) => sample.error)
+          .filter((sampleError) => sampleError !== undefined)
+          .join("; ") || undefined,
     },
     perSample: samples,
   };
@@ -266,6 +282,7 @@ export const startProcessCpuProbe = async (
         wallTimeMs,
         logicalCpuCount,
         harnessCpu.user + harnessCpu.system,
+        sampleError,
       );
     },
   };

@@ -289,6 +289,119 @@ const renderDomMutationAttributionSection = async (metricFileNames) => {
   ].join("\n");
 };
 
+const renderCssSelectorStatsSection = async (metricFileNames) => {
+  const rows = [];
+  for (const metricFileName of metricFileNames.sort()) {
+    try {
+      const report = JSON.parse(await readFile(resolve(profileDir, metricFileName), "utf8"));
+      const selectorStats = report?.rendering?.selectorStats;
+      if (!report?.scenario || !selectorStats?.topSelectors?.length) continue;
+      const stylesheetUrlsById = new Map(
+        (report.css?.stylesheets ?? []).map((stylesheet) => [
+          stylesheet.styleSheetId,
+          stylesheet.sourceUrl || "(inline stylesheet)",
+        ]),
+      );
+      for (const selectorTiming of selectorStats.topSelectors.slice(0, topCount)) {
+        const selector = String(selectorTiming.selector).replaceAll("|", "\\|");
+        const stylesheet = String(
+          stylesheetUrlsById.get(selectorTiming.styleSheetId) ?? selectorTiming.styleSheetId ?? "-",
+        ).replaceAll("|", "\\|");
+        rows.push(
+          `| ${report.scenario} | ${selectorTiming.elapsedMs} | ${selectorTiming.matchAttempts} | ` +
+            `${selectorTiming.matchCount} | ${selectorTiming.slowPathNonMatchPercent} | ` +
+            `${selectorTiming.invalidationCount} | \`${selector}\` | \`${shortUrl(stylesheet)}\` |`,
+        );
+      }
+    } catch {
+      continue;
+    }
+  }
+  if (rows.length === 0) return null;
+  return [
+    `\n## CSS selector matching`,
+    "",
+    "Captured from Chromium SelectorStats during the intrusive render replay. Elapsed time is selector-engine work; slow-path non-match percentage excludes fast rejects.",
+    "",
+    "| scenario | elapsed ms | attempts | matches | slow non-match % | invalidations | selector | stylesheet |",
+    "| --- | ---: | ---: | ---: | ---: | ---: | --- | --- |",
+    ...rows,
+  ].join("\n");
+};
+
+const renderAdvancedPaintSection = async (metricFileNames) => {
+  const summaryRows = [];
+  const displayItemRows = [];
+  const layerProfileRows = [];
+  for (const metricFileName of metricFileNames.sort()) {
+    try {
+      const report = JSON.parse(await readFile(resolve(profileDir, metricFileName), "utf8"));
+      const advancedPaint = report?.rendering?.advancedPaint;
+      const paintProfiles = report?.compositing?.paintProfiles ?? [];
+      if (!report?.scenario || (!advancedPaint && paintProfiles.length === 0)) continue;
+      if (
+        (advancedPaint?.pictureSnapshotCount ?? 0) === 0 &&
+        (advancedPaint?.displayItemListSnapshotCount ?? 0) === 0 &&
+        paintProfiles.length === 0
+      ) {
+        continue;
+      }
+      summaryRows.push(
+        `| ${report.scenario} | ${advancedPaint?.pictureSnapshotCount ?? 0} | ` +
+          `${advancedPaint?.displayItemListSnapshotCount ?? 0} | ${advancedPaint?.displayItemCount ?? 0} | ` +
+          `${advancedPaint?.paintedVisualAreaPx ?? 0} | ${paintProfiles.length} |`,
+      );
+      for (const displayItem of (advancedPaint?.topDisplayItems ?? []).slice(0, topCount)) {
+        const displayItemName = String(displayItem.name).replaceAll("|", "\\|");
+        displayItemRows.push(
+          `| ${report.scenario} | \`${displayItemName}\` | ${displayItem.count} | ${displayItem.paintedVisualAreaPx} |`,
+        );
+      }
+      for (const paintProfile of paintProfiles.slice(0, topCount)) {
+        const target = String(paintProfile.target).replaceAll("|", "\\|");
+        const topCommands = (paintProfile.topCommands ?? [])
+          .slice(0, topCount)
+          .map((command) => `${command.method} ×${command.count}`)
+          .join(", ")
+          .replaceAll("|", "\\|");
+        layerProfileRows.push(
+          `| ${report.scenario} | \`${target}\` | ${paintProfile.meanReplayDurationMs} | ` +
+            `${paintProfile.profileRunCount} | ${paintProfile.commandCount} | \`${topCommands}\` |`,
+        );
+      }
+    } catch {
+      continue;
+    }
+  }
+  if (summaryRows.length === 0) return null;
+  const lines = [
+    `\n## Advanced paint instrumentation`,
+    "",
+    "DevTools picture/display-item trace snapshots plus LayerTree Paint Profiler replays. Visual areas can overlap; profiler durations are isolated snapshot replays. Both are diagnostic evidence, not clean scenario timing.",
+    "",
+    "| scenario | picture snapshots | display-list snapshots | display items | summed visual area px | profiled layers |",
+    "| --- | ---: | ---: | ---: | ---: | ---: |",
+    ...summaryRows,
+  ];
+  if (displayItemRows.length > 0) {
+    lines.push(
+      "",
+      "| scenario | display item | count | summed visual area px |",
+      "| --- | --- | ---: | ---: |",
+      ...displayItemRows,
+    );
+  }
+  if (layerProfileRows.length > 0) {
+    lines.push(
+      "",
+      "| scenario | layer target | mean replay ms | profile runs | commands | top paint commands |",
+      "| --- | --- | ---: | ---: | ---: | --- |",
+      ...layerProfileRows,
+    );
+  }
+  return lines.join("\n");
+};
+
 const renderDeoptSection = async () => {
   let deoptSummary;
   try {
@@ -357,6 +470,10 @@ const main = async () => {
   if (scenarioMetricsSection) reportSections.push(scenarioMetricsSection);
   const animationControlSection = await renderAnimationControlSection(metricFileNames);
   if (animationControlSection) reportSections.push(animationControlSection);
+  const cssSelectorStatsSection = await renderCssSelectorStatsSection(metricFileNames);
+  if (cssSelectorStatsSection) reportSections.push(cssSelectorStatsSection);
+  const advancedPaintSection = await renderAdvancedPaintSection(metricFileNames);
+  if (advancedPaintSection) reportSections.push(advancedPaintSection);
   const domMutationAttributionSection = await renderDomMutationAttributionSection(metricFileNames);
   if (domMutationAttributionSection) reportSections.push(domMutationAttributionSection);
   const combinedByFunctionKey = new Map();

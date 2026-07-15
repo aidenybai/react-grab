@@ -126,6 +126,10 @@ interface DomQuerySelectorResponse {
   nodeId: number;
 }
 
+interface DomQuerySelectorAllResponse {
+  nodeIds: number[];
+}
+
 interface DomDescribeNodeResponse {
   node: DomNode;
 }
@@ -227,6 +231,7 @@ const enrichSourceFrames = async (
   session: CDPSession,
   hits: PerfDomMutationBreakpointHit[],
   scriptsById: Map<string, DebuggerScriptParsedEvent>,
+  warnings: string[],
 ): Promise<void> => {
   const sourceByScriptId = new Map<string, string>();
   const sourceMapByScriptId = new Map<string, LoadedSourceMap | null>();
@@ -242,6 +247,7 @@ const enrichSourceFrames = async (
       sourceByScriptId.set(scriptId, response.scriptSource);
     } catch {
       sourceByScriptId.set(scriptId, "");
+      warnings.push(`Could not read debugger source for ${script?.url || `script ${scriptId}`}`);
     }
   }
   for (const hit of hits) {
@@ -270,8 +276,8 @@ const enrichSourceFrames = async (
           const originalSourceLine = originalSource?.split("\n")[frame.lineNumber - 1];
           if (originalSourceLine) {
             frame.sourceSnippet = originalSourceLine
-              .trim()
-              .slice(0, PERF_DOM_BREAKPOINT_SOURCE_SNIPPET_LIMIT);
+              .slice(0, PERF_DOM_BREAKPOINT_SOURCE_SNIPPET_LIMIT)
+              .trimEnd();
           }
         }
       }
@@ -280,7 +286,9 @@ const enrichSourceFrames = async (
         (frame.generatedLineNumber ?? frame.lineNumber) - 1
       ];
       if (sourceLine) {
-        frame.sourceSnippet = sourceLine.trim().slice(0, PERF_DOM_BREAKPOINT_SOURCE_SNIPPET_LIMIT);
+        frame.sourceSnippet = sourceLine
+          .slice(0, PERF_DOM_BREAKPOINT_SOURCE_SNIPPET_LIMIT)
+          .trimEnd();
       }
     }
   }
@@ -398,7 +406,7 @@ export const captureDomMutationAttribution = async (
   const hits: PerfDomMutationBreakpointHit[] = [];
   const scriptsById = new Map<string, DebuggerScriptParsedEvent>();
   let pendingPauseHandling = Promise.resolve();
-  let didDisableFurtherPauses = false;
+  let didReachHitLimit = false;
   try {
     session = await page.context().newCDPSession(page);
     const activeSession = session;
@@ -409,6 +417,7 @@ export const captureDomMutationAttribution = async (
       pendingPauseHandling = pendingPauseHandling.then(async () => {
         try {
           if (event.reason !== "DOM") return;
+          if (hits.length >= PERF_DOM_BREAKPOINT_HIT_LIMIT) return;
           const data = event.data ?? {};
           const nodeIdValue = data.targetNodeId ?? data.nodeId;
           const nodeId = typeof nodeIdValue === "number" ? nodeIdValue : Number(nodeIdValue);
@@ -436,8 +445,12 @@ export const captureDomMutationAttribution = async (
             frames: createSourceFrames(event),
           });
           if (hits.length >= PERF_DOM_BREAKPOINT_HIT_LIMIT) {
-            didDisableFurtherPauses = true;
-            await activeSession.send("Debugger.setSkipAllPauses", { skip: true });
+            didReachHitLimit = true;
+            try {
+              await activeSession.send("Debugger.setSkipAllPauses", { skip: true });
+            } catch {
+              warnings.push("Could not disable debugger pauses after reaching the hit limit");
+            }
           }
         } finally {
           await activeSession.send("Debugger.resume").catch(() => {});
@@ -470,11 +483,22 @@ export const captureDomMutationAttribution = async (
     }
     for (const selector of [...new Set(targetSelectors)]) {
       try {
-        const response: DomQuerySelectorResponse = await activeSession.send("DOM.querySelector", {
-          nodeId: documentResponse.root.nodeId,
-          selector,
-        });
-        if (response.nodeId <= 0) continue;
+        const response: DomQuerySelectorAllResponse = await activeSession.send(
+          "DOM.querySelectorAll",
+          {
+            nodeId: documentResponse.root.nodeId,
+            selector,
+          },
+        );
+        if (response.nodeIds.length === 0) {
+          warnings.push(`Could not resolve mutation target selector: ${selector}`);
+          continue;
+        }
+        if (response.nodeIds.length > 1) {
+          warnings.push(`Mutation target selector was not unique: ${selector}`);
+          continue;
+        }
+        const nodeId = response.nodeIds[0];
         resolvedTargetSelectors.push(selector);
         const breakpointTypes: InstalledDomBreakpoint["type"][] = [
           "attribute-modified",
@@ -482,10 +506,10 @@ export const captureDomMutationAttribution = async (
         ];
         for (const type of breakpointTypes) {
           await activeSession.send("DOMDebugger.setDOMBreakpoint", {
-            nodeId: response.nodeId,
+            nodeId,
             type,
           });
-          installedBreakpoints.push({ nodeId: response.nodeId, type });
+          installedBreakpoints.push({ nodeId, type });
         }
       } catch {
         warnings.push(`Could not resolve mutation target selector: ${selector}`);
@@ -499,14 +523,14 @@ export const captureDomMutationAttribution = async (
     validityProbe = null;
     await activeSession.send("Debugger.setSkipAllPauses", { skip: false });
     await removeBreakpoints(activeSession, installedBreakpoints);
-    await enrichSourceFrames(activeSession, hits, scriptsById);
+    await enrichSourceFrames(activeSession, hits, scriptsById, warnings);
     for (const hit of hits) hit.frames = compactSourceFrames(hit);
     const artifactName = `${scenarioName}.dom-mutation-attribution.json`;
     const report: PerfDomMutationAttributionReport = {
       available: true,
       intrusive: true,
       hitLimit: PERF_DOM_BREAKPOINT_HIT_LIMIT,
-      hitLimitReached: didDisableFurtherPauses,
+      hitLimitReached: didReachHitLimit,
       hitCount: hits.length,
       installedBreakpointCount: installedBreakpoints.length,
       requestedTargetSelectors: targetSelectors,
@@ -533,7 +557,7 @@ export const captureDomMutationAttribution = async (
       available: false,
       intrusive: true,
       hitLimit: PERF_DOM_BREAKPOINT_HIT_LIMIT,
-      hitLimitReached: didDisableFurtherPauses,
+      hitLimitReached: didReachHitLimit,
       hitCount: hits.length,
       installedBreakpointCount: installedBreakpoints.length,
       requestedTargetSelectors: targetSelectors,

@@ -188,12 +188,24 @@ const installPerfRecorderScript = (): void => {
 
   const describeMutationTarget = (target: Node): string => {
     if (!(target instanceof Element)) return target.nodeName.toLowerCase();
-    const identifier = target.id ? `#${CSS.escape(target.id)}` : "";
-    const classNames = [...target.classList]
-      .slice(0, 3)
-      .map((className) => `.${CSS.escape(className)}`)
-      .join("");
-    return `${target.tagName.toLowerCase()}${identifier}${classNames}`;
+    const selectorSegments: string[] = [];
+    let currentElement: Element | null = target;
+    while (currentElement) {
+      if (currentElement.id) {
+        selectorSegments.unshift(`#${CSS.escape(currentElement.id)}`);
+        break;
+      }
+      const tagName = currentElement.tagName.toLowerCase();
+      let sameTagIndex = 1;
+      let previousElement = currentElement.previousElementSibling;
+      while (previousElement) {
+        if (previousElement.tagName === currentElement.tagName) sameTagIndex += 1;
+        previousElement = previousElement.previousElementSibling;
+      }
+      selectorSegments.unshift(`${tagName}:nth-of-type(${sameTagIndex})`);
+      currentElement = currentElement.parentElement;
+    }
+    return selectorSegments.join(" > ");
   };
 
   const handleAnimationLifecycle = (event: Event): void => {

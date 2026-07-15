@@ -43,6 +43,7 @@ const HARDWARE_GPU_NOISE_FLOOR_PERCENT = 10;
 const HARDWARE_GPU_PERCENT_THRESHOLD = 20;
 const RENDERING_NOISE_FLOOR_MS = 1;
 const RENDERING_PERCENT_THRESHOLD = 20;
+const SELECTOR_MATCH_ATTEMPT_NOISE_FLOOR = 100;
 const COMPOSITOR_FRAME_RATE_NOISE_FLOOR_FPS = 3;
 const COMPOSITOR_DUTY_CYCLE_NOISE_FLOOR_PERCENT = 5;
 const COMPOSITOR_FRAME_PERCENT_THRESHOLD = 20;
@@ -290,6 +291,20 @@ const METRIC_DEFINITIONS = [
     noiseFloor: RENDERING_NOISE_FLOOR_MS,
     percentThreshold: RENDERING_PERCENT_THRESHOLD,
     getValue: (report) => report.rendering?.paint?.totalDurationMs,
+  },
+  {
+    label: "CSS selector matching",
+    unit: "ms",
+    noiseFloor: RENDERING_NOISE_FLOOR_MS,
+    percentThreshold: RENDERING_PERCENT_THRESHOLD,
+    getValue: (report) => report.rendering?.selectorStats?.totalElapsedMs,
+  },
+  {
+    label: "CSS selector attempts",
+    unit: "",
+    noiseFloor: SELECTOR_MATCH_ATTEMPT_NOISE_FLOOR,
+    percentThreshold: RENDERING_PERCENT_THRESHOLD,
+    getValue: (report) => report.rendering?.selectorStats?.matchAttempts,
   },
   {
     label: "Compositor work",

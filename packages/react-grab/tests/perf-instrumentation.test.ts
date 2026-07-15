@@ -26,6 +26,7 @@ describe("perf instrumentation", () => {
       1000,
       4,
       100_000,
+      "one process census failed",
     );
 
     expect(summary.available).toBe(true);
@@ -36,6 +37,7 @@ describe("perf instrumentation", () => {
     expect(summary.byType.renderer.corePercent).toBe(20);
     expect(summary.byType.GPU.corePercent).toBe(10);
     expect(summary.byType.utility.corePercent).toBe(5);
+    expect(summary.error).toBe("one process census failed");
   });
 
   it("limits rendering attribution to the marked scenario window", () => {
@@ -106,5 +108,104 @@ describe("perf instrumentation", () => {
     expect(summary.frames.droppedFrames).toBe(1);
     expect(summary.frames.productionRateFps).toBe(2);
     expect(summary.frames.productionDutyCyclePercent).toBe(50);
+  });
+
+  it("aggregates selector costs and advanced paint snapshots", () => {
+    const summary = summarizeRenderTrace({
+      traceEvents: [
+        { name: PERF_TRACE_MARKER_START, ts: 0 },
+        {
+          name: "SelectorStats",
+          ts: 100,
+          args: {
+            selector_stats: {
+              selector_timings: [
+                {
+                  selector: ".card > .title",
+                  style_sheet_id: "sheet-1",
+                  "elapsed (us)": 1500,
+                  match_attempts: 100,
+                  match_count: 10,
+                  fast_reject_count: 60,
+                  invalidation_count: 2,
+                },
+                {
+                  selector: "[data-active]",
+                  style_sheet_id: "sheet-1",
+                  "elapsed (us)": 500,
+                  match_attempts: 20,
+                  match_count: 5,
+                  fast_reject_count: 10,
+                },
+              ],
+            },
+          },
+        },
+        {
+          name: "SelectorStats",
+          ts: 200,
+          args: {
+            selector_stats: {
+              selector_timings: [
+                {
+                  selector: ".card > .title",
+                  style_sheet_id: "sheet-1",
+                  "elapsed (us)": 500,
+                  match_attempts: 50,
+                  match_count: 5,
+                  fast_reject_count: 30,
+                  invalidation_count: 1,
+                },
+              ],
+            },
+          },
+        },
+        {
+          name: "cc::Picture",
+          ts: 300,
+          args: { snapshot: { skp64: "serialized-picture" } },
+        },
+        {
+          name: "cc::DisplayItemList",
+          ts: 400,
+          args: {
+            snapshot: {
+              params: {
+                items: [
+                  { name: "DrawRect", visual_rect: [0, 0, 20, 10] },
+                  { name: "DrawText", visual_rect: [0, 0, 10, 5] },
+                  { name: "DrawRect", visual_rect: [5, 5, 4, 5] },
+                ],
+              },
+            },
+          },
+        },
+        { name: PERF_TRACE_MARKER_END, ts: 1000 },
+      ],
+    });
+
+    expect(summary.selectorStats.eventCount).toBe(2);
+    expect(summary.selectorStats.selectorCount).toBe(2);
+    expect(summary.selectorStats.totalElapsedMs).toBe(2.5);
+    expect(summary.selectorStats.matchAttempts).toBe(170);
+    expect(summary.selectorStats.matchCount).toBe(20);
+    expect(summary.selectorStats.slowPathNonMatchPercent).toBeCloseTo(33.333, 3);
+    expect(summary.selectorStats.topSelectors[0]).toMatchObject({
+      selector: ".card > .title",
+      elapsedMs: 2,
+      matchAttempts: 150,
+      matchCount: 15,
+      invalidationCount: 3,
+      slowPathNonMatchPercent: 33.333,
+    });
+    expect(summary.advancedPaint.pictureSnapshotCount).toBe(1);
+    expect(summary.advancedPaint.displayItemListSnapshotCount).toBe(1);
+    expect(summary.advancedPaint.displayItemCount).toBe(3);
+    expect(summary.advancedPaint.paintedVisualAreaPx).toBe(270);
+    expect(summary.advancedPaint.topDisplayItems[0]).toEqual({
+      name: "DrawRect",
+      count: 2,
+      paintedVisualAreaPx: 220,
+    });
   });
 });

@@ -1,5 +1,13 @@
 import type { CDPSession } from "@playwright/test";
-import { PERF_COMPOSITED_LAYER_LIMIT, PERF_PERCENT_SCALE } from "./perf-constants.js";
+import {
+  PERF_COMPOSITED_LAYER_LIMIT,
+  PERF_MILLISECONDS_PER_SECOND,
+  PERF_PAINT_PROFILE_COMMAND_LIMIT,
+  PERF_PAINT_PROFILE_LAYER_LIMIT,
+  PERF_PAINT_PROFILE_MIN_DURATION_SECONDS,
+  PERF_PAINT_PROFILE_MIN_REPEAT_COUNT,
+  PERF_PERCENT_SCALE,
+} from "./perf-constants.js";
 
 export interface PerfCompositedLayer {
   layerId: string;
@@ -33,8 +41,23 @@ export interface PerfCompositingSummary {
   paintedAreaViewportMultiple: number;
   largestPaintViewportPercent: number;
   topLayers: PerfCompositedLayer[];
+  paintProfiles: PerfLayerPaintProfile[];
   warnings: string[];
   error?: string;
+}
+
+export interface PerfPaintCommandSummary {
+  method: string;
+  count: number;
+}
+
+export interface PerfLayerPaintProfile {
+  layerId: string;
+  target: string;
+  commandCount: number;
+  profileRunCount: number;
+  meanReplayDurationMs: number;
+  topCommands: PerfPaintCommandSummary[];
 }
 
 export interface PerfCompositingProbe {
@@ -75,6 +98,18 @@ interface DescribeNodeResponse {
     pseudoType?: string;
     attributes?: string[];
   };
+}
+
+interface MakeSnapshotResponse {
+  snapshotId: string;
+}
+
+interface SnapshotCommandLogResponse {
+  commandLog: Record<string, unknown>[];
+}
+
+interface ProfileSnapshotResponse {
+  timings: number[][];
 }
 
 const roundTo3 = (value: number): number => Number(value.toFixed(3));
@@ -128,9 +163,58 @@ const unavailableSummary = (error: string): PerfCompositingSummary => ({
   paintedAreaViewportMultiple: 0,
   largestPaintViewportPercent: 0,
   topLayers: [],
+  paintProfiles: [],
   warnings: [],
   error,
 });
+
+const captureLayerPaintProfile = async (
+  pageSession: CDPSession,
+  layer: ProtocolLayer,
+  target: string,
+): Promise<PerfLayerPaintProfile> => {
+  const snapshot: MakeSnapshotResponse = await pageSession.send("LayerTree.makeSnapshot", {
+    layerId: layer.layerId,
+  });
+  try {
+    const commandLog: SnapshotCommandLogResponse = await pageSession.send(
+      "LayerTree.snapshotCommandLog",
+      { snapshotId: snapshot.snapshotId },
+    );
+    const profile: ProfileSnapshotResponse = await pageSession.send("LayerTree.profileSnapshot", {
+      snapshotId: snapshot.snapshotId,
+      minRepeatCount: PERF_PAINT_PROFILE_MIN_REPEAT_COUNT,
+      minDuration: PERF_PAINT_PROFILE_MIN_DURATION_SECONDS,
+    });
+    const commandCountsByMethod = new Map<string, number>();
+    for (const command of commandLog.commandLog) {
+      const method = typeof command.method === "string" ? command.method : "(unknown command)";
+      commandCountsByMethod.set(method, (commandCountsByMethod.get(method) ?? 0) + 1);
+    }
+    const replayDurationSeconds = profile.timings.reduce(
+      (totalDuration, runTimings) =>
+        totalDuration +
+        runTimings.reduce((runDuration, commandDuration) => runDuration + commandDuration, 0),
+      0,
+    );
+    return {
+      layerId: layer.layerId,
+      target,
+      commandCount: commandLog.commandLog.length,
+      profileRunCount: profile.timings.length,
+      meanReplayDurationMs: roundTo3(
+        (replayDurationSeconds / Math.max(profile.timings.length, 1)) *
+          PERF_MILLISECONDS_PER_SECOND,
+      ),
+      topCommands: [...commandCountsByMethod]
+        .sort((leftCommand, rightCommand) => rightCommand[1] - leftCommand[1])
+        .slice(0, PERF_PAINT_PROFILE_COMMAND_LIMIT)
+        .map(([method, count]) => ({ method, count })),
+    };
+  } finally {
+    await pageSession.send("LayerTree.releaseSnapshot", { snapshotId: snapshot.snapshotId });
+  }
+};
 
 export const startCompositingProbe = async (
   pageSession: CDPSession,
@@ -163,15 +247,22 @@ export const startCompositingProbe = async (
     let clippedContentAreaPx = 0;
     for (const layer of event.layers) {
       observedLayerIds.add(layer.layerId);
-      const paintCount = layer.paintCount ?? 0;
-      minimumPaintCountByLayerId.set(
-        layer.layerId,
-        Math.min(minimumPaintCountByLayerId.get(layer.layerId) ?? paintCount, paintCount),
-      );
-      maximumPaintCountByLayerId.set(
-        layer.layerId,
-        Math.max(maximumPaintCountByLayerId.get(layer.layerId) ?? paintCount, paintCount),
-      );
+      if (layer.paintCount !== undefined) {
+        minimumPaintCountByLayerId.set(
+          layer.layerId,
+          Math.min(
+            minimumPaintCountByLayerId.get(layer.layerId) ?? layer.paintCount,
+            layer.paintCount,
+          ),
+        );
+        maximumPaintCountByLayerId.set(
+          layer.layerId,
+          Math.max(
+            maximumPaintCountByLayerId.get(layer.layerId) ?? layer.paintCount,
+            layer.paintCount,
+          ),
+        );
+      }
       if (!layer.drawsContent || layer.invisible === true) continue;
       contentLayerCount += 1;
       const layerAreaPx = layer.width * layer.height;
@@ -272,6 +363,27 @@ export const startCompositingProbe = async (
           };
         }),
       );
+      const paintProfiles: PerfLayerPaintProfile[] = [];
+      const warnings: string[] = [];
+      for (const layer of topProtocolLayers) {
+        if (paintProfiles.length >= PERF_PAINT_PROFILE_LAYER_LIMIT) break;
+        const target = topLayers.find((topLayer) => topLayer.layerId === layer.layerId)?.target;
+        try {
+          paintProfiles.push(
+            await captureLayerPaintProfile(
+              pageSession,
+              layer,
+              target ?? `(layer ${layer.layerId})`,
+            ),
+          );
+        } catch (profileError) {
+          const message =
+            profileError instanceof Error ? profileError.message : String(profileError);
+          if (!message.includes("Layer does not produce picture")) {
+            warnings.push(`Could not profile layer ${layer.layerId}: ${message}`);
+          }
+        }
+      }
       try {
         await pageSession.send("LayerTree.disable");
       } catch {
@@ -298,7 +410,8 @@ export const startCompositingProbe = async (
           (largestPaintAreaPx / viewportAreaPx) * PERF_PERCENT_SCALE,
         ),
         topLayers,
-        warnings: [],
+        paintProfiles,
+        warnings,
       };
     },
   };
