@@ -127,7 +127,7 @@ Each `perf/<label>/<scenario>.json` looks like:
 - `baseline` — the previous local baseline (from `perf/baseline/<scenario>.json` if present, else `null`).
 - `memory` — GC-forced CDP memory counters before/after the samples plus their delta; a persistent positive `delta` across runs points at a leak (retained nodes/listeners).
 - `processCpu` — sampled CPU consumed by the Chromium process tree during the clean scenario window. `totalCorePercent` can exceed 100% because it represents core equivalents; `hostNormalizedPercent` cannot.
-- `hardwareGpu` — OS GPU counters and explicit capability status. GPU-process CPU is separately available in `processCpu.byType` and is not mislabeled as hardware GPU utilization.
+- `hardwareGpu` — OS GPU counters and explicit capability status. On macOS, browser busy percentage combines the attributable shares of every Chromium process and caps the physical utilization at 100%. GPU-process CPU is separately available in `processCpu.byType` and is not mislabeled as hardware GPU utilization.
 - `rendering` / `css` — present only after an opt-in render replay. These explain a regression but do not replace the clean pass's numbers.
 - `animationLifecycle` — passive CDP lifecycle timestamps and integrated active/idle timeline duration for the render replay.
 - `animationCounterfactual` — three alternating active/paused process-CPU pairs plus both render traces. `activeMinusPaused.combinedGraphicsPipelineCorePercent` is the renderer + GPU-process CPU attributable to live animations in the scenario.

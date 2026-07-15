@@ -2,10 +2,14 @@ import { spawn } from "node:child_process";
 import { describe, expect, it } from "vite-plus/test";
 import { PERF_TRACE_MARKER_END, PERF_TRACE_MARKER_START } from "../e2e/perf-constants.js";
 import {
+  parsePowermetricsOutput,
   summarizeDrmEngineSnapshots,
   waitForHardwareGpuProcessExit,
 } from "../e2e/perf-hardware-gpu.js";
-import { summarizeProcessCpuSnapshots } from "../e2e/perf-process-cpu.js";
+import {
+  aggregateProcessCpuSamples,
+  summarizeProcessCpuSnapshots,
+} from "../e2e/perf-process-cpu.js";
 import { summarizeRenderTrace } from "../e2e/perf-render-trace.js";
 
 describe("perf instrumentation", () => {
@@ -54,6 +58,57 @@ describe("perf instrumentation", () => {
     expect(summary.byType.GPU.corePercent).toBe(10);
     expect(summary.byType.utility.corePercent).toBe(5);
     expect(summary.error).toBe("one process census failed");
+  });
+
+  it("rejects CPU samples without a measurement delta", () => {
+    const failedSample = summarizeProcessCpuSnapshots(
+      [
+        {
+          capturedAtMs: 0,
+          processInfo: [{ id: 10, type: "renderer", cpuTime: 1 }],
+        },
+      ],
+      1000,
+      4,
+      0,
+      "process census failed",
+    );
+    const validSample = summarizeProcessCpuSnapshots(
+      [
+        {
+          capturedAtMs: 0,
+          processInfo: [{ id: 10, type: "renderer", cpuTime: 1 }],
+        },
+        {
+          capturedAtMs: 1000,
+          processInfo: [{ id: 10, type: "renderer", cpuTime: 1.5 }],
+        },
+      ],
+      1000,
+      4,
+      0,
+    );
+
+    expect(failedSample.available).toBe(false);
+    expect(failedSample.error).toBe("process census failed");
+    expect(aggregateProcessCpuSamples([failedSample, validSample]).aggregate.totalCorePercent).toBe(
+      50,
+    );
+  });
+
+  it("combines browser GPU busy shares across Chromium processes", () => {
+    const sample = parsePowermetricsOutput(
+      [
+        "GPU HW active residency: 70%",
+        "pid 10 Chromium Renderer 5 ms (20%)",
+        "pid 20 Chromium GPU 8 ms (35%)",
+      ].join("\n"),
+      new Set([10, 20]),
+    );
+
+    expect(sample.browserBusyMeanPercent).toBe(55);
+    expect(sample.browserBusyMaxPercent).toBe(55);
+    expect(sample.browserActiveTimeMs).toBe(13);
   });
 
   it("includes DRM engines that appear during the sample window", () => {

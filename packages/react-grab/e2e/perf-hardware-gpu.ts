@@ -128,7 +128,7 @@ const parseDurationMilliseconds = (value: number, unit: string): number => {
   return value;
 };
 
-const parsePowermetricsOutput = (
+export const parsePowermetricsOutput = (
   output: string,
   browserProcessIds: Set<number>,
 ): PerfHardwareGpuSample => {
@@ -166,6 +166,21 @@ const parsePowermetricsOutput = (
       activeTimeMs: roundTo3(processSample.activeTimeMs),
     }))
     .sort((leftProcess, rightProcess) => rightProcess.activeTimeMs - leftProcess.activeTimeMs);
+  const browserBusyMeanPercent = Math.min(
+    PERF_PERCENT_SCALE,
+    [...processesByPid.values()].reduce(
+      (combinedBusyPercent, processSample) => combinedBusyPercent + mean(processSample.busyValues),
+      0,
+    ),
+  );
+  const browserBusyMaxPercent = Math.min(
+    PERF_PERCENT_SCALE,
+    [...processesByPid.values()].reduce(
+      (combinedBusyPercent, processSample) =>
+        combinedBusyPercent + Math.max(...processSample.busyValues),
+      0,
+    ),
+  );
   return {
     status: systemBusyValues.length > 0 || processes.length > 0 ? "available" : "unavailable",
     backend: "macos-powermetrics",
@@ -176,14 +191,8 @@ const parsePowermetricsOutput = (
       systemBusyValues.length > 0 ? roundTo3(percentile(systemBusyValues, 0.95)) : undefined,
     systemBusyMaxPercent:
       systemBusyValues.length > 0 ? roundTo3(Math.max(...systemBusyValues)) : undefined,
-    browserBusyMeanPercent:
-      processes.length > 0
-        ? roundTo3(mean(processes.map((processSample) => processSample.busyPercent)))
-        : undefined,
-    browserBusyMaxPercent:
-      processes.length > 0
-        ? roundTo3(Math.max(...processes.map((processSample) => processSample.busyPercent)))
-        : undefined,
+    browserBusyMeanPercent: processes.length > 0 ? roundTo3(browserBusyMeanPercent) : undefined,
+    browserBusyMaxPercent: processes.length > 0 ? roundTo3(browserBusyMaxPercent) : undefined,
     browserActiveTimeMs:
       processes.length > 0
         ? roundTo3(

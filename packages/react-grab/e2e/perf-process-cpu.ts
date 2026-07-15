@@ -101,6 +101,9 @@ export const summarizeProcessCpuSnapshots = (
   error?: string,
 ): PerfProcessCpuSample => {
   if (snapshots.length === 0) return unavailableSample("No process snapshots were captured");
+  if (snapshots.length === 1) {
+    return unavailableSample(error ?? "Process CPU sampling requires at least two snapshots");
+  }
 
   const initialPids = new Set(snapshots[0].processInfo.map((processInfo) => processInfo.id));
   const previousCpuTimeByPid = new Map<number, number>();
@@ -252,11 +255,12 @@ export const startProcessCpuProbe = async (
   let sampleError: string | undefined;
 
   const captureSample = async (): Promise<void> => {
-    if (sampleError) return;
     try {
       snapshots.push(await readProcessSnapshot(browserSession, startedAtMs));
     } catch (captureError) {
-      sampleError = captureError instanceof Error ? captureError.message : String(captureError);
+      if (!sampleError) {
+        sampleError = captureError instanceof Error ? captureError.message : String(captureError);
+      }
     }
   };
   await captureSample();
@@ -276,7 +280,6 @@ export const startProcessCpuProbe = async (
       } catch {
         // Browser teardown can detach the session before the probe stops.
       }
-      if (sampleError && snapshots.length === 0) return unavailableSample(sampleError);
       return summarizeProcessCpuSnapshots(
         snapshots,
         wallTimeMs,
