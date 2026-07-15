@@ -1018,6 +1018,7 @@ export const captureRenderTrace = async (
   let compositingProbe: PerfCompositingProbe | null = null;
   let validityProbe: PerfRunValidityProbe | null = null;
   let animationLifecycleInterval: ReturnType<typeof setInterval> | null = null;
+  let isTracingActive = false;
   try {
     browserSession = await browser.newBrowserCDPSession();
     pageSession = await page.context().newCDPSession(page);
@@ -1070,6 +1071,7 @@ export const captureRenderTrace = async (
         includedCategories: PERF_RENDER_TRACE_CATEGORIES,
       },
     });
+    isTracingActive = true;
 
     animationLifecycleTracker.handleActiveAnimationCount(await readActivePageAnimationCount(page));
     animationLifecycleTracker.start();
@@ -1111,6 +1113,7 @@ export const captureRenderTrace = async (
       "CSS.stopRuleUsageTracking",
     );
     await browserSession.send("Tracing.end");
+    isTracingActive = false;
     const completedTrace = await withDeadline(traceComplete);
     if (!completedTrace.stream) throw new Error("Tracing completed without a stream handle");
     const traceBuffer = await withDeadline(readTraceStream(browserSession, completedTrace.stream));
@@ -1166,6 +1169,14 @@ export const captureRenderTrace = async (
         await compositingProbe.stop();
       } catch {
         // The page can close while the best-effort layer summary is finalized.
+      }
+    }
+    if (browserSession && isTracingActive) {
+      try {
+        await browserSession.send("Tracing.end");
+        isTracingActive = false;
+      } catch {
+        // A disconnected browser cannot retain a trace session.
       }
     }
     if (pageSession) {

@@ -406,6 +406,7 @@ export const captureDomMutationAttribution = async (
   const hits: PerfDomMutationBreakpointHit[] = [];
   const scriptsById = new Map<string, DebuggerScriptParsedEvent>();
   let pendingPauseHandling = Promise.resolve();
+  let debuggerPausedListener: ((event: DebuggerPausedEvent) => void) | null = null;
   let didReachHitLimit = false;
   try {
     session = await page.context().newCDPSession(page);
@@ -413,7 +414,7 @@ export const captureDomMutationAttribution = async (
     activeSession.on("Debugger.scriptParsed", (event: DebuggerScriptParsedEvent) => {
       scriptsById.set(event.scriptId, event);
     });
-    activeSession.on("Debugger.paused", (event: DebuggerPausedEvent) => {
+    debuggerPausedListener = (event: DebuggerPausedEvent): void => {
       pendingPauseHandling = pendingPauseHandling.then(async () => {
         try {
           if (event.reason !== "DOM") return;
@@ -456,7 +457,8 @@ export const captureDomMutationAttribution = async (
           await activeSession.send("Debugger.resume").catch(() => {});
         }
       });
-    });
+    };
+    activeSession.on("Debugger.paused", debuggerPausedListener);
 
     await activeSession.send("DOM.enable");
     await activeSession.send("Debugger.enable");
@@ -569,10 +571,16 @@ export const captureDomMutationAttribution = async (
       error: captureError instanceof Error ? captureError.message : String(captureError),
     };
   } finally {
+    if (session) {
+      if (debuggerPausedListener) session.off("Debugger.paused", debuggerPausedListener);
+      await session.send("Debugger.setSkipAllPauses", { skip: true }).catch(() => {});
+      await removeBreakpoints(session, installedBreakpoints);
+      await session.send("Debugger.resume").catch(() => {});
+      await pendingPauseHandling.catch(() => {});
+      await session.send("Debugger.setSkipAllPauses", { skip: false }).catch(() => {});
+    }
     if (validityProbe) await validityProbe.stop().catch(() => {});
     if (session) {
-      await session.send("Debugger.setSkipAllPauses", { skip: false }).catch(() => {});
-      await removeBreakpoints(session, installedBreakpoints);
       await session.detach().catch(() => {});
     }
   }

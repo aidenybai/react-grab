@@ -7,6 +7,8 @@ import type { PerfBrowserGpuInfo } from "./perf-environment.js";
 import {
   PERF_HARDWARE_GPU_SAMPLE_INTERVAL_MS,
   PERF_HARDWARE_GPU_STOP_DEADLINE_MS,
+  PERF_NANOSECONDS_PER_MILLISECOND,
+  PERF_PERCENT_SCALE,
 } from "./perf-constants.js";
 
 export interface PerfHardwareGpuProcessSample {
@@ -59,7 +61,7 @@ interface BrowserProcessResponse {
   processInfo: BrowserProcessInfo[];
 }
 
-interface DrmEngineSnapshot {
+export interface DrmEngineSnapshot {
   capturedAtMs: number;
   activeNanosecondsByEngine: Map<string, number>;
 }
@@ -347,53 +349,56 @@ const readDrmEngineSnapshot = async (
   return { capturedAtMs: performance.now() - startedAtMs, activeNanosecondsByEngine };
 };
 
+export const summarizeDrmEngineSnapshots = (
+  initialSnapshot: DrmEngineSnapshot,
+  finalSnapshot: DrmEngineSnapshot,
+): PerfHardwareGpuSample => {
+  const wallTimeMs = Math.max(finalSnapshot.capturedAtMs - initialSnapshot.capturedAtMs, 0);
+  const engines: PerfHardwareGpuEngineSample[] = [];
+  for (const [engine, finalActiveNanoseconds] of finalSnapshot.activeNanosecondsByEngine) {
+    const initialActiveNanoseconds = initialSnapshot.activeNanosecondsByEngine.get(engine) ?? 0;
+    const activeNanoseconds = Math.max(finalActiveNanoseconds - initialActiveNanoseconds, 0);
+    const activeTimeMs = activeNanoseconds / PERF_NANOSECONDS_PER_MILLISECOND;
+    engines.push({
+      engine,
+      activeTimeMs: roundTo3(activeTimeMs),
+      busyPercent: roundTo3(
+        (activeTimeMs / Math.max(wallTimeMs, Number.EPSILON)) * PERF_PERCENT_SCALE,
+      ),
+    });
+  }
+  engines.sort((leftEngine, rightEngine) => rightEngine.busyPercent - leftEngine.busyPercent);
+  return {
+    status: engines.length > 0 ? "available" : "unsupported",
+    backend: "linux-drm-fdinfo",
+    sampleCount: engines.length > 0 ? 2 : 0,
+    browserBusyMeanPercent:
+      engines.length > 0 ? roundTo3(mean(engines.map((engine) => engine.busyPercent))) : undefined,
+    browserBusyMaxPercent:
+      engines.length > 0
+        ? roundTo3(Math.max(...engines.map((engine) => engine.busyPercent)))
+        : undefined,
+    browserActiveTimeMs:
+      engines.length > 0
+        ? roundTo3(
+            engines.reduce((totalActiveTime, engine) => totalActiveTime + engine.activeTimeMs, 0),
+          )
+        : undefined,
+    processes: [],
+    engines,
+    warnings: [],
+    error:
+      engines.length > 0 ? undefined : "No DRM engine counters were exposed in Chromium fdinfo",
+  };
+};
+
 const startLinuxGpuProbe = async (page: Page): Promise<PerfHardwareGpuProbe> => {
   const startedAtMs = performance.now();
   const initialSnapshot = await readDrmEngineSnapshot(page, startedAtMs);
   return {
     async stop() {
       const finalSnapshot = await readDrmEngineSnapshot(page, startedAtMs);
-      const wallTimeMs = Math.max(finalSnapshot.capturedAtMs - initialSnapshot.capturedAtMs, 0);
-      const engines: PerfHardwareGpuEngineSample[] = [];
-      for (const [engine, finalActiveNanoseconds] of finalSnapshot.activeNanosecondsByEngine) {
-        const initialActiveNanoseconds = initialSnapshot.activeNanosecondsByEngine.get(engine);
-        if (initialActiveNanoseconds === undefined) continue;
-        const activeNanoseconds = Math.max(finalActiveNanoseconds - initialActiveNanoseconds, 0);
-        const activeTimeMs = activeNanoseconds / 1_000_000;
-        engines.push({
-          engine,
-          activeTimeMs: roundTo3(activeTimeMs),
-          busyPercent: roundTo3((activeTimeMs / Math.max(wallTimeMs, Number.EPSILON)) * 100),
-        });
-      }
-      engines.sort((leftEngine, rightEngine) => rightEngine.busyPercent - leftEngine.busyPercent);
-      return {
-        status: engines.length > 0 ? "available" : "unsupported",
-        backend: "linux-drm-fdinfo",
-        sampleCount: engines.length > 0 ? 2 : 0,
-        browserBusyMeanPercent:
-          engines.length > 0
-            ? roundTo3(mean(engines.map((engine) => engine.busyPercent)))
-            : undefined,
-        browserBusyMaxPercent:
-          engines.length > 0
-            ? roundTo3(Math.max(...engines.map((engine) => engine.busyPercent)))
-            : undefined,
-        browserActiveTimeMs:
-          engines.length > 0
-            ? roundTo3(
-                engines.reduce(
-                  (totalActiveTime, engine) => totalActiveTime + engine.activeTimeMs,
-                  0,
-                ),
-              )
-            : undefined,
-        processes: [],
-        engines,
-        warnings: [],
-        error:
-          engines.length > 0 ? undefined : "No DRM engine counters were exposed in Chromium fdinfo",
-      };
+      return summarizeDrmEngineSnapshots(initialSnapshot, finalSnapshot);
     },
   };
 };

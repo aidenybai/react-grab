@@ -1,7 +1,10 @@
 import { spawn } from "node:child_process";
 import { describe, expect, it } from "vite-plus/test";
 import { PERF_TRACE_MARKER_END, PERF_TRACE_MARKER_START } from "../e2e/perf-constants.js";
-import { waitForHardwareGpuProcessExit } from "../e2e/perf-hardware-gpu.js";
+import {
+  summarizeDrmEngineSnapshots,
+  waitForHardwareGpuProcessExit,
+} from "../e2e/perf-hardware-gpu.js";
 import { summarizeProcessCpuSnapshots } from "../e2e/perf-process-cpu.js";
 import { summarizeRenderTrace } from "../e2e/perf-render-trace.js";
 
@@ -51,6 +54,28 @@ describe("perf instrumentation", () => {
     expect(summary.byType.GPU.corePercent).toBe(10);
     expect(summary.byType.utility.corePercent).toBe(5);
     expect(summary.error).toBe("one process census failed");
+  });
+
+  it("includes DRM engines that appear during the sample window", () => {
+    const sample = summarizeDrmEngineSnapshots(
+      {
+        capturedAtMs: 0,
+        activeNanosecondsByEngine: new Map([["render", 1_000_000]]),
+      },
+      {
+        capturedAtMs: 100,
+        activeNanosecondsByEngine: new Map([
+          ["render", 11_000_000],
+          ["copy", 20_000_000],
+        ]),
+      },
+    );
+
+    expect(sample.browserActiveTimeMs).toBe(30);
+    expect(sample.engines).toEqual([
+      { engine: "copy", activeTimeMs: 20, busyPercent: 20 },
+      { engine: "render", activeTimeMs: 10, busyPercent: 10 },
+    ]);
   });
 
   it("limits rendering attribution to the marked scenario window", () => {
