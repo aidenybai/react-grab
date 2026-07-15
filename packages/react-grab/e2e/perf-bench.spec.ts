@@ -14,7 +14,10 @@ import {
   test,
 } from "./perf-fixtures.js";
 import { captureAnimationSchedulingControls } from "./perf-animation-controls.js";
-import { PERF_ANIMATION_CONTROL_TEST_TIMEOUT_MS } from "./perf-constants.js";
+import {
+  PERF_ANIMATION_CONTROL_TEST_TIMEOUT_MS,
+  PERF_COPY_COMPLETION_TIMEOUT_MS,
+} from "./perf-constants.js";
 import { idleFrame, recordScenario } from "./perf-recorder.js";
 
 // web-vitals "needs improvement" threshold is 200ms; we cap synthetic
@@ -127,7 +130,7 @@ test.describe("@perf benchmarks", () => {
               );
             },
             cycleStartTimestamp,
-            { timeout: 2000 },
+            { timeout: PERF_COPY_COMPLETION_TIMEOUT_MS },
           );
           await page.keyboard.press("Escape");
           await page.waitForTimeout(80);

@@ -187,6 +187,8 @@ const installPerfRecorderScript = (): void => {
     activeAnimationsAtEnd: 0,
     topMutationTargets: [],
   });
+  const countRunningAnimations = (): number =>
+    document.getAnimations().filter((animation) => animation.playState === "running").length;
   cssActivity = emptyCssActivity();
 
   const describeMutationTarget = (target: Node): string => {
@@ -301,7 +303,7 @@ const installPerfRecorderScript = (): void => {
       inpInteractionMap = new Map();
       previousFrameTimestamp = null;
       cssActivity = emptyCssActivity();
-      cssActivity.activeAnimationsAtStart = document.getAnimations().length;
+      cssActivity.activeAnimationsAtStart = countRunningAnimations();
       mutationTargetCounts = new Map();
       currentMutationTargetLimit = mutationTargetLimit;
 
@@ -361,7 +363,7 @@ const installPerfRecorderScript = (): void => {
       }
       if (rafHandle) cancelAnimationFrame(rafHandle);
       rafHandle = 0;
-      cssActivity.activeAnimationsAtEnd = document.getAnimations().length;
+      cssActivity.activeAnimationsAtEnd = countRunningAnimations();
       cssActivity.topMutationTargets = [...mutationTargetCounts.entries()]
         .sort((leftEntry, rightEntry) => rightEntry[1] - leftEntry[1])
         .slice(0, currentMutationTargetLimit)

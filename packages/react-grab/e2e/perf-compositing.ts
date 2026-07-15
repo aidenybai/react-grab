@@ -1,6 +1,7 @@
 import type { CDPSession } from "@playwright/test";
 import {
   PERF_COMPOSITED_LAYER_LIMIT,
+  PERF_COMPOSITING_REFRESH_TIMEOUT_MS,
   PERF_MILLISECONDS_PER_SECOND,
   PERF_PAINT_PROFILE_COMMAND_LIMIT,
   PERF_PAINT_PROFILE_LAYER_LIMIT,
@@ -112,6 +113,10 @@ interface ProfileSnapshotResponse {
   timings: number[][];
 }
 
+interface RuntimeEvaluateResponse {
+  exceptionDetails?: unknown;
+}
+
 const roundTo3 = (value: number): number => Number(value.toFixed(3));
 
 const readAttribute = (attributes: string[] | undefined, name: string): string | undefined => {
@@ -216,6 +221,55 @@ const captureLayerPaintProfile = async (
   }
 };
 
+const refreshStaticLayerTree = async (pageSession: CDPSession): Promise<void> => {
+  const response: RuntimeEvaluateResponse = await pageSession.send("Runtime.evaluate", {
+    expression: `new Promise((resolve) => {
+      const documentElement = document.documentElement;
+      if (!documentElement) {
+        resolve();
+        return;
+      }
+      const hadStyleAttribute = documentElement.hasAttribute("style");
+      const originalWillChange = documentElement.style.getPropertyValue("will-change");
+      const originalWillChangePriority = documentElement.style.getPropertyPriority("will-change");
+      let didRestore = false;
+      let didComplete = false;
+      const complete = () => {
+        if (didComplete) return;
+        didComplete = true;
+        clearTimeout(timeoutHandle);
+        resolve();
+      };
+      const restore = () => {
+        if (didRestore) return;
+        didRestore = true;
+        if (originalWillChange) {
+          documentElement.style.setProperty(
+            "will-change",
+            originalWillChange,
+            originalWillChangePriority,
+          );
+        } else {
+          documentElement.style.removeProperty("will-change");
+        }
+        if (!hadStyleAttribute && documentElement.style.length === 0) {
+          documentElement.removeAttribute("style");
+        }
+        requestAnimationFrame(() => requestAnimationFrame(complete));
+      };
+      const timeoutHandle = setTimeout(() => {
+        restore();
+        complete();
+      }, ${PERF_COMPOSITING_REFRESH_TIMEOUT_MS});
+      documentElement.style.setProperty("will-change", "transform", "important");
+      requestAnimationFrame(() => requestAnimationFrame(restore));
+    })`,
+    awaitPromise: true,
+    returnByValue: true,
+  });
+  if (response.exceptionDetails) throw new Error("Could not refresh Chromium's layer tree");
+};
+
 export const startCompositingProbe = async (
   pageSession: CDPSession,
   viewportWidthPx: number,
@@ -235,17 +289,17 @@ export const startCompositingProbe = async (
   let paintEventCount = 0;
   let paintedAreaPx = 0;
   let largestPaintAreaPx = 0;
+  const warnings: string[] = [];
 
-  const handleLayerTreeChange = (event: LayerTreeDidChangeEvent): void => {
-    if (!event.layers) return;
-    latestLayers = event.layers;
-    layerTreeChangeCount += 1;
-    if (!initialLayerIds) initialLayerIds = new Set(event.layers.map((layer) => layer.layerId));
-    maximumLayerCount = Math.max(maximumLayerCount, event.layers.length);
+  const recordLayerTree = (layers: ProtocolLayer[], isScenarioChange: boolean): void => {
+    latestLayers = layers;
+    if (isScenarioChange) layerTreeChangeCount += 1;
+    if (!initialLayerIds) initialLayerIds = new Set(layers.map((layer) => layer.layerId));
+    maximumLayerCount = Math.max(maximumLayerCount, layers.length);
     let contentLayerCount = 0;
     let contentAreaPx = 0;
     let clippedContentAreaPx = 0;
-    for (const layer of event.layers) {
+    for (const layer of layers) {
       observedLayerIds.add(layer.layerId);
       if (layer.paintCount !== undefined) {
         minimumPaintCountByLayerId.set(
@@ -280,6 +334,10 @@ export const startCompositingProbe = async (
     );
   };
 
+  const handleLayerTreeChange = (event: LayerTreeDidChangeEvent): void => {
+    if (event.layers) recordLayerTree(event.layers, true);
+  };
+
   const handleLayerPainted = (event: LayerPaintedEvent): void => {
     const paintAreaPx = event.clip.width * event.clip.height;
     paintEventCount += 1;
@@ -296,6 +354,28 @@ export const startCompositingProbe = async (
     pageSession.off("LayerTree.layerPainted", handleLayerPainted);
     const error = enableError instanceof Error ? enableError.message : String(enableError);
     return { stop: async () => unavailableSummary(error) };
+  }
+  try {
+    await refreshStaticLayerTree(pageSession);
+    if (latestLayers.length > 0) {
+      const baselineLayers = latestLayers;
+      initialLayerIds = new Set(baselineLayers.map((layer) => layer.layerId));
+      observedLayerIds.clear();
+      minimumPaintCountByLayerId.clear();
+      maximumPaintCountByLayerId.clear();
+      layerTreeChangeCount = 0;
+      maximumLayerCount = 0;
+      maximumContentLayerCount = 0;
+      maximumContentAreaViewportMultiple = 0;
+      maximumClippedContentAreaViewportMultiple = 0;
+      paintEventCount = 0;
+      paintedAreaPx = 0;
+      largestPaintAreaPx = 0;
+      recordLayerTree(baselineLayers, false);
+    }
+  } catch (refreshError) {
+    const message = refreshError instanceof Error ? refreshError.message : String(refreshError);
+    warnings.push(`Could not request the initial layer tree: ${message}`);
   }
 
   return {
@@ -364,7 +444,6 @@ export const startCompositingProbe = async (
         }),
       );
       const paintProfiles: PerfLayerPaintProfile[] = [];
-      const warnings: string[] = [];
       for (const layer of topProtocolLayers) {
         if (paintProfiles.length >= PERF_PAINT_PROFILE_LAYER_LIMIT) break;
         const target = topLayers.find((topLayer) => topLayer.layerId === layer.layerId)?.target;
