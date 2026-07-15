@@ -29,6 +29,7 @@ import {
   aggregateProcessCpuSamples,
   startProcessCpuProbe,
   type PerfProcessCpuMetrics,
+  type PerfProcessCpuProbe,
   type PerfProcessCpuSample,
 } from "./perf-process-cpu.js";
 import { captureRenderTrace, type PerfRenderTraceReport } from "./perf-render-trace.js";
@@ -37,6 +38,7 @@ import {
   assertValidHeadedPerfRun,
   startPerfRunValidityProbe,
   type PerfRunValidityMetrics,
+  type PerfRunValidityProbe,
   type PerfRunValiditySummary,
 } from "./perf-validity.js";
 
@@ -208,6 +210,14 @@ const installAnimationControlFixture = (options: PerfAnimationControlFixtureOpti
   };
 };
 
+const cleanupAnimationControl = async (page: Page): Promise<void> => {
+  try {
+    await page.evaluate(() => window.__PERF_ANIMATION_CONTROL__?.cleanup());
+  } finally {
+    await resumePausedAnimations(page);
+  }
+};
+
 const setupAnimationControl = async (page: Page, mode: PerfAnimationControlMode): Promise<void> => {
   const indicatorCount =
     mode === "legacy-one-indicator" ? 1 : PERF_ANIMATION_PRODUCTION_INDICATOR_COUNT;
@@ -232,16 +242,8 @@ const setupAnimationControl = async (page: Page, mode: PerfAnimationControlMode)
       });
     }
   } catch (setupError) {
-    await resumePausedAnimations(page);
+    await cleanupAnimationControl(page);
     throw setupError;
-  }
-};
-
-const cleanupAnimationControl = async (page: Page): Promise<void> => {
-  try {
-    await page.evaluate(() => window.__PERF_ANIMATION_CONTROL__?.cleanup());
-  } finally {
-    await resumePausedAnimations(page);
   }
 };
 
@@ -254,18 +256,20 @@ const captureControlSample = async (
   order: number,
 ): Promise<PerfAnimationControlSample> => {
   await setupAnimationControl(page, mode);
-  const validityProbe = await startPerfRunValidityProbe(page);
-  const processCpuProbe = await startProcessCpuProbe(page, logicalCpuCount);
+  let validityProbe: PerfRunValidityProbe | undefined;
+  let processCpuProbe: PerfProcessCpuProbe | undefined;
   let processCpu: PerfProcessCpuSample | undefined;
   let validity: PerfRunValiditySummary | undefined;
   try {
+    validityProbe = await startPerfRunValidityProbe(page);
+    processCpuProbe = await startProcessCpuProbe(page, logicalCpuCount);
     await page.waitForTimeout(PERF_ANIMATION_CONTROL_SAMPLE_MS);
   } finally {
     try {
-      processCpu = await processCpuProbe.stop();
+      if (processCpuProbe) processCpu = await processCpuProbe.stop();
     } finally {
       try {
-        validity = await validityProbe.stop();
+        if (validityProbe) validity = await validityProbe.stop();
       } finally {
         await cleanupAnimationControl(page);
       }

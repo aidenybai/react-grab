@@ -18,12 +18,14 @@ import {
   aggregateHardwareGpuSamples,
   startHardwareGpuProbe,
   type PerfHardwareGpuMetrics,
+  type PerfHardwareGpuProbe,
   type PerfHardwareGpuSample,
 } from "./perf-hardware-gpu.js";
 import {
   aggregateProcessCpuSamples,
   startProcessCpuProbe,
   type PerfProcessCpuMetrics,
+  type PerfProcessCpuProbe,
   type PerfProcessCpuSample,
 } from "./perf-process-cpu.js";
 import { captureRenderTrace, type PerfRenderTraceReport } from "./perf-render-trace.js";
@@ -32,6 +34,7 @@ import {
   assertValidHeadedPerfRun,
   startPerfRunValidityProbe,
   type PerfRunValidityMetrics,
+  type PerfRunValidityProbe,
   type PerfRunValiditySummary,
 } from "./perf-validity.js";
 import { capturePerfWorkload, type PerfWorkloadSnapshot } from "./perf-workload.js";
@@ -972,11 +975,17 @@ export const recordScenario = async (
   try {
     for (let sampleIndex = 0; sampleIndex < sampleCount; sampleIndex++) {
       if (options.beforeEachSample) await options.beforeEachSample();
-      const validityProbe = await startPerfRunValidityProbe(page);
-      const hardwareGpuProbe = await startHardwareGpuProbe(page, environment.gpu);
-      const processCpuProbe = await startProcessCpuProbe(page, environment.host.logicalCpuCount);
+      let validityProbe: PerfRunValidityProbe | undefined;
+      let hardwareGpuProbe: PerfHardwareGpuProbe | undefined;
+      let processCpuProbe: PerfProcessCpuProbe | undefined;
       let rawSnapshot: PerfRawSnapshot | null = null;
+      let processCpu: PerfProcessCpuSample | undefined;
+      let hardwareGpu: PerfHardwareGpuSample | undefined;
+      let validity: PerfRunValiditySummary | undefined;
       try {
+        validityProbe = await startPerfRunValidityProbe(page);
+        hardwareGpuProbe = await startHardwareGpuProbe(page, environment.gpu);
+        processCpuProbe = await startProcessCpuProbe(page, environment.host.logicalCpuCount);
         await startRecording(page);
         try {
           await scenarioBody();
@@ -984,12 +993,23 @@ export const recordScenario = async (
           rawSnapshot = await stopRecording(page);
         }
       } finally {
-        perSampleProcessCpu.push(await processCpuProbe.stop());
-        perSampleHardwareGpu.push(await hardwareGpuProbe.stop());
-        const validity = await validityProbe.stop();
-        perSampleValidity.push(validity);
-        assertValidHeadedPerfRun(validity, `${scenarioName} sample ${sampleIndex + 1}`);
+        try {
+          if (processCpuProbe) processCpu = await processCpuProbe.stop();
+        } finally {
+          try {
+            if (hardwareGpuProbe) hardwareGpu = await hardwareGpuProbe.stop();
+          } finally {
+            if (validityProbe) validity = await validityProbe.stop();
+          }
+        }
       }
+      if (!processCpu || !hardwareGpu || !validity) {
+        throw new Error(`Perf sample ${sampleIndex + 1} did not stop every probe`);
+      }
+      perSampleProcessCpu.push(processCpu);
+      perSampleHardwareGpu.push(hardwareGpu);
+      perSampleValidity.push(validity);
+      assertValidHeadedPerfRun(validity, `${scenarioName} sample ${sampleIndex + 1}`);
       if (!rawSnapshot)
         throw new Error(`Perf sample ${sampleIndex + 1} produced no browser metrics`);
       perSampleAggregates.push(

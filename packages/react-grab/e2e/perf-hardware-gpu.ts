@@ -71,7 +71,7 @@ interface MutableHardwareGpuProcess {
   activeTimeMs: number;
 }
 
-interface HardwareGpuChildProcessExit {
+export interface HardwareGpuChildProcessExit {
   exitCode: number | null;
   signal: NodeJS.Signals | null;
 }
@@ -206,20 +206,40 @@ const parsePowermetricsOutput = (
   };
 };
 
-const waitForProcessExit = (
+export const waitForHardwareGpuProcessExit = (
   childProcess: ChildProcessWithoutNullStreams,
-): Promise<HardwareGpuChildProcessExit> =>
-  new Promise((resolveExit) => {
+): Promise<HardwareGpuChildProcessExit> => {
+  const didProcessClose = (): boolean =>
+    (childProcess.exitCode !== null || childProcess.signalCode !== null) &&
+    childProcess.stdout.closed &&
+    childProcess.stderr.closed;
+  if (didProcessClose()) {
+    return Promise.resolve({
+      exitCode: childProcess.exitCode,
+      signal: childProcess.signalCode,
+    });
+  }
+  return new Promise((resolveExit) => {
     let deadlineHandle: ReturnType<typeof setTimeout> | undefined;
+    let didFinish = false;
     const finish = (exitCode: number | null, signal: NodeJS.Signals | null): void => {
+      if (didFinish) return;
+      didFinish = true;
       if (deadlineHandle) clearTimeout(deadlineHandle);
+      childProcess.removeListener("close", finish);
       resolveExit({ exitCode, signal });
     };
     childProcess.once("close", finish);
     deadlineHandle = setTimeout(() => {
       childProcess.kill("SIGKILL");
+      const signal = childProcess.signalCode ?? (childProcess.exitCode === null ? "SIGKILL" : null);
+      finish(childProcess.exitCode, signal);
     }, PERF_HARDWARE_GPU_STOP_DEADLINE_MS);
+    if (didProcessClose()) {
+      finish(childProcess.exitCode, childProcess.signalCode);
+    }
   });
+};
 
 const startMacosGpuProbe = async (page: Page): Promise<PerfHardwareGpuProbe> => {
   if (process.env.PERF_GPU !== "1") {
@@ -267,7 +287,7 @@ const startMacosGpuProbe = async (page: Page): Promise<PerfHardwareGpuProbe> => 
   return {
     async stop() {
       childProcess.kill("SIGINT");
-      const exit = await waitForProcessExit(childProcess);
+      const exit = await waitForHardwareGpuProcessExit(childProcess);
       if (
         /password is required|not permitted|must be invoked as the superuser/i.test(standardError)
       ) {

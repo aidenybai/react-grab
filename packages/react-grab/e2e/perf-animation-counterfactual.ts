@@ -4,6 +4,7 @@ import {
   aggregateProcessCpuSamples,
   startProcessCpuProbe,
   type PerfProcessCpuMetrics,
+  type PerfProcessCpuProbe,
   type PerfProcessCpuSample,
 } from "./perf-process-cpu.js";
 import {
@@ -11,6 +12,7 @@ import {
   assertValidHeadedPerfRun,
   startPerfRunValidityProbe,
   type PerfRunValidityMetrics,
+  type PerfRunValidityProbe,
   type PerfRunValiditySummary,
 } from "./perf-validity.js";
 import type { PerfRenderTraceReport } from "./perf-render-trace.js";
@@ -138,16 +140,27 @@ export const captureAnimationCounterfactual = async (
         await resumePausedAnimations(page);
         if (beforeEachSample) await beforeEachSample();
         const pausedAnimationCount = mode === "paused" ? await pauseRunningAnimations(page) : 0;
-        const validityProbe = await startPerfRunValidityProbe(page);
-        const processCpuProbe = await startProcessCpuProbe(page, logicalCpuCount);
-        let processCpu: PerfProcessCpuSample;
-        let validity: PerfRunValiditySummary;
+        let validityProbe: PerfRunValidityProbe | undefined;
+        let processCpuProbe: PerfProcessCpuProbe | undefined;
+        let processCpu: PerfProcessCpuSample | undefined;
+        let validity: PerfRunValiditySummary | undefined;
         try {
+          validityProbe = await startPerfRunValidityProbe(page);
+          processCpuProbe = await startProcessCpuProbe(page, logicalCpuCount);
           await scenarioBody();
         } finally {
-          processCpu = await processCpuProbe.stop();
-          validity = await validityProbe.stop();
-          await resumePausedAnimations(page);
+          try {
+            if (processCpuProbe) processCpu = await processCpuProbe.stop();
+          } finally {
+            try {
+              if (validityProbe) validity = await validityProbe.stop();
+            } finally {
+              await resumePausedAnimations(page);
+            }
+          }
+        }
+        if (!processCpu || !validity) {
+          throw new Error(`${scenarioName} ${mode} did not stop every probe`);
         }
         assertValidHeadedPerfRun(validity, `${scenarioName} ${mode} control ${repetition + 1}`);
         samples.push({

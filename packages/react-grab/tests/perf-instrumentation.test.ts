@@ -1,9 +1,22 @@
+import { spawn } from "node:child_process";
 import { describe, expect, it } from "vite-plus/test";
 import { PERF_TRACE_MARKER_END, PERF_TRACE_MARKER_START } from "../e2e/perf-constants.js";
+import { waitForHardwareGpuProcessExit } from "../e2e/perf-hardware-gpu.js";
 import { summarizeProcessCpuSnapshots } from "../e2e/perf-process-cpu.js";
 import { summarizeRenderTrace } from "../e2e/perf-render-trace.js";
 
 describe("perf instrumentation", () => {
+  it("observes a GPU sampler that exited before teardown", async () => {
+    const childProcess = spawn(process.execPath, ["-e", ""], { stdio: "pipe" });
+    await new Promise<void>((resolveExit) => {
+      childProcess.once("close", () => resolveExit());
+    });
+
+    const exit = await waitForHardwareGpuProcessExit(childProcess);
+
+    expect(exit).toEqual({ exitCode: 0, signal: null });
+  });
+
   it("attributes browser process CPU across process types and transient processes", () => {
     const summary = summarizeProcessCpuSnapshots(
       [
