@@ -148,6 +148,25 @@ describe("perf instrumentation", () => {
     expect(summary.frames.productionDutyCyclePercent).toBe(50);
   });
 
+  it("does not count main-frame work as compositor work", () => {
+    const summary = summarizeRenderTrace({
+      traceEvents: [
+        { name: PERF_TRACE_MARKER_START, ts: 0 },
+        {
+          name: "ProxyMain::BeginMainFrame",
+          cat: "cc",
+          ph: "X",
+          ts: 100,
+          dur: 5000,
+        },
+        { name: PERF_TRACE_MARKER_END, ts: 10_000 },
+      ],
+    });
+
+    expect(summary.compositor.eventCount).toBe(0);
+    expect(summary.compositor.totalDurationMs).toBe(0);
+  });
+
   it("aggregates selector costs and advanced paint snapshots", () => {
     const summary = summarizeRenderTrace({
       traceEvents: [

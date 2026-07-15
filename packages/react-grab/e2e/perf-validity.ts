@@ -19,13 +19,13 @@ export interface PerfPageValiditySnapshot {
   blurEventCount: number;
   hiddenDurationMs: number;
   unfocusedDurationMs: number;
+  frozenLifecycleCount: number;
+  hiddenLifecycleCount: number;
 }
 
 export interface PerfRunValiditySummary extends PerfPageValiditySnapshot {
   devToolsTargetCountAtStart: number;
   devToolsTargetCountAtEnd: number;
-  frozenLifecycleCount: number;
-  hiddenLifecycleCount: number;
   occlusionSignal: "document-and-page-lifecycle";
   validForHeadedMeasurement: boolean;
   violations: string[];
@@ -48,10 +48,6 @@ interface TargetInfoResponse {
   targetInfos: TargetInfo[];
 }
 
-interface PageLifecycleEvent {
-  name: string;
-}
-
 const roundTo3 = (value: number): number => Number(value.toFixed(3));
 
 const countDevToolsTargets = async (browserSession: CDPSession): Promise<number> => {
@@ -71,6 +67,8 @@ const installPageValidityProbe = (): void => {
   let blurEventCount = 0;
   let hiddenDurationMs = 0;
   let unfocusedDurationMs = 0;
+  let frozenLifecycleCount = 0;
+  let hiddenLifecycleCount = 0;
   let hiddenStartedAtMs = startedVisible ? null : startedAtMs;
   let unfocusedStartedAtMs = startedFocused ? null : startedAtMs;
 
@@ -81,8 +79,12 @@ const installPageValidityProbe = (): void => {
       if (hiddenStartedAtMs !== null) hiddenDurationMs += timestampMs - hiddenStartedAtMs;
       hiddenStartedAtMs = null;
     } else if (hiddenStartedAtMs === null) {
+      hiddenLifecycleCount += 1;
       hiddenStartedAtMs = timestampMs;
     }
+  };
+  const handleFreeze = (): void => {
+    frozenLifecycleCount += 1;
   };
   const handleFocus = (): void => {
     const timestampMs = performance.now();
@@ -96,6 +98,7 @@ const installPageValidityProbe = (): void => {
   };
 
   document.addEventListener("visibilitychange", handleVisibilityChange, true);
+  document.addEventListener("freeze", handleFreeze, true);
   window.addEventListener("focus", handleFocus, true);
   window.addEventListener("blur", handleBlur, true);
   window.__PERF_RUN_VALIDITY__ = {
@@ -106,6 +109,7 @@ const installPageValidityProbe = (): void => {
       if (hiddenStartedAtMs !== null) hiddenDurationMs += endedAtMs - hiddenStartedAtMs;
       if (unfocusedStartedAtMs !== null) unfocusedDurationMs += endedAtMs - unfocusedStartedAtMs;
       document.removeEventListener("visibilitychange", handleVisibilityChange, true);
+      document.removeEventListener("freeze", handleFreeze, true);
       window.removeEventListener("focus", handleFocus, true);
       window.removeEventListener("blur", handleBlur, true);
       delete window.__PERF_RUN_VALIDITY__;
@@ -120,6 +124,8 @@ const installPageValidityProbe = (): void => {
         blurEventCount,
         hiddenDurationMs,
         unfocusedDurationMs,
+        frozenLifecycleCount,
+        hiddenLifecycleCount,
       };
     },
   };
@@ -136,6 +142,8 @@ const unavailablePageSnapshot = (): PerfPageValiditySnapshot => ({
   blurEventCount: 0,
   hiddenDurationMs: 0,
   unfocusedDurationMs: 0,
+  frozenLifecycleCount: 0,
+  hiddenLifecycleCount: 0,
 });
 
 export const startPerfRunValidityProbe = async (page: Page): Promise<PerfRunValidityProbe> => {
@@ -146,8 +154,6 @@ export const startPerfRunValidityProbe = async (page: Page): Promise<PerfRunVali
         ...unavailablePageSnapshot(),
         devToolsTargetCountAtStart: 0,
         devToolsTargetCountAtEnd: 0,
-        frozenLifecycleCount: 0,
-        hiddenLifecycleCount: 0,
         occlusionSignal: "document-and-page-lifecycle",
         validForHeadedMeasurement: false,
         violations: ["browser-disconnected"],
@@ -156,20 +162,9 @@ export const startPerfRunValidityProbe = async (page: Page): Promise<PerfRunVali
   }
 
   let browserSession: CDPSession | null = null;
-  let pageSession: CDPSession | null = null;
   try {
     browserSession = await browser.newBrowserCDPSession();
-    pageSession = await page.context().newCDPSession(page);
     const activeBrowserSession = browserSession;
-    const activePageSession = pageSession;
-    let frozenLifecycleCount = 0;
-    let hiddenLifecycleCount = 0;
-    activePageSession.on("Page.lifecycleEvent", (event: PageLifecycleEvent) => {
-      if (event.name === "frozen") frozenLifecycleCount += 1;
-      if (event.name === "hidden") hiddenLifecycleCount += 1;
-    });
-    await activePageSession.send("Page.enable");
-    await activePageSession.send("Page.setLifecycleEventsEnabled", { enabled: true });
     const devToolsTargetCountAtStart = await countDevToolsTargets(activeBrowserSession);
     await page.evaluate(installPageValidityProbe);
 
@@ -184,7 +179,7 @@ export const startPerfRunValidityProbe = async (page: Page): Promise<PerfRunVali
           if (completedSnapshot) pageSnapshot = completedSnapshot;
           devToolsTargetCountAtEnd = await countDevToolsTargets(activeBrowserSession);
         } finally {
-          await Promise.allSettled([activePageSession.detach(), activeBrowserSession.detach()]);
+          await Promise.allSettled([activeBrowserSession.detach()]);
         }
         const violations: string[] = [];
         if (!pageSnapshot.probeCompleted) violations.push("validity-probe-detached");
@@ -198,8 +193,8 @@ export const startPerfRunValidityProbe = async (page: Page): Promise<PerfRunVali
         if (pageSnapshot.blurEventCount > 0 || pageSnapshot.unfocusedDurationMs > 0) {
           violations.push("focus-lost");
         }
-        if (frozenLifecycleCount > 0) violations.push("page-frozen");
-        if (hiddenLifecycleCount > 0) violations.push("page-hidden");
+        if (pageSnapshot.frozenLifecycleCount > 0) violations.push("page-frozen");
+        if (pageSnapshot.hiddenLifecycleCount > 0) violations.push("page-hidden");
         if (devToolsTargetCountAtStart > 0 || devToolsTargetCountAtEnd > 0) {
           violations.push("devtools-open");
         }
@@ -209,8 +204,6 @@ export const startPerfRunValidityProbe = async (page: Page): Promise<PerfRunVali
           unfocusedDurationMs: roundTo3(pageSnapshot.unfocusedDurationMs),
           devToolsTargetCountAtStart,
           devToolsTargetCountAtEnd,
-          frozenLifecycleCount,
-          hiddenLifecycleCount,
           occlusionSignal: "document-and-page-lifecycle",
           validForHeadedMeasurement: violations.length === 0,
           violations,
@@ -220,7 +213,6 @@ export const startPerfRunValidityProbe = async (page: Page): Promise<PerfRunVali
   } catch (setupError) {
     await page.evaluate(() => window.__PERF_RUN_VALIDITY__?.stop()).catch(() => {});
     const sessionDetachments: Promise<void>[] = [];
-    if (pageSession) sessionDetachments.push(pageSession.detach());
     if (browserSession) sessionDetachments.push(browserSession.detach());
     await Promise.allSettled(sessionDetachments);
     throw setupError;

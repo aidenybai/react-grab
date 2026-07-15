@@ -621,6 +621,7 @@ const classifyTraceStage = (traceEvent: PerfTraceEvent): string | null => {
   if (/\bgpu\b/i.test(category) || /Gpu|CommandBuffer|SkiaOutputSurface/i.test(eventName)) {
     return "gpuProcess";
   }
+  if (/BeginMainFrame/i.test(eventName)) return null;
   if (
     /Composite|Compositor|BeginFrame|Commit|Activate|DrawFrame|SubmitCompositorFrame/i.test(
       eventName,
