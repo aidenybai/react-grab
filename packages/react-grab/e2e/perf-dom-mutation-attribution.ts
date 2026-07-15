@@ -401,6 +401,7 @@ export const captureDomMutationAttribution = async (
   ];
   let session: CDPSession | null = null;
   let validityProbe: PerfRunValidityProbe | null = null;
+  let validity: PerfRunValiditySummary | undefined;
   const installedBreakpoints: InstalledDomBreakpoint[] = [];
   const resolvedTargetSelectors: string[] = [];
   const hits: PerfDomMutationBreakpointHit[] = [];
@@ -529,7 +530,7 @@ export const captureDomMutationAttribution = async (
     validityProbe = await startPerfRunValidityProbe(page);
     await scenarioBody();
     await pendingPauseHandling;
-    const validity = await validityProbe.stop();
+    validity = await validityProbe.stop();
     validityProbe = null;
     await activeSession.send("Debugger.setSkipAllPauses", { skip: true });
     await removeBreakpoints(activeSession, installedBreakpoints);
@@ -566,6 +567,14 @@ export const captureDomMutationAttribution = async (
     });
     return report;
   } catch (captureError) {
+    if (validityProbe) {
+      try {
+        validity = await validityProbe.stop();
+      } catch {
+        validity = undefined;
+      }
+      validityProbe = null;
+    }
     return {
       available: false,
       intrusive: true,
@@ -578,6 +587,7 @@ export const captureDomMutationAttribution = async (
       topSources: summarizeTopSources(hits, selectApplicationSourceFrame),
       topMutationSinks: summarizeTopSources(hits, selectMutationSinkFrame),
       hits,
+      validity,
       warnings,
       error: captureError instanceof Error ? captureError.message : String(captureError),
     };
