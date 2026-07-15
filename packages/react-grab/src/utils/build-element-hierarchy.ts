@@ -5,6 +5,7 @@ import {
   MAX_HIERARCHY_SIBLINGS,
 } from "../constants.js";
 import type { ElementPredicate, HierarchyEntry } from "../types.js";
+import { getComposedParentElement } from "./get-composed-parent-element.js";
 
 interface ElementStep {
   (element: Element): Element | null;
@@ -48,8 +49,8 @@ export const buildElementHierarchy = (
   };
 
   const ancestors = collectGrabbable(
-    selectedElement.parentElement,
-    (element) => element.parentElement,
+    getComposedParentElement(selectedElement),
+    getComposedParentElement,
     MAX_HIERARCHY_ANCESTORS,
     isGrabbable,
   );

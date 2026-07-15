@@ -1,5 +1,8 @@
 import type { OverlayBounds } from "../types.js";
 import { BOUNDS_CACHE_TTL_MS, BORDER_RADIUS_CACHE_TTL_MS } from "../constants.js";
+import { convertClientPositionToTopWindow } from "./convert-client-position-to-top-window.js";
+import { getElementComputedStyle } from "./get-element-computed-style.js";
+import { scaleBorderRadius } from "./scale-border-radius.js";
 
 interface CachedBounds {
   bounds: OverlayBounds;
@@ -29,7 +32,7 @@ const getCachedBorderRadius = (
     return cached.borderRadius;
   }
 
-  const style = computedStyle ?? window.getComputedStyle(element);
+  const style = computedStyle ?? getElementComputedStyle(element);
   const borderRadius = style.borderRadius || "0px";
   borderRadiusCache.set(element, { borderRadius, timestamp: now });
   return borderRadius;
@@ -44,13 +47,22 @@ export const createElementBounds = (element: Element): OverlayBounds => {
   }
 
   const rect = element.getBoundingClientRect();
-  const borderRadius = getCachedBorderRadius(element, null, now);
+  const topWindowPosition = convertClientPositionToTopWindow(
+    element.ownerDocument.defaultView,
+    rect.left,
+    rect.top,
+  );
+  const borderRadius = scaleBorderRadius(
+    getCachedBorderRadius(element, null, now),
+    topWindowPosition.scaleX,
+    topWindowPosition.scaleY,
+  );
   const bounds: OverlayBounds = {
     borderRadius,
-    height: rect.height,
-    width: rect.width,
-    x: rect.left,
-    y: rect.top,
+    height: rect.height * topWindowPosition.scaleY,
+    width: rect.width * topWindowPosition.scaleX,
+    x: topWindowPosition.x,
+    y: topWindowPosition.y,
   };
 
   boundsCache.set(element, { bounds, timestamp: now });

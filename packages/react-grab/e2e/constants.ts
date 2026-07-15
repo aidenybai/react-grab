@@ -1,4 +1,5 @@
 export { REACT_GRAB_ATTRIBUTE_NAME as ATTRIBUTE_NAME } from "../src/utils/react-grab-attribute-name.js";
+export { Z_INDEX_OVERLAY } from "../src/constants.js";
 
 export const SHIFT_LABEL_CLICK_ANCHOR_RATIO = 0.25;
 export const SHIFT_LABEL_SECOND_CLICK_ANCHOR_RATIO = 0.75;
@@ -11,3 +12,14 @@ export const SHIFT_DRAG_PREVIEW_STEP_COUNT = 6;
 export const HOST_STYLE_DRAG_DISTANCE_PX = 100;
 export const HOST_STYLE_DRAG_STEP_COUNT = 4;
 export const SHIFT_PENDING_HOVER_STEP_COUNT = 8;
+export const POINTER_SETTLE_DELAY_MS = 32;
+export const IFRAME_TEST_POINTER_ID = 1;
+export const IFRAME_SCROLL_SETTLE_DELAY_MS = 150;
+export const IFRAME_SCROLL_DELTA_Y_PX = 200;
+export const IFRAME_RESIZE_TEST_VIEWPORT_WIDTH_PX = 1100;
+export const IFRAME_RESIZE_TEST_VIEWPORT_HEIGHT_PX = 700;
+export const SCALED_IFRAME_EXPECTED_BORDER_RADIUS = "7.2px 10.8px / 14.4px 18px";
+export const NON_UNIFORM_SCALED_IFRAME_EXPECTED_BORDER_RADIUS = "6px 9px / 8px 10px";
+export const SHADOW_HOVER_BACKGROUND_COLOR = "rgb(14, 165, 233)";
+export const SHADOW_FRAME_FOCUS_OUTLINE_COLOR = "rgb(168, 85, 247)";
+export const FRAMEWORK_COPY_RETRY_TIMEOUT_MS = 20_000;

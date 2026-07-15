@@ -3,6 +3,7 @@ import {
   PREVIEW_SKIPPED_TEXT_TAGS,
   PREVIEW_TEXT_MAX_LENGTH,
 } from "../constants.js";
+import { isElementNode } from "./is-element-node.js";
 
 const collapseTextContent = (text: string): string => text.replace(/\s+/g, " ").trim();
 
@@ -37,7 +38,7 @@ const collectDescendantText = (
     return remainingCharacterBudget - collapsedText.length;
   }
 
-  if (!(node instanceof Element) || shouldSkipElementText(node)) return remainingCharacterBudget;
+  if (!isElementNode(node) || shouldSkipElementText(node)) return remainingCharacterBudget;
 
   for (const childNode of node.childNodes) {
     remainingCharacterBudget = collectDescendantText(

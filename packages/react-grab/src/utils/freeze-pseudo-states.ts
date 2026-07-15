@@ -1,8 +1,16 @@
 import { clearElementPositionCache } from "./get-element-at-position.js";
+import { getAccessibleIframeDocument } from "./get-accessible-iframe-document.js";
+import { getComposedParentElement } from "./get-composed-parent-element.js";
+import { getDeepElementAtPoint } from "./get-deep-element-at-point.js";
+import { getDeepHoveredElements } from "./get-deep-hovered-elements.js";
+import { isHtmlElement } from "./is-html-element.js";
+import { isIframeElement } from "./is-iframe-element.js";
+import { isReactGrabElement } from "./is-react-grab-element.js";
 import { IS_DEMO } from "./runtime-mode.js";
 import {
   installPointerEventsFreeze,
   isPointerEventsFreezeInstalled,
+  registerPointerEventsFreezeDocument,
   uninstallPointerEventsFreeze,
 } from "./pointer-events-freeze.js";
 import { throwCollectedErrors } from "./throw-collected-errors.js";
@@ -71,6 +79,8 @@ interface InlineStyleProperty {
 
 const frozenHoverElements = new Map<HTMLElement, Map<string, InlineStyleProperty>>();
 const frozenFocusElements = new Map<HTMLElement, Map<string, InlineStyleProperty>>();
+const registeredDocuments = new Set<Document>();
+let isFreezeApplied = false;
 
 const stopEvent = (event: Event): void => {
   event.stopImmediatePropagation();
@@ -79,6 +89,38 @@ const stopEvent = (event: Event): void => {
 const preventFocusChange = (event: Event): void => {
   event.preventDefault();
   event.stopImmediatePropagation();
+};
+
+const addEventBlockers = (targetDocument: Document): void => {
+  for (const eventType of MOUSE_EVENTS_TO_BLOCK) {
+    targetDocument.addEventListener(eventType, stopEvent, true);
+  }
+
+  for (const eventType of FOCUS_EVENTS_TO_BLOCK) {
+    targetDocument.addEventListener(eventType, preventFocusChange, true);
+  }
+};
+
+const removeEventBlockers = (targetDocument: Document): void => {
+  for (const eventType of MOUSE_EVENTS_TO_BLOCK) {
+    targetDocument.removeEventListener(eventType, stopEvent, true);
+  }
+
+  for (const eventType of FOCUS_EVENTS_TO_BLOCK) {
+    targetDocument.removeEventListener(eventType, preventFocusChange, true);
+  }
+};
+
+export const registerPseudoStateDocument = (targetDocument: Document): (() => void) => {
+  registeredDocuments.add(targetDocument);
+  const unregisterPointerEventsFreezeDocument = registerPointerEventsFreezeDocument(targetDocument);
+  if (isFreezeApplied) addEventBlockers(targetDocument);
+
+  return () => {
+    if (isFreezeApplied) removeEventBlockers(targetDocument);
+    registeredDocuments.delete(targetDocument);
+    unregisterPointerEventsFreezeDocument();
+  };
 };
 
 const freezeElement = (
@@ -108,12 +150,13 @@ const freezeElement = (
 
 const collectHoveredElements = (cursorX: number, cursorY: number): HTMLElement[] => {
   const hoveredElements: HTMLElement[] = [];
-  let current = document.elementFromPoint(cursorX, cursorY);
+  let current = getDeepElementAtPoint(cursorX, cursorY);
   while (current && current !== document.documentElement) {
-    if (current instanceof HTMLElement) {
+    if (isReactGrabElement(current)) break;
+    if (isHtmlElement(current)) {
       hoveredElements.push(current);
     }
-    current = current.parentElement;
+    current = getComposedParentElement(current);
   }
   return hoveredElements;
 };
@@ -122,11 +165,18 @@ const collectFocusedElements = (): HTMLElement[] => {
   const focusedElements: HTMLElement[] = [];
   let current: Element | null = document.activeElement;
   while (current && current !== document.body) {
-    if (current instanceof HTMLElement) {
+    if (isHtmlElement(current)) {
       focusedElements.push(current);
     }
-    const shadowRoot = current.shadowRoot;
-    current = shadowRoot?.activeElement ?? null;
+    if (current.shadowRoot?.activeElement) {
+      current = current.shadowRoot.activeElement;
+      continue;
+    }
+    if (isIframeElement(current)) {
+      current = getAccessibleIframeDocument(current)?.activeElement ?? null;
+      continue;
+    }
+    current = null;
   }
   return focusedElements;
 };
@@ -192,9 +242,7 @@ export const collectPseudoStates = (
     cursorY < window.innerHeight;
   const hoveredElements = isCursorInViewport
     ? collectHoveredElements(cursorX, cursorY)
-    : Array.from(document.querySelectorAll(":hover")).filter(
-        (element): element is HTMLElement => element instanceof HTMLElement,
-      );
+    : getDeepHoveredElements();
   for (const element of hoveredElements) {
     const state = freezeElement(element, HOVER_STYLE_PROPERTIES);
     if (state) hoverStates.push(state);
@@ -214,13 +262,9 @@ export const collectPseudoStates = (
 export const applyPseudoStates = (snapshot: PseudoFreezeSnapshot | null): void => {
   if (!snapshot) return;
 
-  for (const eventType of MOUSE_EVENTS_TO_BLOCK) {
-    document.addEventListener(eventType, stopEvent, true);
-  }
-
-  for (const eventType of FOCUS_EVENTS_TO_BLOCK) {
-    document.addEventListener(eventType, preventFocusChange, true);
-  }
+  isFreezeApplied = true;
+  registeredDocuments.add(document);
+  for (const targetDocument of registeredDocuments) addEventBlockers(targetDocument);
 
   applyFrozenStates(snapshot.hoverStates, frozenHoverElements);
   applyFrozenStates(snapshot.focusStates, frozenFocusElements);
@@ -231,13 +275,8 @@ export const applyPseudoStates = (snapshot: PseudoFreezeSnapshot | null): void =
 export const unfreezePseudoStates = (): void => {
   clearElementPositionCache();
 
-  for (const eventType of MOUSE_EVENTS_TO_BLOCK) {
-    document.removeEventListener(eventType, stopEvent, true);
-  }
-
-  for (const eventType of FOCUS_EVENTS_TO_BLOCK) {
-    document.removeEventListener(eventType, preventFocusChange, true);
-  }
+  isFreezeApplied = false;
+  for (const targetDocument of registeredDocuments) removeEventBlockers(targetDocument);
 
   const cleanupErrors = [
     ...restoreFrozenStates(frozenHoverElements),

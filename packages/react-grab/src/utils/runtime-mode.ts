@@ -1,3 +1,5 @@
+import { getComposedParentElement } from "./get-composed-parent-element.js";
+
 // Scope and mode for the active React Grab instance, held as a singleton so
 // utilities outside the init closure (hit-testing, viewport math) can read them
 // without threading them through every call.
@@ -26,7 +28,12 @@ export const getScopeContainer = (): HTMLElement | null => scopeContainer;
 
 export const isWithinScope = (element: Element | null): boolean => {
   if (!scopeContainer) return true;
-  return element !== null && scopeContainer.contains(element);
+  let currentElement = element;
+  while (currentElement) {
+    if (currentElement === scopeContainer) return true;
+    currentElement = getComposedParentElement(currentElement);
+  }
+  return false;
 };
 
 // A build-time constant, not a function: the bundler replaces

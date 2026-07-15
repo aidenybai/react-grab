@@ -1,5 +1,6 @@
 import type { Page } from "@playwright/test";
 import { expect, type ReactGrabPageObject } from "../fixtures.js";
+import { FRAMEWORK_COPY_RETRY_TIMEOUT_MS } from "../constants.js";
 
 export const isProductionProject = (projectName: string): boolean =>
   projectName.endsWith("-production");
@@ -19,8 +20,11 @@ export const copyFrameworkContext = async (
   reactGrab: ReactGrabPageObject,
   selector: string,
 ): Promise<string> => {
-  const didCopy = await reactGrab.copyElementViaApi(selector);
-  expect(didCopy).toBe(true);
+  await expect
+    .poll(() => reactGrab.copyElementViaApi(selector), {
+      timeout: FRAMEWORK_COPY_RETRY_TIMEOUT_MS,
+    })
+    .toBe(true);
   return reactGrab.getClipboardContent();
 };
 

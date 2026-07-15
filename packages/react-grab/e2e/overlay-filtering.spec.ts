@@ -116,30 +116,13 @@ test.describe("Overlay Filtering", () => {
       }, style);
     };
 
-    const getHoveredTargetTestId = async (
-      reactGrab: ReactGrabPageObject,
-    ): Promise<string | null> => {
-      return reactGrab.page.evaluate(() => {
-        const api = (
-          window as {
-            __REACT_GRAB__?: {
-              getState: () => { targetElement: Element | null };
-            };
-          }
-        ).__REACT_GRAB__;
-        return api?.getState().targetElement?.getAttribute("data-testid") ?? null;
-      });
-    };
-
     test("should skip a transparent full-viewport fixed overlay", async ({ reactGrab }) => {
       await injectOverlay(reactGrab, { backgroundColor: "transparent" });
       await reactGrab.activate();
 
       await reactGrab.hoverElement("[data-testid='main-title']");
 
-      await expect
-        .poll(() => getHoveredTargetTestId(reactGrab), { timeout: 3_000 })
-        .toBe("main-title");
+      await expect.poll(reactGrab.getTargetTestId, { timeout: 3_000 }).toBe("main-title");
     });
 
     test("should skip a dev-tools style pointer-events-none overlay", async ({ reactGrab }) => {
@@ -153,9 +136,7 @@ test.describe("Overlay Filtering", () => {
 
       await reactGrab.hoverElement("[data-testid='main-title']");
 
-      await expect
-        .poll(() => getHoveredTargetTestId(reactGrab), { timeout: 3_000 })
-        .toBe("main-title");
+      await expect.poll(reactGrab.getTargetTestId, { timeout: 3_000 }).toBe("main-title");
     });
 
     test("should skip an opaque full-viewport overlay above the z-index threshold", async ({
@@ -169,9 +150,7 @@ test.describe("Overlay Filtering", () => {
 
       await reactGrab.hoverElement("[data-testid='main-title']");
 
-      await expect
-        .poll(() => getHoveredTargetTestId(reactGrab), { timeout: 3_000 })
-        .toBe("main-title");
+      await expect.poll(reactGrab.getTargetTestId, { timeout: 3_000 }).toBe("main-title");
     });
 
     test("should select an opaque full-viewport overlay with a low z-index", async ({
@@ -185,9 +164,7 @@ test.describe("Overlay Filtering", () => {
 
       await reactGrab.hoverElement("[data-testid='main-title']");
 
-      await expect
-        .poll(() => getHoveredTargetTestId(reactGrab), { timeout: 3_000 })
-        .toBe("injected-overlay");
+      await expect.poll(reactGrab.getTargetTestId, { timeout: 3_000 }).toBe("injected-overlay");
     });
 
     test("should select a transparent overlay below the viewport coverage threshold", async ({
@@ -202,9 +179,7 @@ test.describe("Overlay Filtering", () => {
 
       await reactGrab.page.mouse.move(50, 50);
 
-      await expect
-        .poll(() => getHoveredTargetTestId(reactGrab), { timeout: 3_000 })
-        .toBe("injected-overlay");
+      await expect.poll(reactGrab.getTargetTestId, { timeout: 3_000 }).toBe("injected-overlay");
     });
   });
 

@@ -80,6 +80,7 @@ import {
   MODIFIER_KEYS,
   BLUR_DEACTIVATION_THRESHOLD_MS,
   BOUNDS_RECALC_INTERVAL_MS,
+  ELEMENT_RELINK_GRACE_ATTEMPTS,
   INPUT_FOCUS_ACTIVATION_DELAY_MS,
   INPUT_TEXT_SELECTION_ACTIVATION_DELAY_MS,
   DEFAULT_KEY_HOLD_DURATION_MS,
@@ -158,6 +159,9 @@ import { findShortcutAction } from "../utils/action-shortcuts.js";
 import { createKeyboardSelectionController } from "./keyboard-selection.js";
 import { executeContextMenuAction } from "../utils/execute-context-menu-action.js";
 import { notifyToolbarStateChangeSubscribers } from "../utils/notify-toolbar-state-change-subscribers.js";
+import { forwardSameOriginFrameEvents } from "../utils/forward-same-origin-frame-events.js";
+import { isHtmlElement } from "../utils/is-html-element.js";
+import { isDocumentAncestorOfElement } from "../utils/is-document-ancestor-of-element.js";
 
 const builtInPlugins = [copyPlugin, editPlugin, commentPlugin, openPlugin];
 
@@ -655,10 +659,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             componentName = getComponentDisplayName(element);
           }
 
-          const textContent =
-            element instanceof HTMLElement
-              ? element.innerText?.slice(0, PREVIEW_TEXT_MAX_LENGTH)
-              : undefined;
+          const textContent = isHtmlElement(element)
+            ? element.innerText?.slice(0, PREVIEW_TEXT_MAX_LENGTH)
+            : undefined;
 
           return {
             tagName: getTagName(element),
@@ -1158,6 +1161,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     createEffect(() => {
       const element = store.detectedElement;
       if (!element) return;
+      let remainingRelinkGraceAttempts = ELEMENT_RELINK_GRACE_ATTEMPTS;
 
       const intervalId = setInterval(() => {
         // The hovered node can be swapped out by a re-render the freeze didn't
@@ -1170,6 +1174,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           actions.relinkLiveElements();
         }
         if (!isElementConnected(store.detectedElement)) {
+          if (remainingRelinkGraceAttempts > 0) {
+            remainingRelinkGraceAttempts -= 1;
+            return;
+          }
           redetectElementUnderPointer();
         }
       }, BOUNDS_RECALC_INTERVAL_MS);
@@ -1724,7 +1732,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       // element — both cases produce no observable focus change but were
       // previously paying the recalc cost on every deactivate.
       if (
-        previousFocused instanceof HTMLElement &&
+        isHtmlElement(previousFocused) &&
         previousFocused !== document.body &&
         previousFocused !== document.activeElement &&
         isElementConnected(previousFocused)
@@ -2391,6 +2399,19 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     const eventListenerManager = createEventListenerManager();
+    const stopForwardingSameOriginFrameEvents = forwardSameOriginFrameEvents({
+      shouldForwardInteraction: () =>
+        isActivated() || isHoldingKeys() || isDragging() || isSelectionInteractionLocked(),
+      shouldForwardKeyboardEvent: (event) =>
+        isTargetKeyCombination(event, pluginRegistry.store.options),
+      shouldForwardViewportEvent: (frameDocument) => {
+        const activeElement = store.frozenElement ?? targetElement();
+        if (activeElement && isDocumentAncestorOfElement(frameDocument, activeElement)) return true;
+        return store.frozenElements.some((element) =>
+          isDocumentAncestorOfElement(frameDocument, element),
+        );
+      },
+    });
 
     const keyboardClaimer = setupKeyboardEventClaimer();
 
@@ -3434,6 +3455,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     );
 
     onCleanup(() => {
+      stopForwardingSameOriginFrameEvents();
       eventListenerManager.abort();
       if (dragPreviewDebounceTimerId !== null) {
         window.clearTimeout(dragPreviewDebounceTimerId);

@@ -2,7 +2,7 @@ import { MIN_HORIZONTAL_NAV_SIZE_PX } from "../constants.js";
 import type { ElementPredicate } from "../types.js";
 
 const isSvgInternal = (element: Element): boolean =>
-  element instanceof SVGElement && !(element instanceof SVGSVGElement);
+  element.namespaceURI === "http://www.w3.org/2000/svg" && element.tagName !== "svg";
 
 const hasMeaningfulSize = (element: Element): boolean => {
   const rect = element.getBoundingClientRect();

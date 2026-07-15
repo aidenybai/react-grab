@@ -1,5 +1,7 @@
 import { test, expect } from "./fixtures.js";
 
+const TODO_LIST_ITEM_SELECTOR = "[data-testid='todo-list'] li";
+
 test.describe("Drag Selection", () => {
   test("should keep drag active when releasing Space in hold mode with Space activation key", async ({
     reactGrab,
@@ -11,7 +13,7 @@ test.describe("Drag Selection", () => {
       keyHoldDuration: 0,
     });
 
-    const firstItem = reactGrab.page.locator("li").first();
+    const firstItem = reactGrab.page.locator(TODO_LIST_ITEM_SELECTOR).first();
     const firstBox = await firstItem.boundingBox();
     if (!firstBox) throw new Error("Could not get bounding box");
 
@@ -43,7 +45,7 @@ test.describe("Drag Selection", () => {
   test("should keep drag selection while moving it with held space", async ({ reactGrab }) => {
     await reactGrab.activate();
 
-    const firstItem = reactGrab.page.locator("li").first();
+    const firstItem = reactGrab.page.locator(TODO_LIST_ITEM_SELECTOR).first();
     const firstBox = await firstItem.boundingBox();
     if (!firstBox) throw new Error("Could not get bounding box");
 
@@ -92,7 +94,7 @@ test.describe("Drag Selection", () => {
   test("should create drag box when clicking and dragging", async ({ reactGrab }) => {
     await reactGrab.activate();
 
-    const firstItem = reactGrab.page.locator("li").first();
+    const firstItem = reactGrab.page.locator(TODO_LIST_ITEM_SELECTOR).first();
     const firstBox = await firstItem.boundingBox();
     if (!firstBox) throw new Error("Could not get bounding box");
 
@@ -115,7 +117,10 @@ test.describe("Drag Selection", () => {
   test("should select multiple elements within drag bounds", async ({ reactGrab }) => {
     await reactGrab.activate();
 
-    await reactGrab.dragSelect("li:first-child", "li:nth-child(3)");
+    await reactGrab.dragSelect(
+      `${TODO_LIST_ITEM_SELECTOR}:first-child`,
+      `${TODO_LIST_ITEM_SELECTOR}:nth-child(3)`,
+    );
     await reactGrab.page.waitForTimeout(500);
 
     const clipboardContent = await reactGrab.getClipboardContent();
@@ -126,7 +131,10 @@ test.describe("Drag Selection", () => {
   test("should copy all selected elements to clipboard", async ({ reactGrab }) => {
     await reactGrab.activate();
 
-    await reactGrab.dragSelect("li:first-child", "li:nth-child(5)");
+    await reactGrab.dragSelect(
+      `${TODO_LIST_ITEM_SELECTOR}:first-child`,
+      `${TODO_LIST_ITEM_SELECTOR}:nth-child(5)`,
+    );
     await reactGrab.page.waitForTimeout(500);
 
     const clipboardContent = await reactGrab.getClipboardContent();
@@ -137,7 +145,7 @@ test.describe("Drag Selection", () => {
   test("should cancel drag selection on Escape", async ({ reactGrab }) => {
     await reactGrab.activate();
 
-    const firstItem = reactGrab.page.locator("li").first();
+    const firstItem = reactGrab.page.locator(TODO_LIST_ITEM_SELECTOR).first();
     const firstBox = await firstItem.boundingBox();
     if (!firstBox) throw new Error("Could not get bounding box");
 
@@ -159,7 +167,7 @@ test.describe("Drag Selection", () => {
   test("should not trigger drag for small movements", async ({ reactGrab }) => {
     await reactGrab.activate();
 
-    const listItem = reactGrab.page.locator("li").first();
+    const listItem = reactGrab.page.locator(TODO_LIST_ITEM_SELECTOR).first();
     const box = await listItem.boundingBox();
     if (!box) throw new Error("Could not get bounding box");
 
@@ -180,7 +188,10 @@ test.describe("Drag Selection", () => {
   test("should deactivate after drag selection in toggle mode", async ({ reactGrab }) => {
     await reactGrab.activate();
 
-    await reactGrab.dragSelect("li:first-child", "li:nth-child(2)");
+    await reactGrab.dragSelect(
+      `${TODO_LIST_ITEM_SELECTOR}:first-child`,
+      `${TODO_LIST_ITEM_SELECTOR}:nth-child(2)`,
+    );
 
     await reactGrab.page.waitForTimeout(2000);
 
@@ -205,8 +216,8 @@ test.describe("Drag Selection", () => {
   test("should show visual feedback during drag", async ({ reactGrab }) => {
     await reactGrab.activate();
 
-    const firstItem = reactGrab.page.locator("li").first();
-    const lastItem = reactGrab.page.locator("li").last();
+    const firstItem = reactGrab.page.locator(TODO_LIST_ITEM_SELECTOR).first();
+    const lastItem = reactGrab.page.locator(TODO_LIST_ITEM_SELECTOR).last();
 
     const startBox = await firstItem.boundingBox();
     const endBox = await lastItem.boundingBox();
@@ -239,7 +250,10 @@ test.describe("Drag Selection with Scroll", () => {
     await reactGrab.page.waitForTimeout(100);
 
     await reactGrab.activate();
-    await reactGrab.dragSelect("li:first-child", "li:nth-child(2)");
+    await reactGrab.dragSelect(
+      `${TODO_LIST_ITEM_SELECTOR}:first-child`,
+      `${TODO_LIST_ITEM_SELECTOR}:nth-child(2)`,
+    );
     await reactGrab.page.waitForTimeout(500);
 
     const clipboardContent = await reactGrab.getClipboardContent();
@@ -249,7 +263,7 @@ test.describe("Drag Selection with Scroll", () => {
   test("should maintain drag while scrolling", async ({ reactGrab }) => {
     await reactGrab.activate();
 
-    const firstItem = reactGrab.page.locator("li").first();
+    const firstItem = reactGrab.page.locator(TODO_LIST_ITEM_SELECTOR).first();
     const firstBox = await firstItem.boundingBox();
     if (!firstBox) throw new Error("Could not get bounding box");
 
@@ -273,11 +287,14 @@ test.describe("Drag Selection with Scroll", () => {
     await reactGrab.scrollPage(300);
     await reactGrab.page.waitForTimeout(200);
 
-    const listItems = reactGrab.page.locator("li");
+    const listItems = reactGrab.page.locator(TODO_LIST_ITEM_SELECTOR);
     const count = await listItems.count();
 
     if (count > 0) {
-      await reactGrab.dragSelect("li:first-child", "li:nth-child(2)");
+      await reactGrab.dragSelect(
+        `${TODO_LIST_ITEM_SELECTOR}:first-child`,
+        `${TODO_LIST_ITEM_SELECTOR}:nth-child(2)`,
+      );
       await reactGrab.page.waitForTimeout(500);
 
       const clipboardContent = await reactGrab.getClipboardContent();
@@ -288,7 +305,7 @@ test.describe("Drag Selection with Scroll", () => {
   test("drag bounds should exist during drag operation", async ({ reactGrab }) => {
     await reactGrab.activate();
 
-    const firstItem = reactGrab.page.locator("li").first();
+    const firstItem = reactGrab.page.locator(TODO_LIST_ITEM_SELECTOR).first();
     const firstBox = await firstItem.boundingBox();
     if (!firstBox) throw new Error("Could not get bounding box");
 

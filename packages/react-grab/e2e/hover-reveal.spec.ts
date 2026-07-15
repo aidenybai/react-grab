@@ -82,7 +82,7 @@ const getCenter = async (reactGrab: ReactGrabPageObject, testId: string) => {
   return center;
 };
 
-const getTargetTestId = (reactGrab: ReactGrabPageObject): Promise<string | null> =>
+const getTargetOrAncestorTestId = (reactGrab: ReactGrabPageObject): Promise<string | null> =>
   reactGrab.page.evaluate(() => {
     const targetElement = window.__REACT_GRAB__?.getState?.()?.targetElement;
     if (!(targetElement instanceof Element)) return null;
@@ -106,7 +106,7 @@ const moveAndPollTarget = async (
   await reactGrab.page.waitForTimeout(100);
   await reactGrab.page.mouse.move(x, y);
   await reactGrab.page.waitForTimeout(HOVER_SETTLE_MS);
-  return getTargetTestId(reactGrab);
+  return getTargetOrAncestorTestId(reactGrab);
 };
 
 test.describe("hover-revealed UI stays grabbable", () => {

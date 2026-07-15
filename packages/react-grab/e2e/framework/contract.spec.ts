@@ -73,6 +73,7 @@ test.describe("shared framework contract", () => {
     const counter = reactGrab.page.getByTestId("hydration-counter");
     const initialCounterText = await counter.textContent();
 
+    await expect(reactGrab.page.getByTestId("portal-target")).toHaveCount(1);
     await reactGrab.page.getByTestId("hydration-counter-button").click();
 
     await expect(counter).not.toHaveText(initialCounterText ?? "");

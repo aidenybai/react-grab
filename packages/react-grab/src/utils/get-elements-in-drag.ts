@@ -11,6 +11,13 @@ import {
 import { isRootElement } from "./is-root-element.js";
 import { isWithinScope } from "./runtime-mode.js";
 import { clampToRange } from "./clamp-to-range.js";
+import { getDeepElementsAtPoint } from "./get-deep-elements-at-point.js";
+import { createElementBounds } from "./create-element-bounds.js";
+import { getComposedParentElement } from "./get-composed-parent-element.js";
+import { compareElementDocumentOrder } from "./compare-element-document-order.js";
+import { getAccessibleIframeDocument } from "./get-accessible-iframe-document.js";
+import { isIframeElement } from "./is-iframe-element.js";
+import { isShadowRoot } from "./is-shadow-root.js";
 
 const calculateIntersectionArea = (rect1: Rect, rect2: Rect): number => {
   const intersectionLeft = Math.max(rect1.left, rect2.left);
@@ -33,15 +40,8 @@ const hasIntersection = (rect1: Rect, rect2: Rect): boolean => {
   );
 };
 
-const sortByDocumentOrder = (elements: Element[]): Element[] => {
-  return elements.sort((leftElement, rightElement) => {
-    if (leftElement === rightElement) return 0;
-    const position = leftElement.compareDocumentPosition(rightElement);
-    if (position & Node.DOCUMENT_POSITION_FOLLOWING) return -1;
-    if (position & Node.DOCUMENT_POSITION_PRECEDING) return 1;
-    return 0;
-  });
-};
+const sortByDocumentOrder = (elements: Element[]): Element[] =>
+  elements.sort(compareElementDocumentOrder);
 
 interface SamplePoint {
   x: number;
@@ -139,7 +139,7 @@ const filterElementsInDrag = (
   suspendPointerEventsFreeze();
   try {
     for (const point of samplePoints) {
-      const elementsAtPoint = document.elementsFromPoint(point.x, point.y);
+      const elementsAtPoint = getDeepElementsAtPoint(point.x, point.y);
       for (const candidateElement of elementsAtPoint) {
         candidates.add(candidateElement);
       }
@@ -148,42 +148,33 @@ const filterElementsInDrag = (
     resumePointerEventsFreeze();
   }
 
-  const validCandidates: Element[] = [];
+  const matchingElements: Element[] = [];
   for (const candidateElement of candidates) {
+    if (isIframeElement(candidateElement) && getAccessibleIframeDocument(candidateElement)) {
+      continue;
+    }
     if (!shouldCheckCoverage && isRootElement(candidateElement)) continue;
     if (!isWithinScope(candidateElement)) continue;
     if (!isValidGrabbableElement(candidateElement)) continue;
-    validCandidates.push(candidateElement);
-  }
 
-  const candidateRects = new Map<Element, DOMRect>();
-  for (const candidateElement of validCandidates) {
-    candidateRects.set(candidateElement, candidateElement.getBoundingClientRect());
-  }
-
-  const matchingElements: Element[] = [];
-
-  for (const candidateElement of validCandidates) {
-    const elementRect = candidateRects.get(candidateElement)!;
-    if (elementRect.width <= 0 || elementRect.height <= 0) continue;
-
-    const elementBounds: Rect = {
-      left: elementRect.left,
-      top: elementRect.top,
-      right: elementRect.left + elementRect.width,
-      bottom: elementRect.top + elementRect.height,
+    const candidateBounds = createElementBounds(candidateElement);
+    if (candidateBounds.width <= 0 || candidateBounds.height <= 0) continue;
+    const bounds: Rect = {
+      left: candidateBounds.x,
+      top: candidateBounds.y,
+      right: candidateBounds.x + candidateBounds.width,
+      bottom: candidateBounds.y + candidateBounds.height,
     };
-
     if (shouldCheckCoverage) {
-      const intersectionArea = calculateIntersectionArea(dragBounds, elementBounds);
-      const elementArea = elementRect.width * elementRect.height;
+      const intersectionArea = calculateIntersectionArea(dragBounds, bounds);
+      const candidateArea = candidateBounds.width * candidateBounds.height;
       const hasMajorityCoverage =
-        elementArea > 0 && intersectionArea / elementArea >= DRAG_SELECTION_COVERAGE_THRESHOLD;
+        intersectionArea / candidateArea >= DRAG_SELECTION_COVERAGE_THRESHOLD;
 
       if (hasMajorityCoverage) {
         matchingElements.push(candidateElement);
       }
-    } else if (hasIntersection(elementBounds, dragBounds)) {
+    } else if (hasIntersection(bounds, dragBounds)) {
       matchingElements.push(candidateElement);
     }
   }
@@ -196,13 +187,35 @@ const removeNestedElements = (elements: Element[]): Element[] => {
   // element's parent chain against a membership Set is O(n·depth) — the
   // previous elements.some(contains) form was O(n²) over the candidate set,
   // which spikes on dense drags (large-drag-selection covers it).
+  // Open shadow hosts are traversal boundaries, so an inner candidate replaces
+  // its host instead of being discarded as an ordinary nested element.
   const elementSet = new Set(elements);
-  return elements.filter((element) => {
-    for (let ancestor = element.parentElement; ancestor; ancestor = ancestor.parentElement) {
-      if (elementSet.has(ancestor)) return false;
+  const selectedElements: Element[] = [];
+  for (let elementIndex = elements.length - 1; elementIndex >= 0; elementIndex -= 1) {
+    const element = elements[elementIndex];
+    if (!elementSet.has(element)) continue;
+
+    let descendant = element;
+    let ancestor = getComposedParentElement(descendant);
+    let hasSelectedAncestor = false;
+    while (ancestor) {
+      const descendantRoot = descendant.getRootNode();
+      if (
+        elementSet.has(ancestor) &&
+        isShadowRoot(descendantRoot) &&
+        descendantRoot.host === ancestor
+      ) {
+        elementSet.delete(ancestor);
+      } else if (elementSet.has(ancestor)) {
+        hasSelectedAncestor = true;
+        break;
+      }
+      descendant = ancestor;
+      ancestor = getComposedParentElement(descendant);
     }
-    return true;
-  });
+    if (!hasSelectedAncestor) selectedElements.push(element);
+  }
+  return selectedElements.reverse();
 };
 
 export const getElementsInDrag = (

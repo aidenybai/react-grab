@@ -45,6 +45,7 @@ export type {
 import { init } from "./core/index.js";
 import { getGlobalApi, setGlobalApi } from "./global-api.js";
 import type { ReactGrabAPI } from "./types.js";
+import { getParentReactGrabApi } from "./utils/get-parent-react-grab-api.js";
 
 export { getGlobalApi, setGlobalApi, registerPlugin, unregisterPlugin } from "./global-api.js";
 
@@ -56,8 +57,9 @@ declare global {
 }
 
 if (typeof window !== "undefined" && !window.__REACT_GRAB_DISABLED__) {
-  if (window.__REACT_GRAB__) {
-    setGlobalApi(window.__REACT_GRAB__);
+  const existingApi = window.__REACT_GRAB__ ?? getParentReactGrabApi();
+  if (existingApi) {
+    setGlobalApi(existingApi);
   } else {
     setGlobalApi(init());
   }
