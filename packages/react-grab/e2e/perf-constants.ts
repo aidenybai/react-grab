@@ -14,7 +14,9 @@ export const PERF_ANIMATION_INDICATOR_GAP_PX = 8;
 export const PERF_ANIMATION_INDICATOR_OFFSET_PX = 16;
 export const PERF_ANIMATION_LOW_OPACITY = 0.35;
 export const PERF_ANIMATION_HIGH_OPACITY = 1;
-export const PERF_ANIMATION_CONTROL_TEST_TIMEOUT_MS = 180_000;
+// Five isolated trace finalizations can each consume the full trace deadline
+// after the paired CPU controls have already run.
+export const PERF_ANIMATION_CONTROL_TEST_TIMEOUT_MS = 480_000;
 export const PERF_DEFAULT_TEST_TIMEOUT_MS = 60_000;
 export const PERF_DEEP_TEST_TIMEOUT_MS = 360_000;
 export const PERF_COPY_COMPLETION_TIMEOUT_MS = 5_000;
