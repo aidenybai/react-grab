@@ -92,10 +92,12 @@ interface SystemInfoGpuResponse {
 
 const roundTo3 = (value: number): number => Number(value.toFixed(3));
 
-const capturePageEnvironment = (page: Page): Promise<PerfPageEnvironment> =>
+const refreshIntervalCalibrationByPage = new WeakMap<Page, Promise<number>>();
+
+const measureRefreshInterval = (page: Page): Promise<number> =>
   page.evaluate(
     () =>
-      new Promise<PerfPageEnvironment>((resolveEnvironment) => {
+      new Promise<number>((resolveRefreshInterval) => {
         const frameTimestamps: number[] = [];
         const collectFrame = (timestamp: number): void => {
           frameTimestamps.push(timestamp);
@@ -109,22 +111,38 @@ const capturePageEnvironment = (page: Page): Promise<PerfPageEnvironment> =>
           }
           frameDeltas.sort((leftValue, rightValue) => leftValue - rightValue);
           const refreshIntervalMs = frameDeltas[Math.floor(frameDeltas.length / 2)] ?? 16.667;
-          resolveEnvironment({
-            userAgent: navigator.userAgent,
-            viewportWidth: window.innerWidth,
-            viewportHeight: window.innerHeight,
-            devicePixelRatio: window.devicePixelRatio,
-            hardwareConcurrency: navigator.hardwareConcurrency,
-            deviceMemoryGb: navigator.deviceMemory,
-            visibilityState: document.visibilityState,
-            hasFocus: document.hasFocus(),
-            refreshIntervalMs: Number(refreshIntervalMs.toFixed(3)),
-            refreshRateHz: Number((1000 / refreshIntervalMs).toFixed(3)),
-          });
+          resolveRefreshInterval(Number(refreshIntervalMs.toFixed(3)));
         };
         requestAnimationFrame(collectFrame);
       }),
   );
+
+export const calibratePerfRefreshInterval = (page: Page): Promise<number> => {
+  const existingCalibration = refreshIntervalCalibrationByPage.get(page);
+  if (existingCalibration) return existingCalibration;
+  const calibration = measureRefreshInterval(page);
+  refreshIntervalCalibrationByPage.set(page, calibration);
+  return calibration;
+};
+
+const capturePageEnvironment = async (page: Page): Promise<PerfPageEnvironment> => {
+  const refreshIntervalMs = await calibratePerfRefreshInterval(page);
+  return page.evaluate(
+    (calibratedRefreshIntervalMs) => ({
+      userAgent: navigator.userAgent,
+      viewportWidth: window.innerWidth,
+      viewportHeight: window.innerHeight,
+      devicePixelRatio: window.devicePixelRatio,
+      hardwareConcurrency: navigator.hardwareConcurrency,
+      deviceMemoryGb: navigator.deviceMemory,
+      visibilityState: document.visibilityState,
+      hasFocus: document.hasFocus(),
+      refreshIntervalMs: calibratedRefreshIntervalMs,
+      refreshRateHz: Number((1000 / calibratedRefreshIntervalMs).toFixed(3)),
+    }),
+    refreshIntervalMs,
+  );
+};
 
 export const capturePerfEnvironment = async (page: Page): Promise<PerfEnvironment> => {
   const pageEnvironment = await capturePageEnvironment(page);

@@ -529,13 +529,12 @@ export const captureDomMutationAttribution = async (
 
     validityProbe = await startPerfRunValidityProbe(page);
     await scenarioBody();
-    await pendingPauseHandling;
-    validity = await validityProbe.stop();
-    validityProbe = null;
     await activeSession.send("Debugger.setSkipAllPauses", { skip: true });
     await removeBreakpoints(activeSession, installedBreakpoints);
     await activeSession.send("Debugger.resume").catch(() => {});
     await pendingPauseHandling;
+    validity = await validityProbe.stop();
+    validityProbe = null;
     await activeSession.send("Debugger.setSkipAllPauses", { skip: false });
     await enrichSourceFrames(activeSession, hits, scriptsById, warnings);
     for (const hit of hits) hit.frames = compactSourceFrames(hit);
