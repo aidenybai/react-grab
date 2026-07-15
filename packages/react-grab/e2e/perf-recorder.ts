@@ -8,7 +8,11 @@ import {
   resumePausedAnimations,
   type PerfAnimationCounterfactualReport,
 } from "./perf-animation-counterfactual.js";
-import { PERF_MUTATION_TARGET_LIMIT, PERF_REPORT_SCHEMA_VERSION } from "./perf-constants.js";
+import {
+  PERF_DEEP_TEST_TIMEOUT_MS,
+  PERF_MUTATION_TARGET_LIMIT,
+  PERF_REPORT_SCHEMA_VERSION,
+} from "./perf-constants.js";
 import {
   captureDomMutationAttribution,
   type PerfDomMutationAttributionReport,
@@ -944,6 +948,16 @@ export const recordScenario = async (
   scenarioBody: () => Promise<void>,
   options: RecordScenarioOptions = {},
 ): Promise<PerfScenarioAggregate> => {
+  const hasDeepReplay =
+    process.env.PERF_TRACE === "1" ||
+    process.env.PERF_RENDER_TRACE === "1" ||
+    process.env.PERF_DOM_BREAKPOINTS === "1" ||
+    options.captureRenderTrace === true ||
+    options.captureAnimationCounterfactual === true ||
+    options.captureDomMutationAttribution === true;
+  if (hasDeepReplay) {
+    testInfo.setTimeout(Math.max(testInfo.timeout, PERF_DEEP_TEST_TIMEOUT_MS));
+  }
   const sampleCount = Math.max(1, options.samples ?? 3);
   const warmupSampleCount = Math.max(0, options.warmupSamples ?? 0);
   // Auto-load the committed baseline if the caller didn't pass one in

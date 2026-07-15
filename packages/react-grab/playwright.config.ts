@@ -1,6 +1,7 @@
 import { defineConfig, devices, type Project } from "@playwright/test";
 import path from "path";
 import { fileURLToPath } from "url";
+import { PERF_DEEP_TEST_TIMEOUT_MS, PERF_DEFAULT_TEST_TIMEOUT_MS } from "./e2e/perf-constants.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -285,7 +286,7 @@ export default defineConfig({
   // Deep profiler, render-trace, and DOM-breakpoint replays add extra passes.
   // The V8 sampler can sporadically wedge the headless renderer for minutes
   // (see perf-recorder.ts), so these modes receive enough headroom to recover.
-  timeout: isDeepPerfRun ? 360_000 : 60_000,
+  timeout: isDeepPerfRun ? PERF_DEEP_TEST_TIMEOUT_MS : PERF_DEFAULT_TEST_TIMEOUT_MS,
   reporter: "html",
   use: {
     trace: process.env.PERF_RENDER_TRACE === "1" ? "off" : "on-first-retry",

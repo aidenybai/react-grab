@@ -932,15 +932,24 @@ export const summarizeRenderTrace = (traceFile: PerfTraceFile): PerfRenderPipeli
   };
 };
 
+const closeTraceStream = async (browserSession: CDPSession, stream: string): Promise<void> => {
+  await browserSession.send("IO.close", { handle: stream }).catch(() => {});
+};
+
 const readTraceStream = async (browserSession: CDPSession, stream: string): Promise<Buffer> => {
   const chunks: Buffer[] = [];
-  while (true) {
-    const response: TraceStreamResponse = await browserSession.send("IO.read", { handle: stream });
-    chunks.push(Buffer.from(response.data, response.base64Encoded === true ? "base64" : "utf8"));
-    if (response.eof) break;
+  try {
+    while (true) {
+      const response: TraceStreamResponse = await browserSession.send("IO.read", {
+        handle: stream,
+      });
+      chunks.push(Buffer.from(response.data, response.base64Encoded === true ? "base64" : "utf8"));
+      if (response.eof) break;
+    }
+    return Buffer.concat(chunks);
+  } finally {
+    await closeTraceStream(browserSession, stream);
   }
-  await browserSession.send("IO.close", { handle: stream });
-  return Buffer.concat(chunks);
 };
 
 const collectCssSummary = async (
@@ -1051,6 +1060,8 @@ export const captureRenderTrace = async (
   let pendingAnimationLifecycleSample = Promise.resolve();
   let animationLifecycleSamplingError: string | undefined;
   let isTracingActive = false;
+  let traceStreamHandle: string | null = null;
+  let shouldDiscardTraceStream = false;
   let pipeline: PerfRenderPipelineSummary | undefined;
   let css: PerfCssTraceSummary | undefined;
   let compositing: PerfCompositingSummary | undefined;
@@ -1099,8 +1110,15 @@ export const captureRenderTrace = async (
     );
     validityProbe = await startPerfRunValidityProbe(page);
 
+    const activeBrowserSession = browserSession;
     const traceComplete = new Promise<TraceCompleteEvent>((resolveComplete) => {
-      browserSession?.once("Tracing.tracingComplete", resolveComplete);
+      activeBrowserSession.once("Tracing.tracingComplete", (event: TraceCompleteEvent) => {
+        traceStreamHandle = event.stream ?? null;
+        resolveComplete(event);
+        if (shouldDiscardTraceStream && event.stream) {
+          void closeTraceStream(activeBrowserSession, event.stream);
+        }
+      });
     });
     await browserSession.send("Tracing.start", {
       transferMode: "ReturnAsStream",
@@ -1169,7 +1187,9 @@ export const captureRenderTrace = async (
     isTracingActive = false;
     const completedTrace = await withDeadline(traceComplete);
     if (!completedTrace.stream) throw new Error("Tracing completed without a stream handle");
+    traceStreamHandle = completedTrace.stream;
     const traceBuffer = await withDeadline(readTraceStream(browserSession, completedTrace.stream));
+    traceStreamHandle = null;
     const traceFile: PerfTraceFile = JSON.parse(traceBuffer.toString("utf8"));
     pipeline = summarizeRenderTrace(traceFile);
     if (!pipeline.usedScenarioMarkers) {
@@ -1216,6 +1236,7 @@ export const captureRenderTrace = async (
       error: captureError instanceof Error ? captureError.message : String(captureError),
     };
   } finally {
+    shouldDiscardTraceStream = true;
     isAnimationLifecycleSamplingActive = false;
     if (animationLifecycleInterval) clearInterval(animationLifecycleInterval);
     await pendingAnimationLifecycleSample.catch(() => {});
@@ -1240,6 +1261,10 @@ export const captureRenderTrace = async (
       } catch {
         // A disconnected browser cannot retain a trace session.
       }
+    }
+    if (browserSession && traceStreamHandle) {
+      await closeTraceStream(browserSession, traceStreamHandle);
+      traceStreamHandle = null;
     }
     if (pageSession) {
       try {
