@@ -18,20 +18,42 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - shard: "1/4"
-            artifact-suffix: 1-of-4
-          - shard: "2/4"
-            artifact-suffix: 2-of-4
-          - shard: "3/4"
-            artifact-suffix: 3-of-4
-          - shard: "4/4"
-            artifact-suffix: 4-of-4
+          # The control trace takes about 1.8 minutes per revision, so keeping it
+          # out of count-based sharding prevents one runner from owning half the suite.
+          - test_shard: "1/6"
+            test_grep: "@perf"
+            test_grep_invert: "animation-scheduling-controls"
+            artifact-suffix: regular-1-of-6
+          - test_shard: "2/6"
+            test_grep: "@perf"
+            test_grep_invert: "animation-scheduling-controls"
+            artifact-suffix: regular-2-of-6
+          - test_shard: "3/6"
+            test_grep: "@perf"
+            test_grep_invert: "animation-scheduling-controls"
+            artifact-suffix: regular-3-of-6
+          - test_shard: "4/6"
+            test_grep: "@perf"
+            test_grep_invert: "animation-scheduling-controls"
+            artifact-suffix: regular-4-of-6
+          - test_shard: "5/6"
+            test_grep: "@perf"
+            test_grep_invert: "animation-scheduling-controls"
+            artifact-suffix: regular-5-of-6
+          - test_shard: "6/6"
+            test_grep: "@perf"
+            test_grep_invert: "animation-scheduling-controls"
+            artifact-suffix: regular-6-of-6
+          - test_shard: "1/1"
+            test_grep: "animation-scheduling-controls @perf"
+            test_grep_invert: "(?!)"
+            artifact-suffix: animation-controls
 
     steps:
       - name: Checkout
         uses: actions/checkout@v6
         with:
-          fetch-depth: 0
+          fetch-depth: 1
 
       - name: Install pnpm
         uses: pnpm/action-setup@v6
@@ -55,11 +77,12 @@ jobs:
         id: swap-base
         if: github.event_name == 'pull_request'
         run: |
-          git fetch origin "${{ github.base_ref }}" --depth=1
-          if git cat-file -e "origin/${{ github.base_ref }}:packages/react-grab/src" 2>/dev/null; then
-            git checkout "origin/${{ github.base_ref }}" -- packages/react-grab/src
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          git fetch origin "$BASE_SHA" --depth=1
+          if git cat-file -e "$BASE_SHA:packages/react-grab/src" 2>/dev/null; then
+            git checkout "$BASE_SHA" -- packages/react-grab/src
             echo "swapped=true" >> "$GITHUB_OUTPUT"
-            echo "Swapped react-grab/src to origin/${{ github.base_ref }} ($(git rev-parse "origin/${{ github.base_ref }}"))"
+            echo "Swapped react-grab/src to base revision $BASE_SHA"
           else
             echo "Base ref lacks packages/react-grab/src; skipping baseline run."
             echo "swapped=false" >> "$GITHUB_OUTPUT"
@@ -70,10 +93,13 @@ jobs:
         env:
           PERF_LABEL: baseline
           PERF_SHARDABLE: "1"
+          PERF_TEST_GREP: ${{ matrix.test_grep }}
+          PERF_TEST_GREP_INVERT: ${{ matrix.test_grep_invert }}
+          PERF_TEST_SHARD: ${{ matrix.test_shard }}
         # One worker prevents concurrent scenarios from contaminating the
         # process and compositor measurements. Parallelism only exists across
         # isolated GitHub runners, with the same scenario shard used for both refs.
-        run: pnpm --filter react-grab exec playwright test --grep @perf --workers=1 --shard=${{ matrix.shard }} --reporter=list
+        run: pnpm --filter react-grab exec playwright test --grep "$PERF_TEST_GREP" --grep-invert "$PERF_TEST_GREP_INVERT" --workers=1 --shard="$PERF_TEST_SHARD" --reporter=list
 
       - name: Restore react-grab src to HEAD
         if: github.event_name == 'pull_request' && steps.swap-base.outputs.swapped == 'true'
@@ -83,7 +109,10 @@ jobs:
         env:
           PERF_LABEL: current
           PERF_SHARDABLE: "1"
-        run: pnpm --filter react-grab exec playwright test --grep @perf --workers=1 --shard=${{ matrix.shard }} --reporter=list
+          PERF_TEST_GREP: ${{ matrix.test_grep }}
+          PERF_TEST_GREP_INVERT: ${{ matrix.test_grep_invert }}
+          PERF_TEST_SHARD: ${{ matrix.test_shard }}
+        run: pnpm --filter react-grab exec playwright test --grep "$PERF_TEST_GREP" --grep-invert "$PERF_TEST_GREP_INVERT" --workers=1 --shard="$PERF_TEST_SHARD" --reporter=list
 
       - name: Upload shard reports
         if: always()
