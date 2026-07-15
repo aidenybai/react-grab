@@ -17,6 +17,7 @@ import { captureAnimationSchedulingControls } from "./perf-animation-controls.js
 import {
   PERF_ANIMATION_CONTROL_TEST_TIMEOUT_MS,
   PERF_COPY_COMPLETION_TIMEOUT_MS,
+  PERF_PLAYWRIGHT_SUITE_MODE,
 } from "./perf-constants.js";
 import { idleFrame, recordScenario } from "./perf-recorder.js";
 
@@ -27,11 +28,10 @@ const INP_SOFT_LIMIT_MS = 100;
 // single-digit fps, so they blow past the default 60s budget on CI runners.
 const MASSIVE_GRID_TEST_TIMEOUT_MS = 300_000;
 
-// Perf scenarios are timing-sensitive — retries don't make a flaky
-// measurement less flaky, they just waste minutes of CI. If a scenario
-// throws, show it immediately; multi-sample averaging inside
-// `recordScenario` is the right place to handle measurement variance.
-test.describe.configure({ mode: "serial", retries: 0 });
+// Paired CI shards need parallel mode so Playwright can divide tests between
+// runners. Every shard still uses one worker and measures base then HEAD on
+// the same machine. Non-sharded runs stay serial.
+test.describe.configure({ mode: PERF_PLAYWRIGHT_SUITE_MODE, retries: 0 });
 
 test.describe("@perf benchmarks", () => {
   test("hover-in-selection-mode @perf", async ({ reactGrab, page }, testInfo) => {

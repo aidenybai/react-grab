@@ -1,4 +1,6 @@
 export const PERF_REPORT_SCHEMA_VERSION = 4;
+export const PERF_PLAYWRIGHT_SUITE_MODE =
+  process.env.PERF_SHARDABLE === "1" ? "parallel" : "serial";
 export const PERF_PROCESS_CPU_SAMPLE_INTERVAL_MS = 100;
 export const PERF_ANIMATION_COUNTERFACTUAL_REPETITIONS = 3;
 export const PERF_ANIMATION_CONTROL_SAMPLE_MS = 2_000;

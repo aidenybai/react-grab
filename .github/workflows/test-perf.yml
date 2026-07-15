@@ -10,11 +10,22 @@ permissions:
   contents: read
 
 jobs:
-  test-perf:
+  perf-shard:
+    name: perf-shard (${{ matrix.artifact-suffix }})
     runs-on: ubuntu-latest
-    # PR runs do the bench twice (base ref + HEAD) so the cost roughly
-    # doubles vs. a push-to-main run.
-    timeout-minutes: 40
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - shard: "1/4"
+            artifact-suffix: 1-of-4
+          - shard: "2/4"
+            artifact-suffix: 2-of-4
+          - shard: "3/4"
+            artifact-suffix: 3-of-4
+          - shard: "4/4"
+            artifact-suffix: 4-of-4
 
     steps:
       - name: Checkout
@@ -37,12 +48,9 @@ jobs:
       - name: Install Playwright browsers
         run: pnpm --filter react-grab exec playwright install chromium --with-deps
 
-      # ─── Baseline run (PR only) ────────────────────────────────────────
-      # Swap `packages/react-grab/src/` to the base ref so the same
-      # bench harness measures the OLD library code. The harness itself
-      # (`e2e/perf-*.ts`, `scripts/diff-perf-runs.mjs`) and the fixture-app
-      # stimulus stay at HEAD so the only variable across runs is
-      # react-grab's source.
+      # Swap only `packages/react-grab/src/` so the HEAD harness and fixture
+      # measure the base library code. Each shard keeps its base and HEAD
+      # measurements on the same runner to preserve paired CPU/GPU controls.
       - name: Swap react-grab src to base ref
         id: swap-base
         if: github.event_name == 'pull_request'
@@ -57,30 +65,54 @@ jobs:
             echo "swapped=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Run perf bench against base ref src
+      - name: Run paired shard against base ref src
         if: github.event_name == 'pull_request' && steps.swap-base.outputs.swapped == 'true'
         env:
           PERF_LABEL: baseline
-        # --workers=1 keeps perf measurements off the noise floor that
-        # the sharded `test-e2e` workflow creates by running 4 workers
-        # in parallel. Playwright's webServer auto-runs
-        # `pnpm --filter react-grab build` so the dev server picks up
-        # whichever src is checked out.
-        run: pnpm --filter react-grab exec playwright test --grep @perf --workers=1 --reporter=list
+          PERF_SHARDABLE: "1"
+        # One worker prevents concurrent scenarios from contaminating the
+        # process and compositor measurements. Parallelism only exists across
+        # isolated GitHub runners, with the same scenario shard used for both refs.
+        run: pnpm --filter react-grab exec playwright test --grep @perf --workers=1 --shard=${{ matrix.shard }} --reporter=list
 
       - name: Restore react-grab src to HEAD
         if: github.event_name == 'pull_request' && steps.swap-base.outputs.swapped == 'true'
         run: git checkout HEAD -- packages/react-grab/src
 
-      # ─── HEAD run ──────────────────────────────────────────────────────
-      - name: Run perf bench against HEAD src
+      - name: Run paired shard against HEAD src
         env:
           PERF_LABEL: current
-        run: pnpm --filter react-grab exec playwright test --grep @perf --workers=1 --reporter=list
+          PERF_SHARDABLE: "1"
+        run: pnpm --filter react-grab exec playwright test --grep @perf --workers=1 --shard=${{ matrix.shard }} --reporter=list
 
-      # ─── Diff & surface ────────────────────────────────────────────────
+      - name: Upload shard reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: perf-reports-${{ matrix.artifact-suffix }}
+          path: packages/react-grab/perf/
+          if-no-files-found: warn
+          retention-days: 1
+
+  test-perf:
+    needs: perf-shard
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Download shard reports
+        uses: actions/download-artifact@v4
+        with:
+          pattern: perf-reports-*
+          path: packages/react-grab/perf
+          merge-multiple: true
+
       - name: Compute baseline-vs-current diff
-        if: always() && github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && needs.perf-shard.result == 'success'
         run: |
           node packages/react-grab/scripts/diff-perf-runs.mjs packages/react-grab/perf/baseline packages/react-grab/perf/current | tee perf-diff.md >> "$GITHUB_STEP_SUMMARY"
 
@@ -93,7 +125,7 @@ jobs:
           if-no-files-found: ignore
           retention-days: 14
 
-      - name: Upload perf reports
+      - name: Upload merged perf reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -102,10 +134,15 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
-  # Separate job so the write-scoped token never coexists with the bench
-  # job, which builds and executes the PR's own code. This job runs no
-  # repo code at all — it only downloads the diff artifact and posts it.
-  # Sticky comment: created once, updated in place on later pushes.
+      - name: Verify perf shards
+        if: always() && needs.perf-shard.result != 'success'
+        run: |
+          echo "One or more paired perf shards failed: ${{ needs.perf-shard.result }}"
+          exit 1
+
+  # The write-scoped token never coexists with a job that executes PR code.
+  # This job only downloads the merged diff and maintains one sticky comment,
+  # while the benchmark and aggregation jobs retain read-only permissions.
   perf-comment:
     needs: test-perf
     if: always() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
