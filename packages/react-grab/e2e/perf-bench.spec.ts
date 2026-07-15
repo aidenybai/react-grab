@@ -13,6 +13,8 @@ import {
   goToSizedPerfGrid,
   test,
 } from "./perf-fixtures.js";
+import { captureAnimationSchedulingControls } from "./perf-animation-controls.js";
+import { PERF_ANIMATION_CONTROL_TEST_TIMEOUT_MS } from "./perf-constants.js";
 import { idleFrame, recordScenario } from "./perf-recorder.js";
 
 // web-vitals "needs improvement" threshold is 200ms; we cap synthetic
@@ -400,9 +402,15 @@ test.describe("@perf benchmarks", () => {
       },
       // No user input + no library work — variance is approximately zero,
       // so one 2s sample is enough.
-      { samples: 1 },
+      { samples: 1, captureRenderTrace: true, captureAnimationCounterfactual: true },
     );
     await reactGrab.deactivate();
+  });
+
+  test("animation-scheduling-controls @perf", async ({ reactGrab, page }, testInfo) => {
+    testInfo.setTimeout(PERF_ANIMATION_CONTROL_TEST_TIMEOUT_MS);
+    void reactGrab;
+    await captureAnimationSchedulingControls(page, testInfo);
   });
 
   test("large-drag-selection @perf", async ({ reactGrab, page }, testInfo) => {

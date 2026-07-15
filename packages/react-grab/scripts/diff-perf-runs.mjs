@@ -32,6 +32,23 @@ const LONG_TASK_THRESHOLD_NOISE_FLOOR_MS = 500;
 // clear this floor quickly.
 const HEAP_NOISE_FLOOR_KB = 512;
 const DOM_NODE_NOISE_FLOOR = 60;
+const PROCESS_CPU_NOISE_FLOOR_PERCENT = 10;
+const PROCESS_CPU_PERCENT_THRESHOLD = 20;
+const GPU_PROCESS_CPU_NOISE_FLOOR_PERCENT = 3;
+const GPU_PROCESS_CPU_PERCENT_THRESHOLD = 20;
+const PAIRED_CPU_NOISE_FLOOR_PERCENT = 1;
+const ANIMATION_TICK_RATE_NOISE_FLOOR_PER_SECOND = 3;
+const ANIMATION_TIMELINE_DUTY_NOISE_FLOOR_PERCENT = 5;
+const HARDWARE_GPU_NOISE_FLOOR_PERCENT = 10;
+const HARDWARE_GPU_PERCENT_THRESHOLD = 20;
+const RENDERING_NOISE_FLOOR_MS = 1;
+const RENDERING_PERCENT_THRESHOLD = 20;
+const COMPOSITOR_FRAME_RATE_NOISE_FLOOR_FPS = 3;
+const COMPOSITOR_DUTY_CYCLE_NOISE_FLOOR_PERCENT = 5;
+const COMPOSITOR_FRAME_PERCENT_THRESHOLD = 20;
+const COMPOSITED_LAYER_COUNT_NOISE_FLOOR = 2;
+const COMPOSITED_AREA_NOISE_FLOOR_VIEWPORTS = 0.5;
+const COMPOSITED_LAYER_PERCENT_THRESHOLD = 20;
 
 const baselineDir = process.argv[2] ?? "packages/react-grab/perf/baseline";
 const currentDir = process.argv[3] ?? "packages/react-grab/perf/current";
@@ -91,7 +108,7 @@ const classifyChange = (
 };
 
 const formatValue = (value, unit) => {
-  const useDecimal = unit === "ms" && Math.abs(value) < 100;
+  const useDecimal = (unit === "ms" && Math.abs(value) < 100) || unit === "×";
   return `${useDecimal ? value.toFixed(1) : value.toFixed(0)}${unit}`;
 };
 
@@ -160,6 +177,126 @@ const METRIC_DEFINITIONS = [
     percentThreshold: MEMORY_PERCENT_THRESHOLD,
     clampAtZero: true,
     getValue: (report) => report.memory?.delta?.domNodes,
+  },
+  {
+    label: "Browser process CPU",
+    unit: "%",
+    noiseFloor: PROCESS_CPU_NOISE_FLOOR_PERCENT,
+    percentThreshold: PROCESS_CPU_PERCENT_THRESHOLD,
+    getValue: (report) => report.processCpu?.aggregate?.totalCorePercent,
+  },
+  {
+    label: "GPU process CPU",
+    unit: "%",
+    noiseFloor: GPU_PROCESS_CPU_NOISE_FLOOR_PERCENT,
+    percentThreshold: GPU_PROCESS_CPU_PERCENT_THRESHOLD,
+    getValue: (report) =>
+      report.processCpu?.aggregate?.byType?.GPU?.corePercent ??
+      report.processCpu?.aggregate?.byType?.gpu?.corePercent,
+  },
+  {
+    label: "Renderer process CPU",
+    unit: "%",
+    noiseFloor: GPU_PROCESS_CPU_NOISE_FLOOR_PERCENT,
+    percentThreshold: GPU_PROCESS_CPU_PERCENT_THRESHOLD,
+    getValue: (report) => report.processCpu?.aggregate?.byType?.renderer?.corePercent,
+  },
+  {
+    label: "Animation ticks",
+    unit: "/s",
+    noiseFloor: ANIMATION_TICK_RATE_NOISE_FLOOR_PER_SECOND,
+    percentThreshold: COMPOSITOR_FRAME_PERCENT_THRESHOLD,
+    getValue: (report) => report.rendering?.animationScheduling?.animationTicksPerSecond,
+  },
+  {
+    label: "Active animation timeline duty",
+    unit: "%",
+    noiseFloor: ANIMATION_TIMELINE_DUTY_NOISE_FLOOR_PERCENT,
+    percentThreshold: COMPOSITOR_FRAME_PERCENT_THRESHOLD,
+    getValue: (report) => report.animationLifecycle?.activeTimelineDutyCyclePercent,
+  },
+  {
+    label: "Animation-attributable renderer CPU",
+    unit: "%",
+    noiseFloor: PAIRED_CPU_NOISE_FLOOR_PERCENT,
+    percentThreshold: GPU_PROCESS_CPU_PERCENT_THRESHOLD,
+    clampAtZero: true,
+    getValue: (report) => report.animationCounterfactual?.activeMinusPaused?.rendererCorePercent,
+  },
+  {
+    label: "Animation-attributable GPU-process CPU",
+    unit: "%",
+    noiseFloor: PAIRED_CPU_NOISE_FLOOR_PERCENT,
+    percentThreshold: GPU_PROCESS_CPU_PERCENT_THRESHOLD,
+    clampAtZero: true,
+    getValue: (report) => report.animationCounterfactual?.activeMinusPaused?.gpuProcessCorePercent,
+  },
+  {
+    label: "Animation-attributable graphics CPU",
+    unit: "%",
+    noiseFloor: PAIRED_CPU_NOISE_FLOOR_PERCENT,
+    percentThreshold: GPU_PROCESS_CPU_PERCENT_THRESHOLD,
+    clampAtZero: true,
+    getValue: (report) =>
+      report.animationCounterfactual?.activeMinusPaused?.combinedGraphicsPipelineCorePercent,
+  },
+  {
+    label: "Hardware GPU busy",
+    unit: "%",
+    noiseFloor: HARDWARE_GPU_NOISE_FLOOR_PERCENT,
+    percentThreshold: HARDWARE_GPU_PERCENT_THRESHOLD,
+    getValue: (report) =>
+      report.hardwareGpu?.aggregate?.browserBusyMeanPercent ??
+      report.hardwareGpu?.aggregate?.systemBusyMeanPercent,
+  },
+  {
+    label: "Compositor frame production",
+    unit: "fps",
+    noiseFloor: COMPOSITOR_FRAME_RATE_NOISE_FLOOR_FPS,
+    percentThreshold: COMPOSITOR_FRAME_PERCENT_THRESHOLD,
+    getValue: (report) => report.rendering?.frames?.productionRateFps,
+  },
+  {
+    label: "Compositor production duty cycle",
+    unit: "%",
+    noiseFloor: COMPOSITOR_DUTY_CYCLE_NOISE_FLOOR_PERCENT,
+    percentThreshold: COMPOSITOR_FRAME_PERCENT_THRESHOLD,
+    getValue: (report) => report.rendering?.frames?.productionDutyCyclePercent,
+  },
+  {
+    label: "Composited content layers",
+    unit: "",
+    noiseFloor: COMPOSITED_LAYER_COUNT_NOISE_FLOOR,
+    percentThreshold: COMPOSITED_LAYER_PERCENT_THRESHOLD,
+    getValue: (report) => report.compositing?.maximumContentLayerCount,
+  },
+  {
+    label: "Composited surface area",
+    unit: "×",
+    noiseFloor: COMPOSITED_AREA_NOISE_FLOOR_VIEWPORTS,
+    percentThreshold: COMPOSITED_LAYER_PERCENT_THRESHOLD,
+    getValue: (report) => report.compositing?.maximumClippedContentAreaViewportMultiple,
+  },
+  {
+    label: "Painted area",
+    unit: "×",
+    noiseFloor: COMPOSITED_AREA_NOISE_FLOOR_VIEWPORTS,
+    percentThreshold: COMPOSITED_LAYER_PERCENT_THRESHOLD,
+    getValue: (report) => report.compositing?.paintedAreaViewportMultiple,
+  },
+  {
+    label: "Paint work",
+    unit: "ms",
+    noiseFloor: RENDERING_NOISE_FLOOR_MS,
+    percentThreshold: RENDERING_PERCENT_THRESHOLD,
+    getValue: (report) => report.rendering?.paint?.totalDurationMs,
+  },
+  {
+    label: "Compositor work",
+    unit: "ms",
+    noiseFloor: RENDERING_NOISE_FLOOR_MS,
+    percentThreshold: RENDERING_PERCENT_THRESHOLD,
+    getValue: (report) => report.rendering?.compositor?.totalDurationMs,
   },
 ];
 
@@ -235,7 +372,11 @@ for (const scenarioName of [...currentReports.keys()].sort()) {
     if (status !== "unchanged") {
       changedRows.push({ scenarioName, metricLabel: metricName, changeText, status });
     }
-    detailRows.push(`| ${scenarioName} (${metricName}) | ${changeText} | – | – | – | – | – | – |`);
+    detailRows.push(
+      `| ${scenarioName} (${metricName}) | ${changeText} | ${METRIC_DEFINITIONS.slice(1)
+        .map(() => "–")
+        .join(" | ")} |`,
+    );
   }
 }
 
@@ -276,7 +417,7 @@ if (regressions.length === 0 && improvements.length === 0) {
 
 lines.push("");
 lines.push(
-  `<sub>A metric counts as changed only past per-metric thresholds sized to measured shared-runner variance on identical code: interaction latency ±${DEFAULT_PERCENT_THRESHOLD}% and ${INP_NOISE_FLOOR_MS}ms (measured in ${INP_QUANTIZATION_STEP_MS}ms steps), frame times ±${FRAME_TIME_PERCENT_THRESHOLD}%, long-task/LoAF sums ±${DEFAULT_PERCENT_THRESHOLD}% and ${LONG_TASK_THRESHOLD_NOISE_FLOOR_MS}ms, memory ±${MEMORY_PERCENT_THRESHOLD}% and ${HEAP_NOISE_FLOOR_KB}KB / ${DOM_NODE_NOISE_FLOOR} nodes; any ms metric with a ≥${HEAVY_BASELINE_MS}ms baseline needs ±${HEAVY_BASELINE_PERCENT_THRESHOLD}%.</sub>`,
+  `<sub>A metric counts as changed only past per-metric thresholds sized to measured shared-runner variance on identical code: interaction latency ±${DEFAULT_PERCENT_THRESHOLD}% and ${INP_NOISE_FLOOR_MS}ms (measured in ${INP_QUANTIZATION_STEP_MS}ms steps), frame times ±${FRAME_TIME_PERCENT_THRESHOLD}%, long-task/LoAF sums ±${DEFAULT_PERCENT_THRESHOLD}% and ${LONG_TASK_THRESHOLD_NOISE_FLOOR_MS}ms, memory ±${MEMORY_PERCENT_THRESHOLD}% and ${HEAP_NOISE_FLOOR_KB}KB / ${DOM_NODE_NOISE_FLOOR} nodes, process CPU ±${PROCESS_CPU_PERCENT_THRESHOLD}% and ${PROCESS_CPU_NOISE_FLOOR_PERCENT} points, GPU-process CPU ±${GPU_PROCESS_CPU_PERCENT_THRESHOLD}% and ${GPU_PROCESS_CPU_NOISE_FLOOR_PERCENT} points, hardware GPU ±${HARDWARE_GPU_PERCENT_THRESHOLD}% and ${HARDWARE_GPU_NOISE_FLOOR_PERCENT} points, compositor production ±${COMPOSITOR_FRAME_PERCENT_THRESHOLD}% and ${COMPOSITOR_FRAME_RATE_NOISE_FLOOR_FPS}fps / ${COMPOSITOR_DUTY_CYCLE_NOISE_FLOOR_PERCENT} duty-cycle points, composited layers ±${COMPOSITED_LAYER_PERCENT_THRESHOLD}% and ${COMPOSITED_LAYER_COUNT_NOISE_FLOOR} layers / ${COMPOSITED_AREA_NOISE_FLOOR_VIEWPORTS} viewport areas, rendering stages ±${RENDERING_PERCENT_THRESHOLD}% and ${RENDERING_NOISE_FLOOR_MS}ms; any ms metric with a ≥${HEAVY_BASELINE_MS}ms baseline needs ±${HEAVY_BASELINE_PERCENT_THRESHOLD}%.</sub>`,
 );
 lines.push("");
 lines.push("<details>");

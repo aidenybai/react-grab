@@ -1,0 +1,50 @@
+export const PERF_REPORT_SCHEMA_VERSION = 4;
+export const PERF_PROCESS_CPU_SAMPLE_INTERVAL_MS = 100;
+export const PERF_ANIMATION_COUNTERFACTUAL_REPETITIONS = 3;
+export const PERF_ANIMATION_CONTROL_SAMPLE_MS = 2_000;
+export const PERF_ANIMATION_CONTROL_WARMUP_MS = 250;
+export const PERF_ANIMATION_PRODUCTION_INDICATOR_COUNT = 24;
+export const PERF_ANIMATION_FINITE_ACTIVE_MS = 200;
+export const PERF_ANIMATION_FINITE_HOLD_MS = 800;
+export const PERF_ANIMATION_INDICATOR_SIZE_PX = 12;
+export const PERF_ANIMATION_INDICATOR_GAP_PX = 8;
+export const PERF_ANIMATION_INDICATOR_OFFSET_PX = 16;
+export const PERF_ANIMATION_LOW_OPACITY = 0.35;
+export const PERF_ANIMATION_HIGH_OPACITY = 1;
+export const PERF_ANIMATION_CONTROL_TEST_TIMEOUT_MS = 180_000;
+export const PERF_ANIMATION_LIFECYCLE_SAMPLE_INTERVAL_MS = 50;
+export const PERF_DOM_BREAKPOINT_HIT_LIMIT = 40;
+export const PERF_DOM_BREAKPOINT_FRAME_LIMIT = 64;
+export const PERF_DOM_BREAKPOINT_SINK_FRAME_LIMIT = 8;
+export const PERF_DOM_BREAKPOINT_ASYNC_STACK_DEPTH = 8;
+export const PERF_DOM_BREAKPOINT_SOURCE_SNIPPET_LIMIT = 240;
+export const PERF_TRACE_DEADLINE_MS = 60_000;
+export const PERF_TRACE_EVENT_LIMIT = 40;
+export const PERF_CSS_RULE_TEXT_LIMIT = 500;
+export const PERF_MUTATION_TARGET_LIMIT = 20;
+export const PERF_ANIMATION_INVENTORY_LIMIT = 100;
+export const PERF_COMPOSITED_LAYER_LIMIT = 20;
+export const PERF_HARDWARE_GPU_SAMPLE_INTERVAL_MS = 100;
+export const PERF_HARDWARE_GPU_STOP_DEADLINE_MS = 5_000;
+export const PERF_MICROSECONDS_PER_SECOND = 1_000_000;
+export const PERF_PERCENT_SCALE = 100;
+
+export const PERF_TRACE_MARKER_START = "react-grab-perf-scenario-start";
+export const PERF_TRACE_MARKER_END = "react-grab-perf-scenario-end";
+
+export const PERF_RENDER_TRACE_CATEGORIES = [
+  "benchmark",
+  "blink",
+  "blink.user_timing",
+  "cc",
+  "devtools.timeline",
+  "disabled-by-default-blink.debug",
+  "disabled-by-default-devtools.timeline",
+  "disabled-by-default-devtools.timeline.frame",
+  "disabled-by-default-devtools.timeline.invalidationTracking",
+  "disabled-by-default-devtools.timeline.stack",
+  "gpu",
+  "renderer.scheduler",
+  "toplevel",
+  "viz",
+];
