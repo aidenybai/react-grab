@@ -1050,6 +1050,13 @@ export const captureRenderTrace = async (
   let pendingAnimationLifecycleSample = Promise.resolve();
   let animationLifecycleSamplingError: string | undefined;
   let isTracingActive = false;
+  let pipeline: PerfRenderPipelineSummary | undefined;
+  let css: PerfCssTraceSummary | undefined;
+  let compositing: PerfCompositingSummary | undefined;
+  let animationLifecycle: PerfAnimationLifecycleSummary | undefined;
+  let validity: PerfRunValiditySummary | undefined;
+  let artifact: string | undefined;
+  const warnings: string[] = [];
   try {
     browserSession = await browser.newBrowserCDPSession();
     pageSession = await page.context().newCDPSession(page);
@@ -1144,11 +1151,16 @@ export const captureRenderTrace = async (
     animationLifecycleInterval = null;
     await pendingAnimationLifecycleSample;
     await sampleAnimationLifecycle();
-    const animationLifecycle = animationLifecycleTracker.stop();
-    const validity = await validityProbe.stop();
+    animationLifecycle = animationLifecycleTracker.stop();
+    validity = await validityProbe.stop();
     validityProbe = null;
-    const compositing = await compositingProbe.stop();
+    compositing = await compositingProbe.stop();
     compositingProbe = null;
+    if (animationLifecycleSamplingError) {
+      warnings.push(
+        `Animation lifecycle sampling was incomplete: ${animationLifecycleSamplingError}`,
+      );
+    }
     const ruleUsageResponse: CssRuleUsageResponse = await pageSession.send(
       "CSS.stopRuleUsageTracking",
     );
@@ -1158,8 +1170,11 @@ export const captureRenderTrace = async (
     if (!completedTrace.stream) throw new Error("Tracing completed without a stream handle");
     const traceBuffer = await withDeadline(readTraceStream(browserSession, completedTrace.stream));
     const traceFile: PerfTraceFile = JSON.parse(traceBuffer.toString("utf8"));
-    const pipeline = summarizeRenderTrace(traceFile);
-    const css = await collectCssSummary(
+    pipeline = summarizeRenderTrace(traceFile);
+    if (!pipeline.usedScenarioMarkers) {
+      warnings.push("Trace markers were not found; the summary covers the entire capture window");
+    }
+    css = await collectCssSummary(
       pageSession,
       stylesheetHeaders,
       ruleUsageResponse.ruleUsage,
@@ -1172,19 +1187,11 @@ export const captureRenderTrace = async (
     const artifactName = `${scenarioName}.render-trace.json.gz`;
     const compressedTrace = gzipSync(traceBuffer);
     await writeFile(resolve(labelDirectory, artifactName), compressedTrace);
+    artifact = artifactName;
     await testInfo.attach(`perf-${artifactName}`, {
       body: compressedTrace,
       contentType: "application/gzip",
     });
-    const warnings: string[] = [];
-    if (!pipeline.usedScenarioMarkers) {
-      warnings.push("Trace markers were not found; the summary covers the entire capture window");
-    }
-    if (animationLifecycleSamplingError) {
-      warnings.push(
-        `Animation lifecycle sampling was incomplete: ${animationLifecycleSamplingError}`,
-      );
-    }
     return {
       available: true,
       pipeline,
@@ -1192,13 +1199,19 @@ export const captureRenderTrace = async (
       compositing,
       animationLifecycle,
       validity,
-      artifact: artifactName,
+      artifact,
       warnings,
     };
   } catch (captureError) {
     return {
       available: false,
-      warnings: [],
+      pipeline,
+      css,
+      compositing,
+      animationLifecycle,
+      validity,
+      artifact,
+      warnings,
       error: captureError instanceof Error ? captureError.message : String(captureError),
     };
   } finally {

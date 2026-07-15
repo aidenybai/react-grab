@@ -249,7 +249,7 @@ const setupAnimationControl = async (
     if (mode === "animations-paused") {
       await page.evaluate(() => {
         const root = document.querySelector("[data-perf-animation-control]");
-        for (const animation of root?.getAnimations() ?? []) animation.pause();
+        for (const animation of root?.getAnimations({ subtree: true }) ?? []) animation.pause();
       });
     }
   } catch (setupError) {
