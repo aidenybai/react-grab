@@ -1020,6 +1020,7 @@ export const captureRenderTrace = async (
   let animationLifecycleInterval: ReturnType<typeof setInterval> | null = null;
   let isAnimationLifecycleSamplingActive = false;
   let pendingAnimationLifecycleSample = Promise.resolve();
+  let animationLifecycleSamplingError: string | undefined;
   let isTracingActive = false;
   try {
     browserSession = await browser.newBrowserCDPSession();
@@ -1075,31 +1076,37 @@ export const captureRenderTrace = async (
     });
     isTracingActive = true;
 
-    animationLifecycleTracker.handleActiveAnimationCount(await readActivePageAnimationCount(page));
-    animationLifecycleTracker.start();
     const animationPageSession = pageSession;
     const sampleAnimationLifecycle = async (): Promise<void> => {
-      animationLifecycleTracker.handleActiveAnimationCount(
-        await readActivePageAnimationCount(page),
-      );
-      for (const animationId of animationLifecycleTracker.getActiveAnimationIds()) {
-        try {
-          const response: AnimationCurrentTimeResponse = await animationPageSession.send(
-            "Animation.getCurrentTime",
-            { id: animationId },
-          );
-          animationLifecycleTracker.handleCurrentTime(animationId, response.currentTime);
-        } catch {
-          // The animation can disappear between the event and the sample.
+      try {
+        animationLifecycleTracker.handleActiveAnimationCount(
+          await readActivePageAnimationCount(page),
+        );
+        for (const animationId of animationLifecycleTracker.getActiveAnimationIds()) {
+          try {
+            const response: AnimationCurrentTimeResponse = await animationPageSession.send(
+              "Animation.getCurrentTime",
+              { id: animationId },
+            );
+            animationLifecycleTracker.handleCurrentTime(animationId, response.currentTime);
+          } catch {
+            // The animation can disappear between the event and the sample.
+          }
+        }
+      } catch (samplingError) {
+        if (!animationLifecycleSamplingError) {
+          animationLifecycleSamplingError =
+            samplingError instanceof Error ? samplingError.message : String(samplingError);
         }
       }
     };
+    await sampleAnimationLifecycle();
+    animationLifecycleTracker.start();
     isAnimationLifecycleSamplingActive = true;
     animationLifecycleInterval = setInterval(() => {
       if (!isAnimationLifecycleSamplingActive) return;
       pendingAnimationLifecycleSample =
         pendingAnimationLifecycleSample.then(sampleAnimationLifecycle);
-      void pendingAnimationLifecycleSample.catch(() => {});
     }, PERF_ANIMATION_LIFECYCLE_SAMPLE_INTERVAL_MS);
     await page.evaluate((markerName) => performance.mark(markerName), PERF_TRACE_MARKER_START);
     await scenarioBody();
@@ -1141,9 +1148,15 @@ export const captureRenderTrace = async (
       body: compressedTrace,
       contentType: "application/gzip",
     });
-    const warnings = pipeline.usedScenarioMarkers
-      ? []
-      : ["Trace markers were not found; the summary covers the entire capture window"];
+    const warnings: string[] = [];
+    if (!pipeline.usedScenarioMarkers) {
+      warnings.push("Trace markers were not found; the summary covers the entire capture window");
+    }
+    if (animationLifecycleSamplingError) {
+      warnings.push(
+        `Animation lifecycle sampling was incomplete: ${animationLifecycleSamplingError}`,
+      );
+    }
     return {
       available: true,
       pipeline,
