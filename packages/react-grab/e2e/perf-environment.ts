@@ -1,5 +1,6 @@
 import { arch, cpus, platform, release, totalmem } from "node:os";
 import type { Page } from "@playwright/test";
+import { roundTo3 } from "./perf-statistics.js";
 
 declare global {
   interface Navigator {
@@ -89,8 +90,6 @@ interface SystemInfoGpuResponse {
   };
   commandLine?: string;
 }
-
-const roundTo3 = (value: number): number => Number(value.toFixed(3));
 
 const refreshIntervalCalibrationByPage = new WeakMap<Page, Promise<number>>();
 

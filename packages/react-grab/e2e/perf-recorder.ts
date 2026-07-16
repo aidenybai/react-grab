@@ -9,8 +9,14 @@ import {
   type PerfAnimationCounterfactualReport,
 } from "./perf-animation-counterfactual.js";
 import {
+  PERF_CPU_PROFILE_CAPTURE_DEADLINE_MS,
+  PERF_CPU_PROFILE_SAMPLING_INTERVAL_US,
+  PERF_CPU_PROFILE_STOP_DEADLINE_MS,
   PERF_DEEP_TEST_TIMEOUT_MS,
+  PERF_MILLISECONDS_PER_SECOND,
   PERF_MUTATION_TARGET_LIMIT,
+  PERF_P95_PERCENTILE,
+  PERF_PERCENT_SCALE,
   PERF_REPORT_SCHEMA_VERSION,
 } from "./perf-constants.js";
 import {
@@ -33,6 +39,7 @@ import {
   type PerfProcessCpuSample,
 } from "./perf-process-cpu.js";
 import { captureRenderTrace, type PerfRenderTraceReport } from "./perf-render-trace.js";
+import { mean, median, percentile, roundTo3 } from "./perf-statistics.js";
 import {
   aggregatePerfRunValidity,
   assertValidHeadedPerfRun,
@@ -42,6 +49,7 @@ import {
   type PerfRunValiditySummary,
 } from "./perf-validity.js";
 import { capturePerfWorkload, type PerfWorkloadSnapshot } from "./perf-workload.js";
+import { DEADLINE_OUTCOME, raceDeadline } from "./race-deadline.js";
 
 const E2E_DIR = dirname(fileURLToPath(import.meta.url));
 const PACKAGE_PERF_DIR = resolve(E2E_DIR, "../perf");
@@ -398,24 +406,19 @@ const summarize = (values: number[]): PerfStatsSummary => {
     return { count: 0, mean: 0, stddev: 0, median: 0, p95: 0, max: 0 };
   }
   const sortedValues = [...values].sort((a, b) => a - b);
-  const sumOfValues = sortedValues.reduce((accum, value) => accum + value, 0);
-  const meanValue = sumOfValues / sortedValues.length;
+  const meanValue = mean(sortedValues);
   const variance =
     sortedValues.reduce((accum, value) => accum + (value - meanValue) ** 2, 0) /
     sortedValues.length;
-  const pickPercentile = (percentile: number): number =>
-    sortedValues[Math.min(sortedValues.length - 1, Math.floor(sortedValues.length * percentile))];
   return {
     count: sortedValues.length,
-    mean: Number(meanValue.toFixed(3)),
-    stddev: Number(Math.sqrt(variance).toFixed(3)),
-    median: Number(pickPercentile(0.5).toFixed(3)),
-    p95: Number(pickPercentile(0.95).toFixed(3)),
-    max: Number(sortedValues[sortedValues.length - 1].toFixed(3)),
+    mean: roundTo3(meanValue),
+    stddev: roundTo3(Math.sqrt(variance)),
+    median: roundTo3(median(sortedValues)),
+    p95: roundTo3(percentile(sortedValues, PERF_P95_PERCENTILE)),
+    max: roundTo3(sortedValues[sortedValues.length - 1]),
   };
 };
-
-const roundTo3 = (value: number): number => Number(value.toFixed(3));
 
 const summarizeFps = (frameDeltas: number[], refreshIntervalMs: number): PerfFpsSummary => {
   if (frameDeltas.length === 0) {
@@ -425,13 +428,12 @@ const summarizeFps = (frameDeltas: number[], refreshIntervalMs: number): PerfFps
       droppedFrames: 0,
       droppedFramePercent: 0,
       refreshIntervalMs,
-      refreshRateHz: roundTo3(1000 / refreshIntervalMs),
+      refreshRateHz: roundTo3(PERF_MILLISECONDS_PER_SECOND / refreshIntervalMs),
     };
   }
   const sortedDeltas = [...frameDeltas].sort((a, b) => a - b);
   const totalMs = sortedDeltas.reduce((accum, delta) => accum + delta, 0);
-  const p95Delta =
-    sortedDeltas[Math.min(sortedDeltas.length - 1, Math.floor(sortedDeltas.length * 0.95))];
+  const p95Delta = percentile(sortedDeltas, PERF_P95_PERCENTILE);
   const droppedFrames = sortedDeltas.reduce(
     (missedFrameCount, frameDelta) =>
       missedFrameCount + Math.max(0, Math.round(frameDelta / refreshIntervalMs) - 1),
@@ -439,12 +441,14 @@ const summarizeFps = (frameDeltas: number[], refreshIntervalMs: number): PerfFps
   );
   const expectedFrameCount = frameDeltas.length + droppedFrames;
   return {
-    mean: roundTo3(totalMs === 0 ? 0 : (frameDeltas.length / totalMs) * 1000),
-    p5Low: roundTo3(p95Delta === 0 ? 0 : 1000 / p95Delta),
+    mean: roundTo3(
+      totalMs === 0 ? 0 : (frameDeltas.length / totalMs) * PERF_MILLISECONDS_PER_SECOND,
+    ),
+    p5Low: roundTo3(p95Delta === 0 ? 0 : PERF_MILLISECONDS_PER_SECOND / p95Delta),
     droppedFrames,
-    droppedFramePercent: roundTo3((droppedFrames / expectedFrameCount) * 100),
+    droppedFramePercent: roundTo3((droppedFrames / expectedFrameCount) * PERF_PERCENT_SCALE),
     refreshIntervalMs: roundTo3(refreshIntervalMs),
-    refreshRateHz: roundTo3(1000 / refreshIntervalMs),
+    refreshRateHz: roundTo3(PERF_MILLISECONDS_PER_SECOND / refreshIntervalMs),
   };
 };
 const sumRounded = (values: number[]): number =>
@@ -519,10 +523,6 @@ const stopRecording = (page: Page): Promise<PerfRawSnapshot> =>
 
 // V8's default sampling interval. Lowering it (e.g. to 100us) makes the
 // renderer stall described above dramatically more likely and longer.
-const CPU_PROFILE_SAMPLING_INTERVAL_US = 1000;
-const CPU_PROFILE_CAPTURE_DEADLINE_MS = 60_000;
-const CPU_PROFILE_STOP_DEADLINE_MS = 10_000;
-
 const detachQuietly = async (cdpSession: CDPSession): Promise<void> => {
   try {
     await cdpSession.detach();
@@ -535,7 +535,7 @@ const startCpuProfiler = async (page: Page): Promise<CDPSession> => {
   const cdpSession = await page.context().newCDPSession(page);
   await cdpSession.send("Profiler.enable");
   await cdpSession.send("Profiler.setSamplingInterval", {
-    interval: CPU_PROFILE_SAMPLING_INTERVAL_US,
+    interval: PERF_CPU_PROFILE_SAMPLING_INTERVAL_US,
   });
   await cdpSession.send("Profiler.start");
   return cdpSession;
@@ -646,36 +646,17 @@ const diffMemorySnapshots = (
   documents: after.documents - before.documents,
 });
 
-const medianOfValues = (values: number[]): number => {
-  const sortedValues = [...values].sort((leftValue, rightValue) => leftValue - rightValue);
-  const middleIndex = Math.floor(sortedValues.length / 2);
-  return sortedValues.length % 2 === 1
-    ? sortedValues[middleIndex]
-    : Math.round((sortedValues[middleIndex - 1] + sortedValues[middleIndex]) / 2);
-};
-
 // Component-wise median across per-sample deltas. A single before/after
 // window is hostage to whatever one-off retention (app caches, JIT code,
 // GC-timing residue) happened to land inside it; the median of per-sample
 // deltas rejects those spikes and reports steady-state per-iteration growth.
 const medianMemoryDelta = (deltas: PerfMemorySnapshot[]): PerfMemorySnapshot => ({
-  jsHeapUsedKb: medianOfValues(deltas.map((delta) => delta.jsHeapUsedKb)),
-  jsHeapTotalKb: medianOfValues(deltas.map((delta) => delta.jsHeapTotalKb)),
-  domNodes: medianOfValues(deltas.map((delta) => delta.domNodes)),
-  jsEventListeners: medianOfValues(deltas.map((delta) => delta.jsEventListeners)),
-  documents: medianOfValues(deltas.map((delta) => delta.documents)),
+  jsHeapUsedKb: Math.round(median(deltas.map((delta) => delta.jsHeapUsedKb))),
+  jsHeapTotalKb: Math.round(median(deltas.map((delta) => delta.jsHeapTotalKb))),
+  domNodes: Math.round(median(deltas.map((delta) => delta.domNodes))),
+  jsEventListeners: Math.round(median(deltas.map((delta) => delta.jsEventListeners))),
+  documents: Math.round(median(deltas.map((delta) => delta.documents))),
 });
-
-const raceDeadline = <ResultType>(
-  work: Promise<ResultType>,
-  deadlineMs: number,
-): Promise<ResultType | "deadline"> =>
-  Promise.race([
-    work,
-    new Promise<"deadline">((resolveDeadline) => {
-      setTimeout(() => resolveDeadline("deadline"), deadlineMs);
-    }),
-  ]);
 
 const captureScenarioCpuProfile = async (
   page: Page,
@@ -688,10 +669,10 @@ const captureScenarioCpuProfile = async (
     profilerSession = await startCpuProfiler(page);
     const bodyPromise = scenarioBody().then(() => "done" as const);
     bodyPromise.catch(() => {});
-    const bodyOutcome = await raceDeadline(bodyPromise, CPU_PROFILE_CAPTURE_DEADLINE_MS);
-    if (bodyOutcome === "deadline") {
+    const bodyOutcome = await raceDeadline(bodyPromise, PERF_CPU_PROFILE_CAPTURE_DEADLINE_MS);
+    if (bodyOutcome === DEADLINE_OUTCOME) {
       console.warn(
-        `[perf] ${scenarioName}: profiled pass exceeded ${CPU_PROFILE_CAPTURE_DEADLINE_MS}ms ` +
+        `[perf] ${scenarioName}: profiled pass exceeded ${PERF_CPU_PROFILE_CAPTURE_DEADLINE_MS}ms ` +
           `(known headless renderer stall under the V8 sampler); skipping .cpuprofile`,
       );
       await detachQuietly(profilerSession);
@@ -699,9 +680,9 @@ const captureScenarioCpuProfile = async (
     }
     const stopOutcome = await raceDeadline(
       stopCpuProfilerAndWrite(testInfo, scenarioName, profilerSession).then(() => "done" as const),
-      CPU_PROFILE_STOP_DEADLINE_MS,
+      PERF_CPU_PROFILE_STOP_DEADLINE_MS,
     );
-    if (stopOutcome === "deadline") {
+    if (stopOutcome === DEADLINE_OUTCOME) {
       console.warn(`[perf] ${scenarioName}: Profiler.stop timed out; skipping .cpuprofile`);
       await detachQuietly(profilerSession);
     }
@@ -804,17 +785,6 @@ export const idleFrame = (page: Page, frameCount = 1) =>
     frameCount,
   );
 
-const medianOfNumbers = (values: number[]): number => {
-  if (values.length === 0) return 0;
-  const sortedValues = [...values].sort((a, b) => a - b);
-  const middleIndex = Math.floor(sortedValues.length / 2);
-  // Average the two middle values for even-length samples so 2-sample
-  // medians aren't biased toward the upper sample.
-  return sortedValues.length % 2 === 0
-    ? (sortedValues[middleIndex - 1] + sortedValues[middleIndex]) / 2
-    : sortedValues[middleIndex];
-};
-
 const medianCssActivity = (samples: PerfScenarioAggregate[]): PerfCssActivity => {
   const mutationTargetCounts = new Map<string, number>();
   for (const sample of samples) {
@@ -826,7 +796,7 @@ const medianCssActivity = (samples: PerfScenarioAggregate[]): PerfCssActivity =>
     }
   }
   const medianMetric = (getValue: (activity: PerfCssActivity) => number): number =>
-    medianOfNumbers(samples.map((sample) => getValue(sample.cssActivity)));
+    median(samples.map((sample) => getValue(sample.cssActivity)));
   return {
     attributeChanges: medianMetric((activity) => activity.attributeChanges),
     classChanges: medianMetric((activity) => activity.classChanges),
@@ -853,34 +823,34 @@ const medianCssActivity = (samples: PerfScenarioAggregate[]): PerfCssActivity =>
 
 const medianAcrossSamples = (samples: PerfScenarioAggregate[]): PerfScenarioAggregate => {
   return {
-    inp: medianOfNumbers(samples.map((sample) => sample.inp)),
-    interactions: medianOfNumbers(samples.map((sample) => sample.interactions)),
+    inp: median(samples.map((sample) => sample.inp)),
+    interactions: median(samples.map((sample) => sample.interactions)),
     longTasks: {
-      count: medianOfNumbers(samples.map((sample) => sample.longTasks.count)),
-      sum: medianOfNumbers(samples.map((sample) => sample.longTasks.sum)),
-      max: medianOfNumbers(samples.map((sample) => sample.longTasks.max)),
+      count: median(samples.map((sample) => sample.longTasks.count)),
+      sum: median(samples.map((sample) => sample.longTasks.sum)),
+      max: median(samples.map((sample) => sample.longTasks.max)),
     },
     longAnimationFrames: {
-      count: medianOfNumbers(samples.map((sample) => sample.longAnimationFrames.count)),
-      sum: medianOfNumbers(samples.map((sample) => sample.longAnimationFrames.sum)),
-      max: medianOfNumbers(samples.map((sample) => sample.longAnimationFrames.max)),
-      maxBlocking: medianOfNumbers(samples.map((sample) => sample.longAnimationFrames.maxBlocking)),
+      count: median(samples.map((sample) => sample.longAnimationFrames.count)),
+      sum: median(samples.map((sample) => sample.longAnimationFrames.sum)),
+      max: median(samples.map((sample) => sample.longAnimationFrames.max)),
+      maxBlocking: median(samples.map((sample) => sample.longAnimationFrames.maxBlocking)),
     },
     frames: {
-      count: medianOfNumbers(samples.map((sample) => sample.frames.count)),
-      mean: medianOfNumbers(samples.map((sample) => sample.frames.mean)),
-      stddev: medianOfNumbers(samples.map((sample) => sample.frames.stddev)),
-      median: medianOfNumbers(samples.map((sample) => sample.frames.median)),
-      p95: medianOfNumbers(samples.map((sample) => sample.frames.p95)),
-      max: medianOfNumbers(samples.map((sample) => sample.frames.max)),
+      count: median(samples.map((sample) => sample.frames.count)),
+      mean: median(samples.map((sample) => sample.frames.mean)),
+      stddev: median(samples.map((sample) => sample.frames.stddev)),
+      median: median(samples.map((sample) => sample.frames.median)),
+      p95: median(samples.map((sample) => sample.frames.p95)),
+      max: median(samples.map((sample) => sample.frames.max)),
     },
     fps: {
-      mean: medianOfNumbers(samples.map((sample) => sample.fps.mean)),
-      p5Low: medianOfNumbers(samples.map((sample) => sample.fps.p5Low)),
-      droppedFrames: medianOfNumbers(samples.map((sample) => sample.fps.droppedFrames)),
-      droppedFramePercent: medianOfNumbers(samples.map((sample) => sample.fps.droppedFramePercent)),
-      refreshIntervalMs: medianOfNumbers(samples.map((sample) => sample.fps.refreshIntervalMs)),
-      refreshRateHz: medianOfNumbers(samples.map((sample) => sample.fps.refreshRateHz)),
+      mean: median(samples.map((sample) => sample.fps.mean)),
+      p5Low: median(samples.map((sample) => sample.fps.p5Low)),
+      droppedFrames: median(samples.map((sample) => sample.fps.droppedFrames)),
+      droppedFramePercent: median(samples.map((sample) => sample.fps.droppedFramePercent)),
+      refreshIntervalMs: median(samples.map((sample) => sample.fps.refreshIntervalMs)),
+      refreshRateHz: median(samples.map((sample) => sample.fps.refreshRateHz)),
     },
     cssActivity: medianCssActivity(samples),
   };

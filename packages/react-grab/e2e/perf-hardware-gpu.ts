@@ -7,9 +7,14 @@ import type { PerfBrowserGpuInfo } from "./perf-environment.js";
 import {
   PERF_HARDWARE_GPU_SAMPLE_INTERVAL_MS,
   PERF_HARDWARE_GPU_STOP_DEADLINE_MS,
+  PERF_MICROSECONDS_PER_MILLISECOND,
+  PERF_MILLISECONDS_PER_SECOND,
+  PERF_MILLIWATTS_PER_WATT,
   PERF_NANOSECONDS_PER_MILLISECOND,
+  PERF_P95_PERCENTILE,
   PERF_PERCENT_SCALE,
 } from "./perf-constants.js";
+import { mean, median, percentile, roundTo3 } from "./perf-statistics.js";
 
 export interface PerfHardwareGpuProcessSample {
   pid: number;
@@ -78,23 +83,6 @@ export interface HardwareGpuChildProcessExit {
   signal: NodeJS.Signals | null;
 }
 
-const roundTo3 = (value: number): number => Number(value.toFixed(3));
-
-const percentile = (values: number[], percentileValue: number): number => {
-  if (values.length === 0) return 0;
-  const sortedValues = [...values].sort((leftValue, rightValue) => leftValue - rightValue);
-  const index = Math.min(
-    sortedValues.length - 1,
-    Math.floor(sortedValues.length * percentileValue),
-  );
-  return sortedValues[index];
-};
-
-const mean = (values: number[]): number =>
-  values.length === 0
-    ? 0
-    : values.reduce((totalValue, currentValue) => totalValue + currentValue, 0) / values.length;
-
 const unavailableGpuSample = (
   status: string,
   backend: string,
@@ -123,8 +111,8 @@ const readBrowserProcessIds = async (page: Page): Promise<Set<number>> => {
 };
 
 const parseDurationMilliseconds = (value: number, unit: string): number => {
-  if (unit === "us") return value / 1000;
-  if (unit === "s") return value * 1000;
+  if (unit === "us") return value / PERF_MICROSECONDS_PER_MILLISECOND;
+  if (unit === "s") return value * PERF_MILLISECONDS_PER_SECOND;
   return value;
 };
 
@@ -136,7 +124,7 @@ export const parsePowermetricsOutput = (
     (match) => Number(match[1]),
   );
   const gpuPowerValues = [...output.matchAll(/GPU Power:\s*([\d.]+)\s*(mW|W)/gi)].map(
-    (match) => Number(match[1]) * (match[2].toLowerCase() === "w" ? 1000 : 1),
+    (match) => Number(match[1]) * (match[2].toLowerCase() === "w" ? PERF_MILLIWATTS_PER_WATT : 1),
   );
   const processesByPid = new Map<number, MutableHardwareGpuProcess>();
   const processPattern = /^pid\s+(\d+)\s+(.+?)\s+([\d.]+)\s*(us|ms|s)(?:\s+\(([\d.]+)\s*%\))?/gim;
@@ -188,7 +176,9 @@ export const parsePowermetricsOutput = (
     systemBusyMeanPercent:
       systemBusyValues.length > 0 ? roundTo3(mean(systemBusyValues)) : undefined,
     systemBusyP95Percent:
-      systemBusyValues.length > 0 ? roundTo3(percentile(systemBusyValues, 0.95)) : undefined,
+      systemBusyValues.length > 0
+        ? roundTo3(percentile(systemBusyValues, PERF_P95_PERCENTILE))
+        : undefined,
     systemBusyMaxPercent:
       systemBusyValues.length > 0 ? roundTo3(Math.max(...systemBusyValues)) : undefined,
     browserBusyMeanPercent: processes.length > 0 ? roundTo3(browserBusyMeanPercent) : undefined,
@@ -458,7 +448,7 @@ export const aggregateHardwareGpuSamples = (
     const values = availableSamples
       .map(getValue)
       .filter((value): value is number => value !== undefined);
-    return values.length > 0 ? roundTo3(percentile(values, 0.5)) : undefined;
+    return values.length > 0 ? roundTo3(median(values)) : undefined;
   };
   return {
     aggregate: {

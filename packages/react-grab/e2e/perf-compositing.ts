@@ -10,6 +10,7 @@ import {
   PERF_PAINT_PROFILE_MIN_REPEAT_COUNT,
   PERF_PERCENT_SCALE,
 } from "./perf-constants.js";
+import { roundTo3 } from "./perf-statistics.js";
 
 export interface PerfCompositedLayer {
   layerId: string;
@@ -120,8 +121,6 @@ interface RuntimeEvaluateResponse {
     value?: unknown;
   };
 }
-
-const roundTo3 = (value: number): number => Number(value.toFixed(3));
 
 const readAttribute = (attributes: string[] | undefined, name: string): string | undefined => {
   if (!attributes) return undefined;
