@@ -1,11 +1,15 @@
-import { createEffect, createSignal, on, onCleanup, onMount, type Component } from "solid-js";
+import { createEffect, createSignal, on, onCleanup, onMount, Show, type Component } from "solid-js";
 import type { Position } from "../../types.js";
 import { cn } from "../../utils/cn.js";
 import { loadToolbarState, saveToolbarState, type SnapEdge, type ToolbarState } from "./state.js";
 import { IconSelect } from "../icons/icon-select.jsx";
 import { IconComment } from "../icons/icon-comment.jsx";
 import { IconStyle } from "../icons/icon-style.jsx";
+import { IconEyedropper } from "../icons/icon-eyedropper.jsx";
 import { ToolbarActionButton } from "./toolbar-action-button.jsx";
+import { copyContent } from "../../utils/copy-content.js";
+import { formatColorLabel } from "../../utils/format-color-label.js";
+import { isEyedropperSupported } from "../../utils/is-eyedropper-supported.js";
 import {
   TOOLBAR_SNAP_MARGIN_PX,
   TOOLBAR_FADE_IN_DELAY_MS,
@@ -19,6 +23,8 @@ import {
   DEFAULT_ACTION_ID,
   COMMENT_ACTION_ID,
   EDIT_ACTION_ID,
+  COLOR_PICKER_ACTION_ID,
+  COLOR_PICK_FEEDBACK_DURATION_MS,
 } from "../../constants.js";
 import { freezeUpdates } from "../../utils/freeze-updates.js";
 import {
@@ -283,6 +289,31 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     props.onActivateAction?.(COMMENT_ACTION_ID),
   );
   const handleStyle = drag.createDragAwareHandler(() => props.onActivateAction?.(EDIT_ACTION_ID));
+
+  const [pickedColorHex, setPickedColorHex] = createSignal<string | null>(null);
+  let colorFeedbackTimeout: ReturnType<typeof setTimeout> | undefined;
+
+  const handleColorPicker = drag.createDragAwareHandler(() => {
+    const EyeDropperConstructor = window.EyeDropper;
+    if (!EyeDropperConstructor) return;
+    setHoveredActionId(null);
+    // The eyedropper resolves from the user's pick, which keeps transient
+    // activation alive long enough for copyContent's synchronous execCommand.
+    new EyeDropperConstructor()
+      .open()
+      .then((result) => {
+        const colorLabel = formatColorLabel(result.sRGBHex);
+        copyContent(colorLabel);
+        setPickedColorHex(result.sRGBHex);
+        clearTimeout(colorFeedbackTimeout);
+        colorFeedbackTimeout = setTimeout(() => {
+          setPickedColorHex(null);
+        }, COLOR_PICK_FEEDBACK_DURATION_MS);
+      })
+      .catch(() => {
+        // The user dismissed the eyedropper (Escape) - nothing to copy.
+      });
+  });
 
   const actionButtonClass =
     "group contain-layout flex items-center justify-center cursor-pointer interactive-scale a11y-hitbox";
@@ -603,6 +634,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     if (scopedScrollFrameId !== null) nativeCancelAnimationFrame(scopedScrollFrameId);
     clearTimeout(resizeTimeout);
     clearTimeout(collapseAnimationTimeout);
+    clearTimeout(colorFeedbackTimeout);
 
     if (unfreezeUpdatesCallback) releaseInteractionFreeze();
   });
@@ -791,6 +823,44 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
               tooltipPosition={tooltipPosition()}
               tooltip="Style"
             />
+            <Show when={isEyedropperSupported()}>
+              <ToolbarActionButton
+                actionId={COLOR_PICKER_ACTION_ID}
+                label="Pick color"
+                isActive={pickedColorHex() !== null}
+                class={actionButtonClass}
+                wrapperClass={actionButtonWrapperClass()}
+                onClick={handleColorPicker}
+                {...createFreezeHandlers(COLOR_PICKER_ACTION_ID)}
+                icon={
+                  <IconEyedropper size={14} class={actionIconClass(pickedColorHex() !== null)} />
+                }
+                tooltipVisible={
+                  isTooltipVisible(COLOR_PICKER_ACTION_ID) ||
+                  (pickedColorHex() !== null &&
+                    !isCollapsed() &&
+                    !drag.isDragging() &&
+                    !drag.isSnapping())
+                }
+                tooltipPosition={tooltipPosition()}
+                tooltip={
+                  pickedColorHex() ? (
+                    <span class="flex items-center gap-1.5">
+                      <span
+                        class="size-2.5 rounded-full"
+                        style={{
+                          "background-color": pickedColorHex() ?? "transparent",
+                          "box-shadow": "inset 0 0 0 1px rgba(127, 127, 127, 0.4)",
+                        }}
+                      />
+                      {`Copied ${formatColorLabel(pickedColorHex() ?? "")}`}
+                    </span>
+                  ) : (
+                    "Pick color"
+                  )
+                }
+              />
+            </Show>
           </>
         }
       />
