@@ -17,6 +17,7 @@
 // - toasts: portal churn under the pointer + backdrop-filter paint cost.
 // - gauntlet: all of the above mounted at once.
 import { expect, getElementCenters, goToHeavyView, test } from "./perf-fixtures.js";
+import { PERF_PLAYWRIGHT_SUITE_MODE } from "./perf-constants.js";
 import { idleFrame, recordScenario } from "./perf-recorder.js";
 
 const EDITOR_TYPING_INP_SOFT_LIMIT_MS = 200;
@@ -31,7 +32,7 @@ const EDITOR_PARAGRAPH_SELECTOR = "[data-editor-paragraph]";
 const GLASS_CARD_SELECTOR = "[data-glass-card]";
 const TOAST_SELECTOR = "[data-toast]";
 
-test.describe.configure({ mode: "serial", retries: 0 });
+test.describe.configure({ mode: PERF_PLAYWRIGHT_SUITE_MODE, retries: 0 });
 
 test.describe("@perf interference benchmarks", () => {
   // ─── Canvas paint loop ─────────────────────────────────────────────

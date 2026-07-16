@@ -2,7 +2,15 @@
 // DOM-injection helpers (dense tile grid, deep chain, stacked elements,
 // CSS animations) that auto-clean on test teardown.
 import type { Page } from "@playwright/test";
+import { calibratePerfRefreshInterval } from "./perf-environment.js";
 import { test as reactGrabTest } from "./fixtures.js";
+
+declare global {
+  interface PerfTestFixtures {
+    perfDom: PerfDomHelpers;
+    perfRefreshIntervalCalibration: void;
+  }
+}
 
 export const PERF_GRID_PATH = "/?perf=grid&rows=30&cols=10";
 const PERF_GRID_SELECTOR = "[data-perf-row][data-perf-column]";
@@ -125,7 +133,16 @@ const INSTALLER_REGISTRY: Record<keyof PerfDomHelpers, string> = {
   installDeepStack: "perf-bench-stack-container",
 };
 
-export const test = reactGrabTest.extend<{ perfDom: PerfDomHelpers }>({
+export const test = reactGrabTest.extend<PerfTestFixtures>({
+  // Depend on the lightweight root fixture so its navigation is complete,
+  // then calibrate before a heavy workload can distort the display cadence.
+  perfRefreshIntervalCalibration: [
+    async ({ reactGrab }, use) => {
+      await calibratePerfRefreshInterval(reactGrab.page);
+      await use();
+    },
+    { auto: true },
+  ],
   perfDom: async ({ page }, use) => {
     const installedRootIds: string[] = [];
     const helpers: PerfDomHelpers = {

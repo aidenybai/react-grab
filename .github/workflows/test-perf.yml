@@ -10,17 +10,107 @@ permissions:
   contents: read
 
 jobs:
-  test-perf:
+  perf-shard:
+    name: perf-shard (${{ matrix.artifact-suffix }})
     runs-on: ubuntu-latest
-    # PR runs do the bench twice (base ref + HEAD) so the cost roughly
-    # doubles vs. a push-to-main run.
-    timeout-minutes: 40
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Pair each shard's base and HEAD samples on one runner while spreading
+          # independent scenarios across runners to preserve process isolation.
+          - test_shard: "1/15"
+            test_grep: "@perf"
+            test_grep_invert: "animation-scheduling-controls|activate-deactivate-dense-animations"
+            artifact-suffix: regular-1-of-15
+          - test_shard: "2/15"
+            test_grep: "@perf"
+            test_grep_invert: "animation-scheduling-controls|activate-deactivate-dense-animations"
+            artifact-suffix: regular-2-of-15
+          - test_shard: "3/15"
+            test_grep: "@perf"
+            test_grep_invert: "animation-scheduling-controls|activate-deactivate-dense-animations"
+            artifact-suffix: regular-3-of-15
+          - test_shard: "4/15"
+            test_grep: "@perf"
+            test_grep_invert: "animation-scheduling-controls|activate-deactivate-dense-animations"
+            artifact-suffix: regular-4-of-15
+          - test_shard: "5/15"
+            test_grep: "@perf"
+            test_grep_invert: "animation-scheduling-controls|activate-deactivate-dense-animations"
+            artifact-suffix: regular-5-of-15
+          - test_shard: "6/15"
+            test_grep: "@perf"
+            test_grep_invert: "animation-scheduling-controls|activate-deactivate-dense-animations"
+            artifact-suffix: regular-6-of-15
+          - test_shard: "7/15"
+            test_grep: "@perf"
+            test_grep_invert: "animation-scheduling-controls|activate-deactivate-dense-animations"
+            artifact-suffix: regular-7-of-15
+          - test_shard: "8/15"
+            test_grep: "@perf"
+            test_grep_invert: "animation-scheduling-controls|activate-deactivate-dense-animations"
+            artifact-suffix: regular-8-of-15
+          - test_shard: "9/15"
+            test_grep: "@perf"
+            test_grep_invert: "animation-scheduling-controls|activate-deactivate-dense-animations"
+            artifact-suffix: regular-9-of-15
+          - test_shard: "10/15"
+            test_grep: "@perf"
+            test_grep_invert: "animation-scheduling-controls|activate-deactivate-dense-animations"
+            artifact-suffix: regular-10-of-15
+          - test_shard: "11/15"
+            test_grep: "@perf"
+            test_grep_invert: "animation-scheduling-controls|activate-deactivate-dense-animations"
+            artifact-suffix: regular-11-of-15
+          - test_shard: "12/15"
+            test_grep: "@perf"
+            test_grep_invert: "animation-scheduling-controls|activate-deactivate-dense-animations"
+            artifact-suffix: regular-12-of-15
+          - test_shard: "13/15"
+            test_grep: "@perf"
+            test_grep_invert: "animation-scheduling-controls|activate-deactivate-dense-animations"
+            artifact-suffix: regular-13-of-15
+          - test_shard: "14/15"
+            test_grep: "@perf"
+            test_grep_invert: "animation-scheduling-controls|activate-deactivate-dense-animations"
+            artifact-suffix: regular-14-of-15
+          - test_shard: "15/15"
+            test_grep: "@perf"
+            test_grep_invert: "animation-scheduling-controls|activate-deactivate-dense-animations"
+            artifact-suffix: regular-15-of-15
+          - test_shard: "1/1"
+            test_grep: "activate-deactivate-dense-animations @perf"
+            test_grep_invert: "(?!)"
+            artifact-suffix: dense-animation-control
+          - test_shard: "1/1"
+            test_grep: "animation-scheduling-controls @perf"
+            test_grep_invert: "(?!)"
+            animation_control_mode: legacy-production-count
+            animation_include_paused_trace: "1"
+            artifact-suffix: animation-controls-legacy-production-count
+          - test_shard: "1/1"
+            test_grep: "animation-scheduling-controls @perf"
+            test_grep_invert: "(?!)"
+            animation_control_mode: legacy-one-indicator
+            artifact-suffix: animation-controls-legacy-one-indicator
+          - test_shard: "1/1"
+            test_grep: "animation-scheduling-controls @perf"
+            test_grep_invert: "(?!)"
+            animation_control_mode: infinite-stepped
+            artifact-suffix: animation-controls-infinite-stepped
+          - test_shard: "1/1"
+            test_grep: "animation-scheduling-controls @perf"
+            test_grep_invert: "(?!)"
+            animation_control_mode: finite-static-holds
+            artifact-suffix: animation-controls-finite-static-holds
 
     steps:
       - name: Checkout
         uses: actions/checkout@v6
         with:
-          fetch-depth: 0
+          fetch-depth: 1
 
       - name: Install pnpm
         uses: pnpm/action-setup@v6
@@ -37,50 +127,82 @@ jobs:
       - name: Install Playwright browsers
         run: pnpm --filter react-grab exec playwright install chromium --with-deps
 
-      # ─── Baseline run (PR only) ────────────────────────────────────────
-      # Swap `packages/react-grab/src/` to the base ref so the same
-      # bench harness measures the OLD library code. The harness itself
-      # (`e2e/perf-*.ts`, `scripts/diff-perf-runs.mjs`) and the fixture-app
-      # stimulus stay at HEAD so the only variable across runs is
-      # react-grab's source.
+      # Swap only `packages/react-grab/src/` so the HEAD harness and fixture
+      # measure the base library code. Each shard keeps its base and HEAD
+      # measurements on the same runner to preserve paired CPU/GPU controls.
       - name: Swap react-grab src to base ref
         id: swap-base
         if: github.event_name == 'pull_request'
         run: |
-          git fetch origin "${{ github.base_ref }}" --depth=1
-          if git cat-file -e "origin/${{ github.base_ref }}:packages/react-grab/src" 2>/dev/null; then
-            git checkout "origin/${{ github.base_ref }}" -- packages/react-grab/src
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          git fetch origin "$BASE_SHA" --depth=1
+          if git cat-file -e "$BASE_SHA:packages/react-grab/src" 2>/dev/null; then
+            git checkout "$BASE_SHA" -- packages/react-grab/src
             echo "swapped=true" >> "$GITHUB_OUTPUT"
-            echo "Swapped react-grab/src to origin/${{ github.base_ref }} ($(git rev-parse "origin/${{ github.base_ref }}"))"
+            echo "Swapped react-grab/src to base revision $BASE_SHA"
           else
             echo "Base ref lacks packages/react-grab/src; skipping baseline run."
             echo "swapped=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Run perf bench against base ref src
+      - name: Run paired shard against base ref src
         if: github.event_name == 'pull_request' && steps.swap-base.outputs.swapped == 'true'
         env:
           PERF_LABEL: baseline
-        # --workers=1 keeps perf measurements off the noise floor that
-        # the sharded `test-e2e` workflow creates by running 4 workers
-        # in parallel. Playwright's webServer auto-runs
-        # `pnpm --filter react-grab build` so the dev server picks up
-        # whichever src is checked out.
-        run: pnpm --filter react-grab exec playwright test --grep @perf --workers=1 --reporter=list
+          PERF_SHARDABLE: "1"
+          PERF_TEST_GREP: ${{ matrix.test_grep }}
+          PERF_TEST_GREP_INVERT: ${{ matrix.test_grep_invert }}
+          PERF_TEST_SHARD: ${{ matrix.test_shard }}
+          PERF_ANIMATION_CONTROL_MODE: ${{ matrix.animation_control_mode }}
+          PERF_ANIMATION_INCLUDE_PAUSED_TRACE: ${{ matrix.animation_include_paused_trace }}
+        # One worker prevents concurrent scenarios from contaminating the
+        # process and compositor measurements. Parallelism only exists across
+        # isolated GitHub runners, with the same scenario shard used for both refs.
+        run: pnpm --filter react-grab exec playwright test --grep "$PERF_TEST_GREP" --grep-invert "$PERF_TEST_GREP_INVERT" --workers=1 --shard="$PERF_TEST_SHARD" --reporter=list
 
       - name: Restore react-grab src to HEAD
         if: github.event_name == 'pull_request' && steps.swap-base.outputs.swapped == 'true'
         run: git checkout HEAD -- packages/react-grab/src
 
-      # ─── HEAD run ──────────────────────────────────────────────────────
-      - name: Run perf bench against HEAD src
+      - name: Run paired shard against HEAD src
         env:
           PERF_LABEL: current
-        run: pnpm --filter react-grab exec playwright test --grep @perf --workers=1 --reporter=list
+          PERF_SHARDABLE: "1"
+          PERF_TEST_GREP: ${{ matrix.test_grep }}
+          PERF_TEST_GREP_INVERT: ${{ matrix.test_grep_invert }}
+          PERF_TEST_SHARD: ${{ matrix.test_shard }}
+          PERF_ANIMATION_CONTROL_MODE: ${{ matrix.animation_control_mode }}
+          PERF_ANIMATION_INCLUDE_PAUSED_TRACE: ${{ matrix.animation_include_paused_trace }}
+        run: pnpm --filter react-grab exec playwright test --grep "$PERF_TEST_GREP" --grep-invert "$PERF_TEST_GREP_INVERT" --workers=1 --shard="$PERF_TEST_SHARD" --reporter=list
 
-      # ─── Diff & surface ────────────────────────────────────────────────
+      - name: Upload shard reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: perf-reports-${{ matrix.artifact-suffix }}
+          path: packages/react-grab/perf/
+          if-no-files-found: warn
+          retention-days: 1
+
+  test-perf:
+    needs: perf-shard
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Download shard reports
+        uses: actions/download-artifact@v4
+        with:
+          pattern: perf-reports-*
+          path: packages/react-grab/perf
+          merge-multiple: true
+
       - name: Compute baseline-vs-current diff
-        if: always() && github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && needs.perf-shard.result == 'success'
         run: |
           node packages/react-grab/scripts/diff-perf-runs.mjs packages/react-grab/perf/baseline packages/react-grab/perf/current | tee perf-diff.md >> "$GITHUB_STEP_SUMMARY"
 
@@ -93,7 +215,7 @@ jobs:
           if-no-files-found: ignore
           retention-days: 14
 
-      - name: Upload perf reports
+      - name: Upload merged perf reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -102,10 +224,15 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
-  # Separate job so the write-scoped token never coexists with the bench
-  # job, which builds and executes the PR's own code. This job runs no
-  # repo code at all — it only downloads the diff artifact and posts it.
-  # Sticky comment: created once, updated in place on later pushes.
+      - name: Verify perf shards
+        if: always() && needs.perf-shard.result != 'success'
+        run: |
+          echo "One or more paired perf shards failed: ${{ needs.perf-shard.result }}"
+          exit 1
+
+  # The write-scoped token never coexists with a job that executes PR code.
+  # This job only downloads the merged diff and maintains one sticky comment,
+  # while the benchmark and aggregation jobs retain read-only permissions.
   perf-comment:
     needs: test-perf
     if: always() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository

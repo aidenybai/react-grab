@@ -12,6 +12,7 @@
 // - active scenarios exercise selection/hover/drag/copy on top of the same
 //   heavy DOM, where detection, bounds tracking, and freezing do real work.
 import { expect, getElementCenters, goToHeavyView, test } from "./perf-fixtures.js";
+import { PERF_PLAYWRIGHT_SUITE_MODE } from "./perf-constants.js";
 import { idleFrame, recordScenario } from "./perf-recorder.js";
 
 const INP_SOFT_LIMIT_MS = 100;
@@ -35,7 +36,7 @@ const CHART_CONTAINER_SELECTORS = [
   "[data-testid='chart-scatter']",
 ];
 
-test.describe.configure({ mode: "serial", retries: 0 });
+test.describe.configure({ mode: PERF_PLAYWRIGHT_SUITE_MODE, retries: 0 });
 
 test.describe("@perf heavy-ui benchmarks", () => {
   // ─── TanStack table ────────────────────────────────────────────────
