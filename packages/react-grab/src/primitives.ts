@@ -7,10 +7,6 @@ import { FreezeError, RecoverableError } from "./errors.js";
 import { freezeUpdatesOrThrow } from "./utils/freeze-updates.js";
 import { reportRecoverableError } from "./utils/report-recoverable-error.js";
 import {
-  suspendPointerEventsFreeze,
-  resumePointerEventsFreeze,
-} from "./utils/pointer-events-freeze.js";
-import {
   getComponentDisplayName,
   getStack,
   getStackContext,
@@ -25,7 +21,13 @@ import { createElementSelector } from "./utils/create-element-selector.js";
 import { extractElementCss, disposeBaselineStyles } from "./utils/extract-element-css.js";
 import { findSelectorTarget } from "./utils/find-selector-target.js";
 import { requestOpenFile } from "./utils/open-file.js";
-import { getDeepElementsAtPoint } from "./utils/get-deep-elements-at-point.js";
+import { isValidGrabbableElement } from "./utils/is-valid-grabbable-element.js";
+import { createElementBounds } from "./utils/create-element-bounds.js";
+import { getUnfilteredElementsAtPoint } from "./utils/get-unfiltered-elements-at-point.js";
+import { matchesElementAtPointOptions } from "./utils/matches-element-at-point-options.js";
+import type { ElementAtPointOptions, ElementBounds } from "./types.js";
+
+export type { ElementAtPointOptions, ElementBounds } from "./types.js";
 
 export { OpenFileError } from "./errors.js";
 
@@ -43,6 +45,26 @@ export interface ReactGrabElementContext {
   selector: string | null;
   styles: string;
 }
+
+/**
+ * Returns whether an element is a useful selection target. Invisible elements,
+ * document roots, React Grab UI, ignored subtrees, and transparent page-covering
+ * overlays are excluded.
+ */
+export const isElementGrabbable = (element: Element): boolean => isValidGrabbableElement(element);
+
+/**
+ * Returns viewport bounds in the top-level window, including elements inside
+ * transformed same-origin iframes.
+ */
+export const getElementBounds = (element: Element): ElementBounds => createElementBounds(element);
+
+/**
+ * Returns a stable selector, crossing open shadow roots and same-origin iframes
+ * with `>>>` and `>>iframe>>` boundary markers.
+ */
+export const getElementSelector = (element: Element): string =>
+  createElementSelector(findSelectorTarget(element));
 
 /**
  * Gathers comprehensive context for a DOM element — the same context
@@ -66,7 +88,7 @@ export const getElementContext = async (element: Element): Promise<ReactGrabElem
   const htmlPreview = getHTMLPreview(element);
   const componentName = getComponentDisplayName(element);
   const fiber = getFiberFromHostInstance(element);
-  const selector = createElementSelector(findSelectorTarget(element));
+  const selector = getElementSelector(element);
   const styles = extractElementCss(element);
 
   return {
@@ -88,6 +110,48 @@ export const getElementContext = async (element: Element): Promise<ReactGrabElem
 export { copyContent } from "./utils/copy-content.js";
 
 /**
+ * Returns the topmost selectable element at viewport coordinates. Hit testing
+ * traverses open shadow roots and same-origin iframes and continues past
+ * non-grabbable overlays. Pass a filter to replace the default grabbability
+ * predicate or a container to confine selection to its composed subtree.
+ *
+ * @example
+ * const element = getElementAtPoint(event.clientX, event.clientY, {
+ *   container: canvas,
+ *   filter: (candidate) => isElementGrabbable(candidate) && !toolbar.contains(candidate),
+ * });
+ */
+export const getElementAtPoint = (
+  clientX: number,
+  clientY: number,
+  options?: ElementAtPointOptions,
+): Element | null => {
+  const elements = getUnfilteredElementsAtPoint(clientX, clientY);
+  for (const element of elements) {
+    if (matchesElementAtPointOptions(element, options)) return element;
+  }
+  return null;
+};
+
+/**
+ * Returns every selectable element at viewport coordinates in paint order,
+ * from topmost to bottommost. Uses the same shadow-root, iframe, filter, and
+ * container behavior as `getElementAtPoint`.
+ */
+export const getElementsAtPoint = (
+  clientX: number,
+  clientY: number,
+  options?: ElementAtPointOptions,
+): Element[] => {
+  const elements = getUnfilteredElementsAtPoint(clientX, clientY);
+  const matchingElements: Element[] = [];
+  for (const element of elements) {
+    if (matchesElementAtPointOptions(element, options)) matchingElements.push(element);
+  }
+  return matchingElements;
+};
+
+/**
  * Returns all elements at the given viewport coordinates, temporarily
  * suspending the pointer-events freeze so `elementsFromPoint` can
  * reach real elements underneath.
@@ -96,15 +160,12 @@ export { copyContent } from "./utils/copy-content.js";
  * freeze();
  * const elements = getElementsAtPosition(e.clientX, e.clientY);
  * // elements[0] is the topmost element under the cursor
+ *
+ * @deprecated Use `getElementsAtPoint` for selectable elements. Pass
+ * `{ filter: () => true }` to preserve this function's raw-stack behavior.
  */
 export const getElementsAtPosition = (clientX: number, clientY: number): Element[] => {
-  if (!Number.isFinite(clientX) || !Number.isFinite(clientY)) return [];
-  suspendPointerEventsFreeze();
-  try {
-    return getDeepElementsAtPoint(clientX, clientY);
-  } finally {
-    resumePointerEventsFreeze();
-  }
+  return getUnfilteredElementsAtPoint(clientX, clientY);
 };
 
 const freezeCleanupFunctions = new Set<() => void>();
