@@ -1,6 +1,7 @@
 import type { CDPSession } from "@playwright/test";
 import {
   PERF_COMPOSITED_LAYER_LIMIT,
+  PERF_COMPOSITING_EVENT_SETTLE_MS,
   PERF_COMPOSITING_REFRESH_TIMEOUT_MS,
   PERF_MILLISECONDS_PER_SECOND,
   PERF_PAINT_PROFILE_COMMAND_LIMIT,
@@ -288,6 +289,7 @@ export const startCompositingProbe = async (
 ): Promise<PerfCompositingProbe> => {
   const viewportAreaPx = Math.max(viewportWidthPx * viewportHeightPx, 1);
   let latestLayers: ProtocolLayer[] = [];
+  let layerTreeRevision = 0;
   let initialLayerIds: Set<string> | undefined;
   const observedLayerIds = new Set<string>();
   const minimumPaintCountByLayerId = new Map<string, number>();
@@ -346,7 +348,23 @@ export const startCompositingProbe = async (
   };
 
   const handleLayerTreeChange = (event: LayerTreeDidChangeEvent): void => {
-    if (event.layers) recordLayerTree(event.layers, true);
+    if (event.layers) {
+      layerTreeRevision += 1;
+      recordLayerTree(event.layers, true);
+    }
+  };
+
+  const waitForLayerTreeEventsToSettle = async (): Promise<void> => {
+    const settleDeadlineMs = Date.now() + PERF_COMPOSITING_REFRESH_TIMEOUT_MS;
+    let settledRevision = layerTreeRevision;
+    while (Date.now() < settleDeadlineMs) {
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, PERF_COMPOSITING_EVENT_SETTLE_MS);
+      });
+      if (settledRevision === layerTreeRevision) return;
+      settledRevision = layerTreeRevision;
+    }
+    throw new Error("Chromium continued changing the refreshed layer tree");
   };
 
   const handleLayerPainted = (event: LayerPaintedEvent): void => {
@@ -368,6 +386,7 @@ export const startCompositingProbe = async (
   }
   try {
     await refreshStaticLayerTree(pageSession);
+    await waitForLayerTreeEventsToSettle();
     if (latestLayers.length > 0) {
       const baselineLayers = latestLayers;
       initialLayerIds = new Set(baselineLayers.map((layer) => layer.layerId));
