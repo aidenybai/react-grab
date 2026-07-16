@@ -1,4 +1,5 @@
 import type { CDPSession, Page } from "@playwright/test";
+import { roundTo3 } from "./perf-statistics.js";
 
 declare global {
   interface Window {
@@ -47,8 +48,6 @@ interface TargetInfo {
 interface TargetInfoResponse {
   targetInfos: TargetInfo[];
 }
-
-const roundTo3 = (value: number): number => Number(value.toFixed(3));
 
 const countDevToolsTargets = async (browserSession: CDPSession): Promise<number> => {
   const response: TargetInfoResponse = await browserSession.send("Target.getTargets");

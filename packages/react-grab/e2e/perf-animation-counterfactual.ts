@@ -7,6 +7,7 @@ import {
   type PerfProcessCpuProbe,
   type PerfProcessCpuSample,
 } from "./perf-process-cpu.js";
+import { roundTo3 } from "./perf-statistics.js";
 import {
   aggregatePerfRunValidity,
   assertValidHeadedPerfRun,
@@ -65,8 +66,6 @@ export interface PerfAnimationCounterfactualReport {
   pausedRenderTrace?: PerfRenderTraceReport;
   samples: PerfAnimationCounterfactualSample[];
 }
-
-const roundTo3 = (value: number): number => Number(value.toFixed(3));
 
 export const resumePausedAnimations = (page: Page): Promise<void> =>
   page.evaluate(() => window.__PERF_PAUSED_ANIMATIONS__?.resume());

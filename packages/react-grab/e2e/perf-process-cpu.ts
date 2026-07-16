@@ -1,6 +1,12 @@
 import { performance } from "node:perf_hooks";
 import type { CDPSession, Page } from "@playwright/test";
-import { PERF_PROCESS_CPU_SAMPLE_INTERVAL_MS } from "./perf-constants.js";
+import {
+  PERF_MICROSECONDS_PER_SECOND,
+  PERF_MILLISECONDS_PER_SECOND,
+  PERF_PERCENT_SCALE,
+  PERF_PROCESS_CPU_SAMPLE_INTERVAL_MS,
+} from "./perf-constants.js";
+import { median, roundTo3 } from "./perf-statistics.js";
 
 export interface PerfBrowserProcessInfo {
   type: string;
@@ -55,17 +61,6 @@ interface MutableProcessCpuTotal {
   type: string;
   cpuSeconds: number;
 }
-
-const roundTo3 = (value: number): number => Number(value.toFixed(3));
-
-const median = (values: number[]): number => {
-  if (values.length === 0) return 0;
-  const sortedValues = [...values].sort((leftValue, rightValue) => leftValue - rightValue);
-  const middleIndex = Math.floor(sortedValues.length / 2);
-  return sortedValues.length % 2 === 0
-    ? (sortedValues[middleIndex - 1] + sortedValues[middleIndex]) / 2
-    : sortedValues[middleIndex];
-};
 
 const unavailableSample = (error: string): PerfProcessCpuSample => ({
   available: false,
@@ -144,8 +139,14 @@ export const summarizeProcessCpuSnapshots = (
   const lastCapturedAtMs = snapshots.at(-1)?.capturedAtMs ?? firstCapturedAtMs;
   const sampledWallTimeMs =
     snapshots.length > 1 ? Math.max(lastCapturedAtMs - firstCapturedAtMs, 0) : wallTimeMs;
-  const safeWallTimeSeconds = Math.max(sampledWallTimeMs / 1000, Number.EPSILON);
-  const safeHarnessWallTimeSeconds = Math.max(wallTimeMs / 1000, Number.EPSILON);
+  const safeWallTimeSeconds = Math.max(
+    sampledWallTimeMs / PERF_MILLISECONDS_PER_SECOND,
+    Number.EPSILON,
+  );
+  const safeHarnessWallTimeSeconds = Math.max(
+    wallTimeMs / PERF_MILLISECONDS_PER_SECOND,
+    Number.EPSILON,
+  );
   const byTypeSeconds = new Map<string, number>();
   let totalCpuSeconds = 0;
   for (const processTotal of totalsByPid.values()) {
@@ -159,10 +160,10 @@ export const summarizeProcessCpuSnapshots = (
   for (const [processType, cpuSeconds] of byTypeSeconds) {
     byType[processType] = {
       cpuSeconds: roundTo3(cpuSeconds),
-      corePercent: roundTo3((cpuSeconds / safeWallTimeSeconds) * 100),
+      corePercent: roundTo3((cpuSeconds / safeWallTimeSeconds) * PERF_PERCENT_SCALE),
     };
   }
-  const totalCorePercent = (totalCpuSeconds / safeWallTimeSeconds) * 100;
+  const totalCorePercent = (totalCpuSeconds / safeWallTimeSeconds) * PERF_PERCENT_SCALE;
   return {
     available: true,
     wallTimeMs: roundTo3(sampledWallTimeMs),
@@ -171,7 +172,8 @@ export const summarizeProcessCpuSnapshots = (
     totalCorePercent: roundTo3(totalCorePercent),
     hostNormalizedPercent: roundTo3(totalCorePercent / Math.max(1, logicalCpuCount)),
     harnessCorePercent: roundTo3(
-      (harnessCpuMicroseconds / 1_000_000 / safeHarnessWallTimeSeconds) * 100,
+      (harnessCpuMicroseconds / PERF_MICROSECONDS_PER_SECOND / safeHarnessWallTimeSeconds) *
+        PERF_PERCENT_SCALE,
     ),
     byType,
     byPid: [...totalsByPid.values()]

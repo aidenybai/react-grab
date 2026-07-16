@@ -1,7 +1,8 @@
 import { spawn } from "node:child_process";
-import { describe, expect, it } from "vite-plus/test";
+import { describe, expect, it, vi } from "vite-plus/test";
 import { PERF_TRACE_MARKER_END, PERF_TRACE_MARKER_START } from "../e2e/perf-constants.js";
 import {
+  aggregateHardwareGpuSamples,
   parsePowermetricsOutput,
   summarizeDrmEngineSnapshots,
   waitForHardwareGpuProcessExit,
@@ -11,8 +12,24 @@ import {
   summarizeProcessCpuSnapshots,
 } from "../e2e/perf-process-cpu.js";
 import { summarizeRenderTrace } from "../e2e/perf-render-trace.js";
+import { median } from "../e2e/perf-statistics.js";
+import { raceDeadline } from "../e2e/race-deadline.js";
 
 describe("perf instrumentation", () => {
+  it("averages the middle values for even-sized medians", () => {
+    expect(median([10, 20])).toBe(15);
+  });
+
+  it("clears the deadline timer when work finishes first", async () => {
+    const clearTimeoutSpy = vi.spyOn(globalThis, "clearTimeout");
+    try {
+      await expect(raceDeadline(Promise.resolve("complete"), 60_000)).resolves.toBe("complete");
+      expect(clearTimeoutSpy).toHaveBeenCalledOnce();
+    } finally {
+      clearTimeoutSpy.mockRestore();
+    }
+  });
+
   it("observes a GPU sampler that exited before teardown", async () => {
     const childProcess = spawn(process.execPath, ["-e", ""], { stdio: "pipe" });
     await new Promise<void>((resolveExit) => {
@@ -109,6 +126,31 @@ describe("perf instrumentation", () => {
     expect(sample.browserBusyMeanPercent).toBe(55);
     expect(sample.browserBusyMaxPercent).toBe(55);
     expect(sample.browserActiveTimeMs).toBe(13);
+  });
+
+  it("averages even-sized GPU sample medians", () => {
+    const metrics = aggregateHardwareGpuSamples([
+      {
+        status: "available",
+        backend: "test",
+        sampleCount: 1,
+        browserBusyMeanPercent: 10,
+        processes: [],
+        engines: [],
+        warnings: [],
+      },
+      {
+        status: "available",
+        backend: "test",
+        sampleCount: 1,
+        browserBusyMeanPercent: 20,
+        processes: [],
+        engines: [],
+        warnings: [],
+      },
+    ]);
+
+    expect(metrics.aggregate.browserBusyMeanPercent).toBe(15);
   });
 
   it("includes DRM engines that appear during the sample window", () => {
