@@ -3,6 +3,7 @@ import { getAccessibleIframeDocument } from "./get-accessible-iframe-document.js
 import { isElementNode } from "./is-element-node.js";
 import { isIframeElement } from "./is-iframe-element.js";
 import { isReactGrabElement } from "./is-react-grab-element.js";
+import { throwCollectedErrors } from "./throw-collected-errors.js";
 
 interface FrameDocumentCallback {
   (frameDocument: Document): (() => void) | void;
@@ -13,63 +14,78 @@ interface ObservedIframe {
   document: Document | null;
 }
 
+const collectCleanupError = (cleanup: () => void, cleanupErrors: unknown[]): void => {
+  try {
+    cleanup();
+  } catch (error) {
+    cleanupErrors.push(error);
+  }
+};
+
 export const observeSameOriginFrameDocuments = (callback: FrameDocumentCallback): (() => void) => {
   const documentCleanups = new Map<Document, (() => void) | void>();
   const shadowRootHookCleanups = new Map<Document, () => void>();
   const rootObservers = new Map<Document | ShadowRoot, MutationObserver>();
   const observedIframes = new Map<HTMLIFrameElement, ObservedIframe>();
 
-  const cleanupDocument = (targetDocument: Document): void => {
+  const cleanupDocument = (targetDocument: Document, cleanupErrors: unknown[]): void => {
     const rootObserver = rootObservers.get(targetDocument);
     if (rootObserver) {
-      rootObserver.disconnect();
       rootObservers.delete(targetDocument);
+      collectCleanupError(() => rootObserver.disconnect(), cleanupErrors);
     }
 
     for (const root of [...rootObservers.keys()]) {
-      if ("host" in root && root.ownerDocument === targetDocument) cleanupRoot(root);
+      if ("host" in root && root.ownerDocument === targetDocument) cleanupRoot(root, cleanupErrors);
     }
 
     for (const iframeElement of [...observedIframes.keys()]) {
-      if (iframeElement.ownerDocument === targetDocument) cleanupIframe(iframeElement);
+      if (iframeElement.ownerDocument === targetDocument)
+        cleanupIframe(iframeElement, cleanupErrors);
     }
 
-    shadowRootHookCleanups.get(targetDocument)?.();
+    const shadowRootHookCleanup = shadowRootHookCleanups.get(targetDocument);
     shadowRootHookCleanups.delete(targetDocument);
-    documentCleanups.get(targetDocument)?.();
+    if (shadowRootHookCleanup) collectCleanupError(shadowRootHookCleanup, cleanupErrors);
+
+    const documentCleanup = documentCleanups.get(targetDocument);
     documentCleanups.delete(targetDocument);
+    if (documentCleanup) collectCleanupError(documentCleanup, cleanupErrors);
   };
 
-  const cleanupRoot = (root: ShadowRoot): void => {
+  const cleanupRoot = (root: ShadowRoot, cleanupErrors: unknown[]): void => {
     const rootObserver = rootObservers.get(root);
     if (!rootObserver) return;
-    rootObserver.disconnect();
     rootObservers.delete(root);
+    collectCleanupError(() => rootObserver.disconnect(), cleanupErrors);
 
     for (const descendantElement of root.querySelectorAll("*")) {
-      cleanupElement(descendantElement);
+      cleanupElement(descendantElement, cleanupErrors);
     }
   };
 
-  const cleanupIframe = (iframeElement: HTMLIFrameElement): void => {
+  const cleanupIframe = (iframeElement: HTMLIFrameElement, cleanupErrors: unknown[]): void => {
     const observedIframe = observedIframes.get(iframeElement);
     if (!observedIframe) return;
     observedIframes.delete(iframeElement);
-    observedIframe.abortController.abort();
-    iframeElement.removeAttribute(SAME_ORIGIN_FRAME_ATTRIBUTE);
-    if (observedIframe.document) cleanupDocument(observedIframe.document);
+    collectCleanupError(() => observedIframe.abortController.abort(), cleanupErrors);
+    collectCleanupError(
+      () => iframeElement.removeAttribute(SAME_ORIGIN_FRAME_ATTRIBUTE),
+      cleanupErrors,
+    );
+    if (observedIframe.document) cleanupDocument(observedIframe.document, cleanupErrors);
   };
 
-  const cleanupElement = (element: Element): void => {
-    if (isIframeElement(element)) cleanupIframe(element);
-    if (element.shadowRoot) cleanupRoot(element.shadowRoot);
+  const cleanupElement = (element: Element, cleanupErrors: unknown[]): void => {
+    if (isIframeElement(element)) cleanupIframe(element, cleanupErrors);
+    if (element.shadowRoot) cleanupRoot(element.shadowRoot, cleanupErrors);
   };
 
-  const cleanupSubtree = (element: Element): void => {
+  const cleanupSubtree = (element: Element, cleanupErrors: unknown[]): void => {
     for (const descendantElement of element.querySelectorAll("*")) {
-      cleanupElement(descendantElement);
+      cleanupElement(descendantElement, cleanupErrors);
     }
-    cleanupElement(element);
+    cleanupElement(element, cleanupErrors);
   };
 
   const observeDocument = (targetDocument: Document): void => {
@@ -116,19 +132,22 @@ export const observeSameOriginFrameDocuments = (callback: FrameDocumentCallback)
     observedIframes.set(iframeElement, observedIframe);
 
     const connectCurrentDocument = (): void => {
+      const cleanupErrors: unknown[] = [];
       const frameDocument = getAccessibleIframeDocument(iframeElement);
       if (observedIframe.document && observedIframe.document !== frameDocument) {
-        cleanupDocument(observedIframe.document);
+        cleanupDocument(observedIframe.document, cleanupErrors);
       }
       observedIframe.document = frameDocument;
 
       if (!frameDocument) {
         iframeElement.removeAttribute(SAME_ORIGIN_FRAME_ATTRIBUTE);
+        throwCollectedErrors(cleanupErrors, "Cleaning up replaced frame document failed");
         return;
       }
 
       iframeElement.setAttribute(SAME_ORIGIN_FRAME_ATTRIBUTE, "");
       observeDocument(frameDocument);
+      throwCollectedErrors(cleanupErrors, "Cleaning up replaced frame document failed");
     };
 
     iframeElement.addEventListener("load", connectCurrentDocument, {
@@ -158,14 +177,16 @@ export const observeSameOriginFrameDocuments = (callback: FrameDocumentCallback)
     if (!rootWindow) return;
 
     const mutationObserver = new rootWindow.MutationObserver((records) => {
+      const cleanupErrors: unknown[] = [];
       for (const record of records) {
         for (const removedNode of record.removedNodes) {
-          if (isElementNode(removedNode)) cleanupSubtree(removedNode);
+          if (isElementNode(removedNode)) cleanupSubtree(removedNode, cleanupErrors);
         }
         for (const addedNode of record.addedNodes) {
           if (isElementNode(addedNode)) observeSubtree(addedNode);
         }
       }
+      throwCollectedErrors(cleanupErrors, "Cleaning up removed frame documents failed");
     });
     rootObservers.set(root, mutationObserver);
     mutationObserver.observe(root, { childList: true, subtree: true });
@@ -178,20 +199,22 @@ export const observeSameOriginFrameDocuments = (callback: FrameDocumentCallback)
   observeDocument(document);
 
   return () => {
+    const cleanupErrors: unknown[] = [];
     for (const iframeElement of [...observedIframes.keys()]) {
-      cleanupIframe(iframeElement);
+      cleanupIframe(iframeElement, cleanupErrors);
     }
-    for (const rootObserver of rootObservers.values()) {
-      rootObserver.disconnect();
+    for (const [root, rootObserver] of rootObservers) {
+      rootObservers.delete(root);
+      collectCleanupError(() => rootObserver.disconnect(), cleanupErrors);
     }
-    for (const shadowRootHookCleanup of shadowRootHookCleanups.values()) {
-      shadowRootHookCleanup();
+    for (const [targetDocument, shadowRootHookCleanup] of shadowRootHookCleanups) {
+      shadowRootHookCleanups.delete(targetDocument);
+      collectCleanupError(shadowRootHookCleanup, cleanupErrors);
     }
-    for (const documentCleanup of documentCleanups.values()) {
-      documentCleanup?.();
+    for (const [targetDocument, documentCleanup] of documentCleanups) {
+      documentCleanups.delete(targetDocument);
+      if (documentCleanup) collectCleanupError(documentCleanup, cleanupErrors);
     }
-    rootObservers.clear();
-    shadowRootHookCleanups.clear();
-    documentCleanups.clear();
+    throwCollectedErrors(cleanupErrors, "Cleaning up same-origin frame documents failed");
   };
 };

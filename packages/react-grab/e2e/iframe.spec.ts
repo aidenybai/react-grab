@@ -420,6 +420,68 @@ test.describe("Iframe selection", () => {
     expect(didRestoreAttachShadow).toBe(true);
   });
 
+  test("continues frame cleanup after a shadow root hook fails", async ({ reactGrab }) => {
+    const cleanupResult = await reactGrab.page.evaluate(async () => {
+      const createIframe = async (): Promise<HTMLIFrameElement> => {
+        const iframeElement = document.createElement("iframe");
+        iframeElement.srcdoc = "<main>Frame cleanup target</main>";
+        const didLoad = new Promise<void>((resolve) => {
+          iframeElement.addEventListener("load", () => resolve(), { once: true });
+        });
+        document.body.append(iframeElement);
+        await didLoad;
+        return iframeElement;
+      };
+
+      const failingIframe = await createIframe();
+      const subsequentIframe = await createIframe();
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+
+      const findElementPrototype = (targetDocument: Document | null): object | null => {
+        let currentPrototype: object | null = targetDocument?.documentElement ?? null;
+        while (currentPrototype) {
+          currentPrototype = Object.getPrototypeOf(currentPrototype);
+          if (currentPrototype && Object.hasOwn(currentPrototype, "attachShadow")) {
+            return currentPrototype;
+          }
+        }
+        return null;
+      };
+
+      const failingElementPrototype = findElementPrototype(failingIframe.contentDocument);
+      const subsequentElementPrototype = findElementPrototype(subsequentIframe.contentDocument);
+      if (!failingElementPrototype || !subsequentElementPrototype) return null;
+
+      const failingPatchedAttachShadow = Reflect.get(failingElementPrototype, "attachShadow");
+      const subsequentPatchedAttachShadow = Reflect.get(subsequentElementPrototype, "attachShadow");
+      Object.defineProperty(failingElementPrototype, "attachShadow", {
+        configurable: true,
+        get: () => failingPatchedAttachShadow,
+        set: () => {
+          throw new Error("Expected frame cleanup failure");
+        },
+      });
+
+      let cleanupErrorMessage: string | null = null;
+      try {
+        window.__REACT_GRAB__?.dispose();
+      } catch (error) {
+        cleanupErrorMessage = error instanceof Error ? error.message : String(error);
+      }
+
+      return {
+        cleanupErrorMessage,
+        didRestoreSubsequentHook:
+          Reflect.get(subsequentElementPrototype, "attachShadow") !== subsequentPatchedAttachShadow,
+      };
+    });
+
+    expect(cleanupResult).toEqual({
+      cleanupErrorMessage: "Expected frame cleanup failure",
+      didRestoreSubsequentHook: true,
+    });
+  });
+
   test("does not descend into an iframe covered by an opaque ignored element", async ({
     reactGrab,
   }) => {
