@@ -491,13 +491,16 @@ for (const baselineOnlyName of baselineReports.keys()) {
 for (const [reportName, currentControlReport] of [...currentAnimationControls].sort()) {
   const baselineControlReport = baselineAnimationControls.get(reportName);
   const currentModes = expandAnimationControlModes(currentControlReport);
+  const controlScenarioName = currentControlReport.scenario ?? reportName;
   if (!baselineControlReport) {
-    scenariosOnlyInCurrent.push(...[...currentModes.keys()].map((mode) => `${reportName}/${mode}`));
+    scenariosOnlyInCurrent.push(
+      ...[...currentModes.keys()].map((mode) => `${controlScenarioName}/${mode}`),
+    );
     continue;
   }
   const baselineModes = expandAnimationControlModes(baselineControlReport);
   for (const [mode, currentModeReport] of [...currentModes].sort()) {
-    const scenarioName = `${reportName}/${mode}`;
+    const scenarioName = `${controlScenarioName}/${mode}`;
     const baselineModeReport = baselineModes.get(mode);
     if (!baselineModeReport) {
       scenariosOnlyInCurrent.push(scenarioName);
@@ -514,7 +517,7 @@ for (const [reportName, currentControlReport] of [...currentAnimationControls].s
   }
   for (const baselineMode of baselineModes.keys()) {
     if (!currentModes.has(baselineMode)) {
-      scenariosOnlyInBaseline.push(`${reportName}/${baselineMode}`);
+      scenariosOnlyInBaseline.push(`${controlScenarioName}/${baselineMode}`);
     }
   }
 }

@@ -18,36 +18,77 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # The control trace takes about 1.8 minutes per revision, so keeping it
-          # out of count-based sharding prevents one runner from owning half the suite.
-          - test_shard: "1/6"
+          # Pair each shard's base and HEAD samples on one runner while spreading
+          # independent scenarios across runners to preserve process isolation.
+          - test_shard: "1/12"
             test_grep: "@perf"
             test_grep_invert: "animation-scheduling-controls"
-            artifact-suffix: regular-1-of-6
-          - test_shard: "2/6"
+            artifact-suffix: regular-1-of-12
+          - test_shard: "2/12"
             test_grep: "@perf"
             test_grep_invert: "animation-scheduling-controls"
-            artifact-suffix: regular-2-of-6
-          - test_shard: "3/6"
+            artifact-suffix: regular-2-of-12
+          - test_shard: "3/12"
             test_grep: "@perf"
             test_grep_invert: "animation-scheduling-controls"
-            artifact-suffix: regular-3-of-6
-          - test_shard: "4/6"
+            artifact-suffix: regular-3-of-12
+          - test_shard: "4/12"
             test_grep: "@perf"
             test_grep_invert: "animation-scheduling-controls"
-            artifact-suffix: regular-4-of-6
-          - test_shard: "5/6"
+            artifact-suffix: regular-4-of-12
+          - test_shard: "5/12"
             test_grep: "@perf"
             test_grep_invert: "animation-scheduling-controls"
-            artifact-suffix: regular-5-of-6
-          - test_shard: "6/6"
+            artifact-suffix: regular-5-of-12
+          - test_shard: "6/12"
             test_grep: "@perf"
             test_grep_invert: "animation-scheduling-controls"
-            artifact-suffix: regular-6-of-6
+            artifact-suffix: regular-6-of-12
+          - test_shard: "7/12"
+            test_grep: "@perf"
+            test_grep_invert: "animation-scheduling-controls"
+            artifact-suffix: regular-7-of-12
+          - test_shard: "8/12"
+            test_grep: "@perf"
+            test_grep_invert: "animation-scheduling-controls"
+            artifact-suffix: regular-8-of-12
+          - test_shard: "9/12"
+            test_grep: "@perf"
+            test_grep_invert: "animation-scheduling-controls"
+            artifact-suffix: regular-9-of-12
+          - test_shard: "10/12"
+            test_grep: "@perf"
+            test_grep_invert: "animation-scheduling-controls"
+            artifact-suffix: regular-10-of-12
+          - test_shard: "11/12"
+            test_grep: "@perf"
+            test_grep_invert: "animation-scheduling-controls"
+            artifact-suffix: regular-11-of-12
+          - test_shard: "12/12"
+            test_grep: "@perf"
+            test_grep_invert: "animation-scheduling-controls"
+            artifact-suffix: regular-12-of-12
           - test_shard: "1/1"
             test_grep: "animation-scheduling-controls @perf"
             test_grep_invert: "(?!)"
-            artifact-suffix: animation-controls
+            animation_control_mode: legacy-production-count
+            animation_include_paused_trace: "1"
+            artifact-suffix: animation-controls-legacy-production-count
+          - test_shard: "1/1"
+            test_grep: "animation-scheduling-controls @perf"
+            test_grep_invert: "(?!)"
+            animation_control_mode: legacy-one-indicator
+            artifact-suffix: animation-controls-legacy-one-indicator
+          - test_shard: "1/1"
+            test_grep: "animation-scheduling-controls @perf"
+            test_grep_invert: "(?!)"
+            animation_control_mode: infinite-stepped
+            artifact-suffix: animation-controls-infinite-stepped
+          - test_shard: "1/1"
+            test_grep: "animation-scheduling-controls @perf"
+            test_grep_invert: "(?!)"
+            animation_control_mode: finite-static-holds
+            artifact-suffix: animation-controls-finite-static-holds
 
     steps:
       - name: Checkout
@@ -96,6 +137,8 @@ jobs:
           PERF_TEST_GREP: ${{ matrix.test_grep }}
           PERF_TEST_GREP_INVERT: ${{ matrix.test_grep_invert }}
           PERF_TEST_SHARD: ${{ matrix.test_shard }}
+          PERF_ANIMATION_CONTROL_MODE: ${{ matrix.animation_control_mode }}
+          PERF_ANIMATION_INCLUDE_PAUSED_TRACE: ${{ matrix.animation_include_paused_trace }}
         # One worker prevents concurrent scenarios from contaminating the
         # process and compositor measurements. Parallelism only exists across
         # isolated GitHub runners, with the same scenario shard used for both refs.
@@ -112,6 +155,8 @@ jobs:
           PERF_TEST_GREP: ${{ matrix.test_grep }}
           PERF_TEST_GREP_INVERT: ${{ matrix.test_grep_invert }}
           PERF_TEST_SHARD: ${{ matrix.test_shard }}
+          PERF_ANIMATION_CONTROL_MODE: ${{ matrix.animation_control_mode }}
+          PERF_ANIMATION_INCLUDE_PAUSED_TRACE: ${{ matrix.animation_include_paused_trace }}
         run: pnpm --filter react-grab exec playwright test --grep "$PERF_TEST_GREP" --grep-invert "$PERF_TEST_GREP_INVERT" --workers=1 --shard="$PERF_TEST_SHARD" --reporter=list
 
       - name: Upload shard reports

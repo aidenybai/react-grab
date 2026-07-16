@@ -98,6 +98,7 @@ export interface PerfAnimationControlTrace {
 
 export interface PerfAnimationControlReport {
   kind: "animation-scheduling-controls";
+  scenario: string;
   schemaVersion: number;
   label: string;
   environment: PerfEnvironment;
@@ -126,6 +127,16 @@ const controlModes: Array<Exclude<PerfAnimationControlMode, "animations-paused">
   "infinite-stepped",
   "finite-static-holds",
 ];
+
+const getSelectedControlModes = (): Array<
+  Exclude<PerfAnimationControlMode, "animations-paused">
+> => {
+  const requestedMode = process.env.PERF_ANIMATION_CONTROL_MODE;
+  if (!requestedMode) return controlModes;
+  const selectedMode = controlModes.find((mode) => mode === requestedMode);
+  if (!selectedMode) throw new Error(`Unknown animation control mode: ${requestedMode}`);
+  return [selectedMode];
+};
 
 const getAnimationControlIndicatorCount = (mode: PerfAnimationControlMode): number =>
   mode === "legacy-one-indicator"
@@ -330,9 +341,10 @@ export const captureAnimationSchedulingControls = async (
   testInfo: TestInfo,
 ): Promise<PerfAnimationControlReport> => {
   const environment = await capturePerfEnvironment(page);
+  const selectedControlModes = getSelectedControlModes();
   const comparisons: PerfAnimationControlComparison[] = [];
   let order = 0;
-  for (const mode of controlModes) {
+  for (const mode of selectedControlModes) {
     const samples: PerfAnimationControlSample[] = [];
     const indicatorCount = getAnimationControlIndicatorCount(mode);
     for (let repetition = 0; repetition < PERF_ANIMATION_COUNTERFACTUAL_REPETITIONS; repetition++) {
@@ -357,7 +369,12 @@ export const captureAnimationSchedulingControls = async (
   }
 
   const traces: PerfAnimationControlTrace[] = [];
-  const traceModes: PerfAnimationControlMode[] = [...controlModes, "animations-paused"];
+  const shouldIncludePausedTrace =
+    selectedControlModes.length === controlModes.length ||
+    process.env.PERF_ANIMATION_INCLUDE_PAUSED_TRACE === "1";
+  const traceModes: PerfAnimationControlMode[] = shouldIncludePausedTrace
+    ? [...selectedControlModes, "animations-paused"]
+    : selectedControlModes;
   for (const mode of traceModes) {
     const indicatorCount = getAnimationControlIndicatorCount(mode);
     await setupAnimationControl(page, mode, indicatorCount);
@@ -381,6 +398,7 @@ export const captureAnimationSchedulingControls = async (
   const runLabel = process.env.PERF_LABEL ?? "current";
   const report: PerfAnimationControlReport = {
     kind: "animation-scheduling-controls",
+    scenario: CONTROL_SCENARIO_NAME,
     schemaVersion: PERF_REPORT_SCHEMA_VERSION,
     label: runLabel,
     environment,
@@ -393,8 +411,14 @@ export const captureAnimationSchedulingControls = async (
   };
   const reportJson = JSON.stringify(report, null, 2);
   const labelDirectory = resolve(PACKAGE_PERF_DIRECTORY, runLabel);
+  const reportFileSuffix = process.env.PERF_ANIMATION_CONTROL_MODE
+    ? `-${selectedControlModes[0]}`
+    : "";
   await mkdir(labelDirectory, { recursive: true });
-  await writeFile(resolve(labelDirectory, `${CONTROL_SCENARIO_NAME}.json`), reportJson);
+  await writeFile(
+    resolve(labelDirectory, `${CONTROL_SCENARIO_NAME}${reportFileSuffix}.json`),
+    reportJson,
+  );
   await testInfo.attach(`perf-${CONTROL_SCENARIO_NAME}.json`, {
     body: reportJson,
     contentType: "application/json",
