@@ -17,6 +17,57 @@ Run this at your project root:
 npx grab@latest init
 ```
 
+## Build Your Own Picker
+
+`react-grab/primitives` exposes the selection engine without React Grab's UI. Point hit tests
+traverse open shadow roots and same-origin iframes, work while the page is frozen, and skip
+invisible elements, ignored subtrees, React Grab UI, and transparent page-covering overlays.
+
+```ts
+import {
+  freeze,
+  getElementAtPoint,
+  getElementBounds,
+  getElementContext,
+  isElementGrabbable,
+  unfreeze,
+} from "grab/primitives";
+
+freeze();
+
+let hoveredElement: Element | null = null;
+
+window.addEventListener("pointermove", (event) => {
+  hoveredElement = getElementAtPoint(event.clientX, event.clientY);
+  if (!hoveredElement) return;
+
+  const bounds = getElementBounds(hoveredElement);
+  console.log(bounds);
+});
+
+window.addEventListener("pointerdown", async () => {
+  if (!hoveredElement) return;
+  console.log(await getElementContext(hoveredElement));
+});
+
+window.addEventListener("pagehide", unfreeze, { once: true });
+```
+
+The point APIs accept a composed-tree container and a replacement filter for custom selection
+rules:
+
+```ts
+const element = getElementAtPoint(event.clientX, event.clientY, {
+  container: appElement,
+  filter: (candidate) => isElementGrabbable(candidate) && !toolbarElement.contains(candidate),
+});
+```
+
+Use `getElementsAtPoint` to inspect the complete selectable paint-order stack,
+`getElementSelector` to address a selection later, and `data-react-grab-ignore` on custom picker
+UI that should never be selected. `copyContent`, `openFile`, `isFreezeActive`, and
+`disposeBaselineStyles` are also available from the primitives entry point.
+
 ## How It Works
 
 React Grab turns a browser selection into source context your agent can use:

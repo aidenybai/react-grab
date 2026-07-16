@@ -3,6 +3,19 @@ export interface Position {
   y: number;
 }
 
+export interface ElementAtPointOptions {
+  container?: Element;
+  filter?: (element: Element) => boolean;
+}
+
+export interface ElementBounds {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  borderRadius: string;
+}
+
 export type DeepPartial<T> = {
   [P in keyof T]?: T[P] extends object
     ? T[P] extends (...args: unknown[]) => unknown
