@@ -20,54 +20,70 @@ jobs:
         include:
           # Pair each shard's base and HEAD samples on one runner while spreading
           # independent scenarios across runners to preserve process isolation.
-          - test_shard: "1/12"
+          - test_shard: "1/15"
             test_grep: "@perf"
-            test_grep_invert: "animation-scheduling-controls"
-            artifact-suffix: regular-1-of-12
-          - test_shard: "2/12"
+            test_grep_invert: "animation-scheduling-controls|activate-deactivate-dense-animations"
+            artifact-suffix: regular-1-of-15
+          - test_shard: "2/15"
             test_grep: "@perf"
-            test_grep_invert: "animation-scheduling-controls"
-            artifact-suffix: regular-2-of-12
-          - test_shard: "3/12"
+            test_grep_invert: "animation-scheduling-controls|activate-deactivate-dense-animations"
+            artifact-suffix: regular-2-of-15
+          - test_shard: "3/15"
             test_grep: "@perf"
-            test_grep_invert: "animation-scheduling-controls"
-            artifact-suffix: regular-3-of-12
-          - test_shard: "4/12"
+            test_grep_invert: "animation-scheduling-controls|activate-deactivate-dense-animations"
+            artifact-suffix: regular-3-of-15
+          - test_shard: "4/15"
             test_grep: "@perf"
-            test_grep_invert: "animation-scheduling-controls"
-            artifact-suffix: regular-4-of-12
-          - test_shard: "5/12"
+            test_grep_invert: "animation-scheduling-controls|activate-deactivate-dense-animations"
+            artifact-suffix: regular-4-of-15
+          - test_shard: "5/15"
             test_grep: "@perf"
-            test_grep_invert: "animation-scheduling-controls"
-            artifact-suffix: regular-5-of-12
-          - test_shard: "6/12"
+            test_grep_invert: "animation-scheduling-controls|activate-deactivate-dense-animations"
+            artifact-suffix: regular-5-of-15
+          - test_shard: "6/15"
             test_grep: "@perf"
-            test_grep_invert: "animation-scheduling-controls"
-            artifact-suffix: regular-6-of-12
-          - test_shard: "7/12"
+            test_grep_invert: "animation-scheduling-controls|activate-deactivate-dense-animations"
+            artifact-suffix: regular-6-of-15
+          - test_shard: "7/15"
             test_grep: "@perf"
-            test_grep_invert: "animation-scheduling-controls"
-            artifact-suffix: regular-7-of-12
-          - test_shard: "8/12"
+            test_grep_invert: "animation-scheduling-controls|activate-deactivate-dense-animations"
+            artifact-suffix: regular-7-of-15
+          - test_shard: "8/15"
             test_grep: "@perf"
-            test_grep_invert: "animation-scheduling-controls"
-            artifact-suffix: regular-8-of-12
-          - test_shard: "9/12"
+            test_grep_invert: "animation-scheduling-controls|activate-deactivate-dense-animations"
+            artifact-suffix: regular-8-of-15
+          - test_shard: "9/15"
             test_grep: "@perf"
-            test_grep_invert: "animation-scheduling-controls"
-            artifact-suffix: regular-9-of-12
-          - test_shard: "10/12"
+            test_grep_invert: "animation-scheduling-controls|activate-deactivate-dense-animations"
+            artifact-suffix: regular-9-of-15
+          - test_shard: "10/15"
             test_grep: "@perf"
-            test_grep_invert: "animation-scheduling-controls"
-            artifact-suffix: regular-10-of-12
-          - test_shard: "11/12"
+            test_grep_invert: "animation-scheduling-controls|activate-deactivate-dense-animations"
+            artifact-suffix: regular-10-of-15
+          - test_shard: "11/15"
             test_grep: "@perf"
-            test_grep_invert: "animation-scheduling-controls"
-            artifact-suffix: regular-11-of-12
-          - test_shard: "12/12"
+            test_grep_invert: "animation-scheduling-controls|activate-deactivate-dense-animations"
+            artifact-suffix: regular-11-of-15
+          - test_shard: "12/15"
             test_grep: "@perf"
-            test_grep_invert: "animation-scheduling-controls"
-            artifact-suffix: regular-12-of-12
+            test_grep_invert: "animation-scheduling-controls|activate-deactivate-dense-animations"
+            artifact-suffix: regular-12-of-15
+          - test_shard: "13/15"
+            test_grep: "@perf"
+            test_grep_invert: "animation-scheduling-controls|activate-deactivate-dense-animations"
+            artifact-suffix: regular-13-of-15
+          - test_shard: "14/15"
+            test_grep: "@perf"
+            test_grep_invert: "animation-scheduling-controls|activate-deactivate-dense-animations"
+            artifact-suffix: regular-14-of-15
+          - test_shard: "15/15"
+            test_grep: "@perf"
+            test_grep_invert: "animation-scheduling-controls|activate-deactivate-dense-animations"
+            artifact-suffix: regular-15-of-15
+          - test_shard: "1/1"
+            test_grep: "activate-deactivate-dense-animations @perf"
+            test_grep_invert: "(?!)"
+            artifact-suffix: dense-animation-control
           - test_shard: "1/1"
             test_grep: "animation-scheduling-controls @perf"
             test_grep_invert: "(?!)"
