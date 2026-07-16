@@ -911,6 +911,264 @@ export interface RecordScenarioOptions {
   captureDomMutationAttribution?: boolean;
 }
 
+interface CaptureMeasuredSamplesOptions {
+  page: Page;
+  scenarioName: string;
+  scenarioBody: () => Promise<void>;
+  recordOptions: RecordScenarioOptions;
+  environment: PerfEnvironment;
+  sampleCount: number;
+}
+
+interface MeasuredSamples {
+  aggregates: PerfScenarioAggregate[];
+  processCpu: PerfProcessCpuSample[];
+  hardwareGpu: PerfHardwareGpuSample[];
+  validity: PerfRunValiditySummary[];
+  memory?: PerfMemoryMetrics;
+}
+
+interface CaptureScenarioReplaysOptions {
+  page: Page;
+  testInfo: TestInfo;
+  scenarioName: string;
+  scenarioBody: () => Promise<void>;
+  recordOptions: RecordScenarioOptions;
+  environment: PerfEnvironment;
+  aggregates: PerfScenarioAggregate[];
+}
+
+interface ScenarioReplays {
+  animationCounterfactual?: PerfAnimationCounterfactualReport;
+  renderTrace?: PerfRenderTraceReport;
+  domMutationAttribution?: PerfDomMutationAttributionReport;
+}
+
+const captureMeasuredSamples = async (
+  captureOptions: CaptureMeasuredSamplesOptions,
+): Promise<MeasuredSamples> => {
+  let memoryProbe: CDPSession | null = null;
+  let memoryBefore: PerfMemorySnapshot | null = null;
+  try {
+    memoryProbe = await startMemoryProbe(captureOptions.page);
+    memoryBefore = await readMemorySnapshot(memoryProbe, captureOptions.page);
+  } catch (probeError) {
+    console.warn(`[perf] ${captureOptions.scenarioName}: memory probe unavailable:`, probeError);
+  }
+
+  const aggregates: PerfScenarioAggregate[] = [];
+  const processCpuSamples: PerfProcessCpuSample[] = [];
+  const hardwareGpuSamples: PerfHardwareGpuSample[] = [];
+  const memoryDeltas: PerfMemorySnapshot[] = [];
+  const validitySamples: PerfRunValiditySummary[] = [];
+  let previousMemorySnapshot = memoryBefore;
+  let lastMemorySnapshot: PerfMemorySnapshot | null = null;
+  let memory: PerfMemoryMetrics | undefined;
+
+  try {
+    for (let sampleIndex = 0; sampleIndex < captureOptions.sampleCount; sampleIndex++) {
+      if (captureOptions.recordOptions.beforeEachSample) {
+        await captureOptions.recordOptions.beforeEachSample();
+      }
+      let validityProbe: PerfRunValidityProbe | undefined;
+      let hardwareGpuProbe: PerfHardwareGpuProbe | undefined;
+      let processCpuProbe: PerfProcessCpuProbe | undefined;
+      let rawSnapshot: PerfRawSnapshot | null = null;
+      let processCpu: PerfProcessCpuSample | undefined;
+      let hardwareGpu: PerfHardwareGpuSample | undefined;
+      let validity: PerfRunValiditySummary | undefined;
+      try {
+        validityProbe = await startPerfRunValidityProbe(captureOptions.page);
+        hardwareGpuProbe = await startHardwareGpuProbe(
+          captureOptions.page,
+          captureOptions.environment.gpu,
+        );
+        processCpuProbe = await startProcessCpuProbe(
+          captureOptions.page,
+          captureOptions.environment.host.logicalCpuCount,
+        );
+        await startRecording(captureOptions.page);
+        try {
+          await captureOptions.scenarioBody();
+        } finally {
+          rawSnapshot = await stopRecording(captureOptions.page);
+        }
+      } finally {
+        try {
+          if (processCpuProbe) processCpu = await processCpuProbe.stop();
+        } finally {
+          try {
+            if (hardwareGpuProbe) hardwareGpu = await hardwareGpuProbe.stop();
+          } finally {
+            if (validityProbe) validity = await validityProbe.stop();
+          }
+        }
+      }
+      if (!processCpu || !hardwareGpu || !validity) {
+        throw new Error(`Perf sample ${sampleIndex + 1} did not stop every probe`);
+      }
+      processCpuSamples.push(processCpu);
+      hardwareGpuSamples.push(hardwareGpu);
+      validitySamples.push(validity);
+      assertValidHeadedPerfRun(
+        validity,
+        `${captureOptions.scenarioName} sample ${sampleIndex + 1}`,
+      );
+      if (!rawSnapshot) {
+        throw new Error(`Perf sample ${sampleIndex + 1} produced no browser metrics`);
+      }
+      aggregates.push(
+        aggregateRawSnapshot(rawSnapshot, captureOptions.environment.page.refreshIntervalMs),
+      );
+
+      // Snapshot after every sample so memory growth can be aggregated
+      // per-sample (median) instead of one whole-scenario window. The
+      // sample-0 delta is recorded but excluded when other samples exist:
+      // one-time warmup allocations (JIT code objects, lazily-initialized
+      // module state, framework caches) land there and vary run to run,
+      // while steady-state per-iteration growth is the actual leak signal.
+      if (memoryProbe && previousMemorySnapshot) {
+        try {
+          const sampleEndSnapshot = await readMemorySnapshot(memoryProbe, captureOptions.page);
+          memoryDeltas.push(diffMemorySnapshots(previousMemorySnapshot, sampleEndSnapshot));
+          previousMemorySnapshot = sampleEndSnapshot;
+          lastMemorySnapshot = sampleEndSnapshot;
+        } catch (probeError) {
+          console.warn(`[perf] ${captureOptions.scenarioName}: memory read failed:`, probeError);
+        }
+      }
+    }
+    if (memoryBefore && lastMemorySnapshot && memoryDeltas.length > 0) {
+      const steadyStateDeltas = memoryDeltas.length > 1 ? memoryDeltas.slice(1) : memoryDeltas;
+      memory = {
+        before: memoryBefore,
+        after: lastMemorySnapshot,
+        delta: medianMemoryDelta(steadyStateDeltas),
+      };
+    }
+  } finally {
+    if (memoryProbe) await detachQuietly(memoryProbe);
+  }
+
+  return {
+    aggregates,
+    processCpu: processCpuSamples,
+    hardwareGpu: hardwareGpuSamples,
+    validity: validitySamples,
+    memory,
+  };
+};
+
+const captureScenarioReplays = async (
+  captureOptions: CaptureScenarioReplaysOptions,
+): Promise<ScenarioReplays> => {
+  const animationCounterfactual = captureOptions.recordOptions.captureAnimationCounterfactual
+    ? await captureAnimationCounterfactual(
+        captureOptions.page,
+        captureOptions.scenarioName,
+        captureOptions.environment.host.logicalCpuCount,
+        captureOptions.scenarioBody,
+        captureOptions.recordOptions.beforeEachSample,
+      )
+    : undefined;
+
+  // The CPU profile is captured on a dedicated extra pass so the sampler's
+  // overhead (and its sporadic renderer stall — see the comment above
+  // PERF_CPU_PROFILE_SAMPLING_INTERVAL_US) never pollutes the metric samples or
+  // fails the test.
+  if (process.env.PERF_TRACE === "1") {
+    if (captureOptions.recordOptions.beforeEachSample) {
+      await captureOptions.recordOptions.beforeEachSample();
+    }
+    await captureScenarioCpuProfile(
+      captureOptions.page,
+      captureOptions.testInfo,
+      captureOptions.scenarioName,
+      captureOptions.scenarioBody,
+    );
+  }
+
+  let renderTrace: PerfRenderTraceReport | undefined;
+  if (
+    process.env.PERF_RENDER_TRACE === "1" ||
+    captureOptions.recordOptions.captureRenderTrace === true
+  ) {
+    if (captureOptions.recordOptions.beforeEachSample) {
+      await captureOptions.recordOptions.beforeEachSample();
+    }
+    renderTrace = await captureRenderTrace(
+      captureOptions.page,
+      captureOptions.testInfo,
+      captureOptions.scenarioName,
+      PACKAGE_PERF_DIR,
+      captureOptions.scenarioBody,
+    );
+    if (renderTrace.validity) {
+      assertValidHeadedPerfRun(
+        renderTrace.validity,
+        `${captureOptions.scenarioName} render replay`,
+      );
+    }
+    if (animationCounterfactual) animationCounterfactual.activeRenderTrace = renderTrace;
+  }
+
+  if (animationCounterfactual) {
+    if (captureOptions.recordOptions.beforeEachSample) {
+      await captureOptions.recordOptions.beforeEachSample();
+    }
+    await pauseRunningAnimations(captureOptions.page);
+    try {
+      animationCounterfactual.pausedRenderTrace = await captureRenderTrace(
+        captureOptions.page,
+        captureOptions.testInfo,
+        `${captureOptions.scenarioName}-animations-paused`,
+        PACKAGE_PERF_DIR,
+        captureOptions.scenarioBody,
+      );
+      if (animationCounterfactual.pausedRenderTrace.validity) {
+        assertValidHeadedPerfRun(
+          animationCounterfactual.pausedRenderTrace.validity,
+          `${captureOptions.scenarioName} paused render replay`,
+        );
+      }
+    } finally {
+      await resumePausedAnimations(captureOptions.page);
+    }
+  }
+
+  let domMutationAttribution: PerfDomMutationAttributionReport | undefined;
+  if (
+    process.env.PERF_DOM_BREAKPOINTS === "1" ||
+    captureOptions.recordOptions.captureDomMutationAttribution === true
+  ) {
+    if (captureOptions.recordOptions.beforeEachSample) {
+      await captureOptions.recordOptions.beforeEachSample();
+    }
+    const attributionAggregate =
+      captureOptions.aggregates.length === 1
+        ? captureOptions.aggregates[0]
+        : medianAcrossSamples(captureOptions.aggregates);
+    domMutationAttribution = await captureDomMutationAttribution(
+      captureOptions.page,
+      captureOptions.testInfo,
+      captureOptions.scenarioName,
+      PACKAGE_PERF_DIR,
+      attributionAggregate.cssActivity.topMutationTargets.map(
+        (mutationTarget) => mutationTarget.target,
+      ),
+      captureOptions.scenarioBody,
+    );
+    if (domMutationAttribution.validity) {
+      assertValidHeadedPerfRun(
+        domMutationAttribution.validity,
+        `${captureOptions.scenarioName} DOM breakpoint replay`,
+      );
+    }
+  }
+
+  return { animationCounterfactual, renderTrace, domMutationAttribution };
+};
+
 export const recordScenario = async (
   page: Page,
   testInfo: TestInfo,
@@ -941,188 +1199,37 @@ export const recordScenario = async (
     if (options.beforeEachSample) await options.beforeEachSample();
     await scenarioBody();
   }
-  let memoryProbe: CDPSession | null = null;
-  let memoryBefore: PerfMemorySnapshot | null = null;
-  try {
-    memoryProbe = await startMemoryProbe(page);
-    memoryBefore = await readMemorySnapshot(memoryProbe, page);
-  } catch (probeError) {
-    console.warn(`[perf] ${scenarioName}: memory probe unavailable:`, probeError);
-  }
-  const perSampleAggregates: PerfScenarioAggregate[] = [];
-  const perSampleProcessCpu: PerfProcessCpuSample[] = [];
-  const perSampleHardwareGpu: PerfHardwareGpuSample[] = [];
-  const perSampleMemoryDeltas: PerfMemorySnapshot[] = [];
-  const perSampleValidity: PerfRunValiditySummary[] = [];
-  let previousMemorySnapshot = memoryBefore;
-  let lastMemorySnapshot: PerfMemorySnapshot | null = null;
-  let memory: PerfMemoryMetrics | undefined;
-  // try/finally so the probe's CDP session detaches even if a sample throws.
-  try {
-    for (let sampleIndex = 0; sampleIndex < sampleCount; sampleIndex++) {
-      if (options.beforeEachSample) await options.beforeEachSample();
-      let validityProbe: PerfRunValidityProbe | undefined;
-      let hardwareGpuProbe: PerfHardwareGpuProbe | undefined;
-      let processCpuProbe: PerfProcessCpuProbe | undefined;
-      let rawSnapshot: PerfRawSnapshot | null = null;
-      let processCpu: PerfProcessCpuSample | undefined;
-      let hardwareGpu: PerfHardwareGpuSample | undefined;
-      let validity: PerfRunValiditySummary | undefined;
-      try {
-        validityProbe = await startPerfRunValidityProbe(page);
-        hardwareGpuProbe = await startHardwareGpuProbe(page, environment.gpu);
-        processCpuProbe = await startProcessCpuProbe(page, environment.host.logicalCpuCount);
-        await startRecording(page);
-        try {
-          await scenarioBody();
-        } finally {
-          rawSnapshot = await stopRecording(page);
-        }
-      } finally {
-        try {
-          if (processCpuProbe) processCpu = await processCpuProbe.stop();
-        } finally {
-          try {
-            if (hardwareGpuProbe) hardwareGpu = await hardwareGpuProbe.stop();
-          } finally {
-            if (validityProbe) validity = await validityProbe.stop();
-          }
-        }
-      }
-      if (!processCpu || !hardwareGpu || !validity) {
-        throw new Error(`Perf sample ${sampleIndex + 1} did not stop every probe`);
-      }
-      perSampleProcessCpu.push(processCpu);
-      perSampleHardwareGpu.push(hardwareGpu);
-      perSampleValidity.push(validity);
-      assertValidHeadedPerfRun(validity, `${scenarioName} sample ${sampleIndex + 1}`);
-      if (!rawSnapshot)
-        throw new Error(`Perf sample ${sampleIndex + 1} produced no browser metrics`);
-      perSampleAggregates.push(
-        aggregateRawSnapshot(rawSnapshot, environment.page.refreshIntervalMs),
-      );
-      // Snapshot after every sample so memory growth can be aggregated
-      // per-sample (median) instead of one whole-scenario window. The
-      // sample-0 delta is recorded but excluded when other samples exist:
-      // one-time warmup allocations (JIT code objects, lazily-initialized
-      // module state, framework caches) land there and vary run to run,
-      // while steady-state per-iteration growth is the actual leak signal.
-      if (memoryProbe && previousMemorySnapshot) {
-        try {
-          const sampleEndSnapshot = await readMemorySnapshot(memoryProbe, page);
-          perSampleMemoryDeltas.push(
-            diffMemorySnapshots(previousMemorySnapshot, sampleEndSnapshot),
-          );
-          previousMemorySnapshot = sampleEndSnapshot;
-          lastMemorySnapshot = sampleEndSnapshot;
-        } catch (probeError) {
-          console.warn(`[perf] ${scenarioName}: memory read failed:`, probeError);
-        }
-      }
-    }
-    if (memoryBefore && lastMemorySnapshot && perSampleMemoryDeltas.length > 0) {
-      const steadyStateDeltas =
-        perSampleMemoryDeltas.length > 1 ? perSampleMemoryDeltas.slice(1) : perSampleMemoryDeltas;
-      memory = {
-        before: memoryBefore,
-        after: lastMemorySnapshot,
-        delta: medianMemoryDelta(steadyStateDeltas),
-      };
-    }
-  } finally {
-    if (memoryProbe) await detachQuietly(memoryProbe);
-  }
-  const animationCounterfactual = options.captureAnimationCounterfactual
-    ? await captureAnimationCounterfactual(
-        page,
-        scenarioName,
-        environment.host.logicalCpuCount,
-        scenarioBody,
-        options.beforeEachSample,
-      )
-    : undefined;
-  // The CPU profile is captured on a dedicated extra pass so the sampler's
-  // overhead (and its sporadic renderer stall — see the comment above
-  // CPU_PROFILE_SAMPLING_INTERVAL_US) never pollutes the metric samples or
-  // fails the test.
-  if (process.env.PERF_TRACE === "1") {
-    if (options.beforeEachSample) await options.beforeEachSample();
-    await captureScenarioCpuProfile(page, testInfo, scenarioName, scenarioBody);
-  }
-  let renderTrace: PerfRenderTraceReport | undefined;
-  if (process.env.PERF_RENDER_TRACE === "1" || options.captureRenderTrace === true) {
-    if (options.beforeEachSample) await options.beforeEachSample();
-    renderTrace = await captureRenderTrace(
-      page,
-      testInfo,
-      scenarioName,
-      PACKAGE_PERF_DIR,
-      scenarioBody,
-    );
-    if (renderTrace.validity) {
-      assertValidHeadedPerfRun(renderTrace.validity, `${scenarioName} render replay`);
-    }
-    if (animationCounterfactual) animationCounterfactual.activeRenderTrace = renderTrace;
-  }
-  if (animationCounterfactual) {
-    if (options.beforeEachSample) await options.beforeEachSample();
-    await pauseRunningAnimations(page);
-    try {
-      animationCounterfactual.pausedRenderTrace = await captureRenderTrace(
-        page,
-        testInfo,
-        `${scenarioName}-animations-paused`,
-        PACKAGE_PERF_DIR,
-        scenarioBody,
-      );
-      if (animationCounterfactual.pausedRenderTrace.validity) {
-        assertValidHeadedPerfRun(
-          animationCounterfactual.pausedRenderTrace.validity,
-          `${scenarioName} paused render replay`,
-        );
-      }
-    } finally {
-      await resumePausedAnimations(page);
-    }
-  }
-  let domMutationAttribution: PerfDomMutationAttributionReport | undefined;
-  if (process.env.PERF_DOM_BREAKPOINTS === "1" || options.captureDomMutationAttribution === true) {
-    if (options.beforeEachSample) await options.beforeEachSample();
-    const attributionAggregate =
-      perSampleAggregates.length === 1
-        ? perSampleAggregates[0]
-        : medianAcrossSamples(perSampleAggregates);
-    domMutationAttribution = await captureDomMutationAttribution(
-      page,
-      testInfo,
-      scenarioName,
-      PACKAGE_PERF_DIR,
-      attributionAggregate.cssActivity.topMutationTargets.map(
-        (mutationTarget) => mutationTarget.target,
-      ),
-      scenarioBody,
-    );
-    if (domMutationAttribution.validity) {
-      assertValidHeadedPerfRun(
-        domMutationAttribution.validity,
-        `${scenarioName} DOM breakpoint replay`,
-      );
-    }
-  }
+  const measuredSamples = await captureMeasuredSamples({
+    page,
+    scenarioName,
+    scenarioBody,
+    recordOptions: options,
+    environment,
+    sampleCount,
+  });
+  const scenarioReplays = await captureScenarioReplays({
+    page,
+    testInfo,
+    scenarioName,
+    scenarioBody,
+    recordOptions: options,
+    environment,
+    aggregates: measuredSamples.aggregates,
+  });
   const workloadAfter = await capturePerfWorkload(page);
   const workloadMetadata = await options.collectWorkloadMetadata?.();
-  const processCpu = aggregateProcessCpuSamples(perSampleProcessCpu);
-  const hardwareGpu = aggregateHardwareGpuSamples(perSampleHardwareGpu);
+  const processCpu = aggregateProcessCpuSamples(measuredSamples.processCpu);
+  const hardwareGpu = aggregateHardwareGpuSamples(measuredSamples.hardwareGpu);
   const medianAggregate =
-    perSampleAggregates.length === 1
-      ? perSampleAggregates[0]
-      : medianAcrossSamples(perSampleAggregates);
+    measuredSamples.aggregates.length === 1
+      ? measuredSamples.aggregates[0]
+      : medianAcrossSamples(measuredSamples.aggregates);
   const extra = options.collectExtraMetrics?.();
   await attachPerfReport(
     testInfo,
     scenarioName,
     medianAggregate,
-    perSampleAggregates,
+    measuredSamples.aggregates,
     {
       environment,
       workload: {
@@ -1132,24 +1239,24 @@ export const recordScenario = async (
       },
       processCpu,
       hardwareGpu,
-      renderTrace,
-      validity: aggregatePerfRunValidity(perSampleValidity),
-      animationCounterfactual,
-      domMutationAttribution,
+      renderTrace: scenarioReplays.renderTrace,
+      validity: aggregatePerfRunValidity(measuredSamples.validity),
+      animationCounterfactual: scenarioReplays.animationCounterfactual,
+      domMutationAttribution: scenarioReplays.domMutationAttribution,
       warmupSamples: warmupSampleCount,
     },
     baseline,
     extra,
-    memory,
+    measuredSamples.memory,
   );
   logAggregate(
     scenarioName,
     medianAggregate,
-    memory,
+    measuredSamples.memory,
     processCpu,
     hardwareGpu,
-    renderTrace,
-    animationCounterfactual,
+    scenarioReplays.renderTrace,
+    scenarioReplays.animationCounterfactual,
   );
   if (extra) {
     console.log(
