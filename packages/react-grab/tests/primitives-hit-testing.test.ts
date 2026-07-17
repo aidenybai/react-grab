@@ -137,7 +137,7 @@ describe("element inspection primitives", () => {
     expect(isValidGrabbableElement).toHaveBeenCalledWith(element);
   });
 
-  it("returns top-window element bounds", () => {
+  it("returns isolated top-window element bounds", () => {
     const element = createElement();
     const bounds = {
       x: 10,
@@ -148,7 +148,16 @@ describe("element inspection primitives", () => {
     };
     vi.mocked(createElementBounds).mockReturnValue(bounds);
 
-    expect(getElementBounds(element)).toBe(bounds);
+    const firstPublicBounds = getElementBounds(element);
+    expect(firstPublicBounds).toEqual(bounds);
+    expect(firstPublicBounds).not.toBe(bounds);
+
+    firstPublicBounds.x = 100;
+
+    const secondPublicBounds = getElementBounds(element);
+    expect(secondPublicBounds).toEqual(bounds);
+    expect(secondPublicBounds).not.toBe(bounds);
+    expect(secondPublicBounds).not.toBe(firstPublicBounds);
   });
 
   it("creates a selector for the nearest useful selector target", () => {
