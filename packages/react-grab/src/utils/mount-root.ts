@@ -32,10 +32,10 @@ const attachHostToBody = (host: HTMLElement): void => {
 // During parsing (readyState === "loading") <body> may not exist yet, and
 // attaching to <html> as a fallback is what triggers the hydration error
 // above. Create the host detached and attach once <body> is parsed.
-const scheduleHostAttachment = (host: HTMLElement): void => {
+const scheduleHostAttachment = (host: HTMLElement): (() => void) => {
   if (document.body) {
     attachHostToBody(host);
-    return;
+    return () => {};
   }
 
   const onReady = () => {
@@ -43,11 +43,20 @@ const scheduleHostAttachment = (host: HTMLElement): void => {
     attachHostToBody(host);
   };
   document.addEventListener("DOMContentLoaded", onReady, { once: true });
+  return () => document.removeEventListener("DOMContentLoaded", onReady);
+};
+
+const scheduleHostRecheck = (host: HTMLElement): (() => void) => {
+  const recheckTimeoutId = window.setTimeout(() => {
+    attachHostToBody(host);
+  }, MOUNT_ROOT_RECHECK_DELAY_MS);
+  return () => window.clearTimeout(recheckTimeoutId);
 };
 
 interface MountRootResult {
   root: HTMLDivElement;
   host: HTMLElement;
+  cancelPendingAttachment: () => void;
 }
 
 export const mountRoot = (cssText?: string): MountRootResult => {
@@ -55,7 +64,11 @@ export const mountRoot = (cssText?: string): MountRootResult => {
   for (const mountedHost of mountedHosts) {
     const mountedRoot = mountedHost.shadowRoot?.querySelector(`[${REACT_GRAB_ATTRIBUTE_NAME}]`);
     if (mountedRoot instanceof HTMLDivElement) {
-      return { root: mountedRoot, host: mountedHost };
+      return {
+        root: mountedRoot,
+        host: mountedHost,
+        cancelPendingAttachment: scheduleHostRecheck(mountedHost),
+      };
     }
     mountedHost.remove();
   }
@@ -83,15 +96,20 @@ export const mountRoot = (cssText?: string): MountRootResult => {
 
   shadowRoot.appendChild(root);
 
-  scheduleHostAttachment(host);
+  const cancelReadyAttachment = scheduleHostAttachment(host);
   // Re-appending after a delay handles two cases: framework hydration
   // (React/Next.js) may blow away the DOM and remove our host, and another
   // tool (e.g. react-scan) may have appended at the same z-index where last
   // DOM child wins the stacking tiebreaker. Moving an already-attached node
   // via appendChild is atomic with no flash or reflow.
-  setTimeout(() => {
-    attachHostToBody(host);
-  }, MOUNT_ROOT_RECHECK_DELAY_MS);
+  const cancelHostRecheck = scheduleHostRecheck(host);
 
-  return { root, host };
+  return {
+    root,
+    host,
+    cancelPendingAttachment: () => {
+      cancelReadyAttachment();
+      cancelHostRecheck();
+    },
+  };
 };
