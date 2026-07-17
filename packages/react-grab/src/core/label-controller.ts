@@ -193,12 +193,16 @@ export const createLabelController = (
   };
 
   const handleHoverChange = (instanceId: string, isHovered: boolean) => {
-    if (isHovered) {
-      cancelFade(instanceId);
-      return;
-    }
     const instance = getLabelInstances().find((labelInstance) => labelInstance.id === instanceId);
     if (!instance) return;
+
+    if (isHovered) {
+      cancelFade(instanceId);
+      if (instance.status === "fading") {
+        store.updateLabelInstance(instanceId, "copied");
+      }
+      return;
+    }
     // Error labels are dismissed explicitly (Retry/Ok), so unhovering must not
     // start a fade; only the transient copied/fading labels fade on hover-out.
     if (instance.status === "copied" || instance.status === "fading") {
