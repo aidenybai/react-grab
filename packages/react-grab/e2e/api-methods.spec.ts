@@ -414,18 +414,11 @@ test.describe("API Methods", () => {
   });
 
   test.describe("dispose()", () => {
-    test("should set hasInited to false on dispose", async ({ reactGrab }) => {
-      await reactGrab.activate();
-      expect(await reactGrab.isOverlayVisible()).toBe(true);
-
+    test("should clear the disposed global API", async ({ reactGrab }) => {
       await reactGrab.dispose();
-      await reactGrab.page.waitForTimeout(200);
 
-      const canReinit = await reactGrab.page.evaluate(() => {
-        const initFn = (window as { initReactGrab?: () => void }).initReactGrab;
-        return typeof initFn === "function";
-      });
-      expect(canReinit).toBe(true);
+      const hasGlobalApi = await reactGrab.page.evaluate(() => window.__REACT_GRAB__ !== undefined);
+      expect(hasGlobalApi).toBe(false);
     });
 
     test("should remove overlay host element on dispose", async ({ reactGrab }) => {
@@ -442,10 +435,8 @@ test.describe("API Methods", () => {
     });
 
     test("should allow re-initialization after dispose", async ({ reactGrab }) => {
-      await reactGrab.activate();
-      await reactGrab.dispose();
-
-      await reactGrab.reinitialize();
+      const didInstallFreshApi = await reactGrab.reinitialize();
+      expect(didInstallFreshApi).toBe(true);
 
       await reactGrab.activate();
       expect(await reactGrab.isOverlayVisible()).toBe(true);

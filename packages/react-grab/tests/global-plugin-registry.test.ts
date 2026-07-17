@@ -1,7 +1,13 @@
 import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 import { createNoopApi } from "../src/core/noop-api.js";
 import { PluginSetupError } from "../src/errors.js";
-import { getGlobalApi, registerPlugin, setGlobalApi, unregisterPlugin } from "../src/global-api.js";
+import {
+  clearGlobalApi,
+  getGlobalApi,
+  registerPlugin,
+  setGlobalApi,
+  unregisterPlugin,
+} from "../src/global-api.js";
 import type { Plugin, ReactGrabAPI } from "../src/types.js";
 
 const PLUGIN_NAMES = ["first", "second", "failing"];
@@ -18,6 +24,19 @@ afterEach(() => {
 });
 
 describe("global plugin registration", () => {
+  it("only clears the API that owns the global reference", () => {
+    const disposingApi = createNoopApi();
+    const replacementApi = createNoopApi();
+
+    setGlobalApi(disposingApi);
+    setGlobalApi(replacementApi);
+    clearGlobalApi(disposingApi);
+
+    expect(getGlobalApi()).toBe(replacementApi);
+    clearGlobalApi(replacementApi);
+    expect(getGlobalApi()).toBeNull();
+  });
+
   it("flushes queued plugins when an API is attached", () => {
     const plugin: Plugin = { name: "first" };
     const apiRegisterPlugin = vi.fn();

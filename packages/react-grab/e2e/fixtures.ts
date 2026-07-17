@@ -56,6 +56,15 @@ interface LabelInstanceInfo {
   createdAt: number;
 }
 
+interface ReinitializableApi {
+  dispose: () => void;
+}
+
+interface ReinitializableWindow {
+  __REACT_GRAB__?: ReinitializableApi;
+  initReactGrab?: (options?: Record<string, unknown>) => ReinitializableApi;
+}
+
 interface ReactGrabState {
   isActive: boolean;
   isDragging: boolean;
@@ -178,7 +187,7 @@ export interface ReactGrabPageObject {
   copyElementViaApi: (selector: string) => Promise<boolean>;
   registerCommentAction: () => Promise<void>;
   updateOptions: (options: Record<string, unknown>) => Promise<void>;
-  reinitialize: (options?: Record<string, unknown>) => Promise<void>;
+  reinitialize: (options?: Record<string, unknown>) => Promise<boolean>;
 
   touchStart: (x: number, y: number) => Promise<void>;
   touchMove: (x: number, y: number) => Promise<void>;
@@ -1466,13 +1475,14 @@ const createReactGrabPageObject = (
   };
 
   const reinitialize = async (options?: Record<string, unknown>) => {
-    await page.evaluate((initialOptions) => {
-      const existingApi = (window as { __REACT_GRAB__?: { dispose: () => void } }).__REACT_GRAB__;
-      existingApi?.dispose();
-
-      const initFn = (window as { initReactGrab?: (o?: Record<string, unknown>) => void })
-        .initReactGrab;
-      initFn?.(initialOptions);
+    const didInstallFreshApi = await page.evaluate((initialOptions) => {
+      const targetWindow = window as ReinitializableWindow;
+      const previousApi = targetWindow.__REACT_GRAB__;
+      previousApi?.dispose();
+      const initializedApi = targetWindow.initReactGrab?.(initialOptions);
+      if (!initializedApi) return false;
+      targetWindow.__REACT_GRAB__ = initializedApi;
+      return initializedApi !== previousApi;
     }, options);
     await page.waitForFunction(
       () => {
@@ -1482,6 +1492,7 @@ const createReactGrabPageObject = (
       undefined,
       { timeout: 5000 },
     );
+    return didInstallFreshApi;
   };
 
   const dispatchPointerEvent = async (
