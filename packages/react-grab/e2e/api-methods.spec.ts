@@ -1,8 +1,14 @@
 import { test, expect } from "./fixtures.js";
+import type { ReactGrabAPI } from "../src/types.js";
 
 interface CopyCancellationCase {
   method: "deactivate" | "dispose";
   label: string;
+}
+
+interface LifecycleWindow {
+  __REACT_GRAB__?: ReactGrabAPI;
+  initReactGrab?: () => ReactGrabAPI;
 }
 
 const COPY_CANCELLATION_CASES: CopyCancellationCase[] = [
@@ -440,6 +446,38 @@ test.describe("API Methods", () => {
 
       await reactGrab.activate();
       expect(await reactGrab.isOverlayVisible()).toBe(true);
+    });
+
+    test("a stale API should not dispose a replacement", async ({ reactGrab }) => {
+      const result = await reactGrab.page.evaluate(() => {
+        const targetWindow: LifecycleWindow = window;
+        const staleApi = targetWindow.__REACT_GRAB__;
+        if (!staleApi || !targetWindow.initReactGrab) {
+          throw new Error("React Grab lifecycle API unavailable");
+        }
+
+        staleApi.dispose();
+        const replacementApi = targetWindow.initReactGrab();
+        targetWindow.__REACT_GRAB__ = replacementApi;
+
+        let subscriberCallCount = 0;
+        replacementApi.onToolbarStateChange(() => {
+          subscriberCallCount += 1;
+        });
+
+        staleApi.dispose();
+        replacementApi.setToolbarState({ collapsed: true });
+        const duplicateApi = targetWindow.initReactGrab();
+        const didRejectDuplicateInitialization = duplicateApi.getPlugins().length === 0;
+        if (!didRejectDuplicateInitialization) duplicateApi.dispose();
+
+        return { subscriberCallCount, didRejectDuplicateInitialization };
+      });
+
+      expect(result).toEqual({
+        subscriberCallCount: 1,
+        didRejectDuplicateInitialization: true,
+      });
     });
   });
 
