@@ -162,6 +162,7 @@ import { notifyToolbarStateChangeSubscribers } from "../utils/notify-toolbar-sta
 import { forwardSameOriginFrameEvents } from "../utils/forward-same-origin-frame-events.js";
 import { isHtmlElement } from "../utils/is-html-element.js";
 import { isDocumentAncestorOfElement } from "../utils/is-document-ancestor-of-element.js";
+import { clearGlobalApi } from "../global-api.js";
 
 const builtInPlugins = [copyPlugin, editPlugin, commentPlugin, openPlugin];
 
@@ -4294,16 +4295,20 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       },
       dispose: () => {
         disposed = true;
-        cancelPendingCopies();
-        labelController.clearAll();
         hasInited = false;
-        disposeRenderer?.();
-        stopToolbarMenuTracking?.();
-        stopToolbarMenuTracking = null;
-        stopEditPanelTracking?.();
-        stopEditPanelTracking = null;
-        toolbarStateChangeCallbacks.clear();
-        dispose();
+        try {
+          cancelPendingCopies();
+          labelController.clearAll();
+          disposeRenderer?.();
+          stopToolbarMenuTracking?.();
+          stopToolbarMenuTracking = null;
+          stopEditPanelTracking?.();
+          stopEditPanelTracking = null;
+          toolbarStateChangeCallbacks.clear();
+          dispose();
+        } finally {
+          clearGlobalApi(api);
+        }
       },
       copyElement: copyElementAPI,
       getSource: async (element: Element): Promise<SourceInfo | null> => {

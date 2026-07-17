@@ -34,6 +34,13 @@ export const setGlobalApi = (api: ReactGrabAPI | null): void => {
   }
 };
 
+export const clearGlobalApi = (api: ReactGrabAPI): void => {
+  if (globalApi === api) globalApi = null;
+  if (typeof window !== "undefined" && window.__REACT_GRAB__ === api) {
+    delete window.__REACT_GRAB__;
+  }
+};
+
 export const registerPlugin = (plugin: Plugin): void => {
   const api = getGlobalApi();
   if (api) {
