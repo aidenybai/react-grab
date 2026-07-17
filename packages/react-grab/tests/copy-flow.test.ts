@@ -86,4 +86,17 @@ describe("runCopyFlow", () => {
     expect(hooks.onCopyError).not.toHaveBeenCalled();
     expect(hooks.onAfterCopy).not.toHaveBeenCalled();
   });
+
+  it("does not copy content removed by a transform", async () => {
+    const hooks = createHooks();
+    hooks.transformCopyContent.mockResolvedValue("   ");
+    const elements = [Object.create(null)];
+
+    const result = await runCopyFlow({ getContent: () => "content" }, hooks, elements);
+
+    expect(result).toEqual({ status: "failed" });
+    expect(hooks.onCopyError).not.toHaveBeenCalled();
+    expect(hooks.onCopySuccess).not.toHaveBeenCalled();
+    expect(hooks.onAfterCopy).toHaveBeenCalledWith(elements, false);
+  });
 });

@@ -138,11 +138,13 @@ export const runCopyFlow = async (
       finalContent = prependedPrompt
         ? `${prependedPrompt}\n${transformedContent}`
         : transformedContent;
-      didStartClipboardWrite = true;
-      didCopy = copyContent(finalContent, {
-        componentName: options.componentName,
-        entries: getMetadataEntries(payload, finalContent, prependedPrompt),
-      });
+      if (finalContent.trim()) {
+        didStartClipboardWrite = true;
+        didCopy = copyContent(finalContent, {
+          componentName: options.componentName,
+          entries: getMetadataEntries(payload, finalContent, prependedPrompt),
+        });
+      }
     }
   } catch (error) {
     if (!didStartClipboardWrite && options.signal?.aborted) return CANCELLED_COPY_FLOW_RESULT;
