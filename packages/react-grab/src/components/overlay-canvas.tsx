@@ -181,6 +181,9 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
     target.height = bounds.height;
     animation.borderRadius = parseBorderRadiusValue(bounds.borderRadius);
     if (targetOpacity !== undefined) {
+      if (targetOpacity > animation.targetOpacity) {
+        animation.opacity = targetOpacity;
+      }
       animation.targetOpacity = targetOpacity;
     }
   };
