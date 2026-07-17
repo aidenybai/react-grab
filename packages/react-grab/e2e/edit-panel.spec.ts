@@ -405,6 +405,21 @@ test.describe("Style Panel", () => {
       expect(await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR)).toBe(beforeTweak);
     });
 
+    test("disposal restores preview inline styles", async ({ reactGrab }) => {
+      await openEditPanel(reactGrab, BUTTON_SELECTOR);
+      const beforeTweak = await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR);
+      await reactGrab.page.keyboard.press("ArrowRight");
+      await reactGrab.page.waitForTimeout(IDLE_BUFFER_MS);
+      expect(await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR)).not.toBe(beforeTweak);
+
+      await reactGrab.page.evaluate(() => {
+        window.__REACT_GRAB__?.dispose();
+      });
+
+      await expect.poll(() => isEditPanelVisible(reactGrab.page)).toBe(false);
+      expect(await getInlineStyleAttribute(reactGrab.page, BUTTON_SELECTOR)).toBe(beforeTweak);
+    });
+
     test("held arrow repeat stops while discard prompt is visible", async ({ reactGrab }) => {
       await openEditPanel(reactGrab, BUTTON_SELECTOR);
       await reactGrab.page.keyboard.down("ArrowRight");

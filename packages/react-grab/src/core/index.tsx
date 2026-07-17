@@ -4312,6 +4312,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         disposed = true;
         hasInited = false;
         collectCleanupError(cancelPendingCopies, cleanupErrors);
+        collectCleanupError(editMode.resetWithDiscard, cleanupErrors);
         collectCleanupError(labelController.clearAll, cleanupErrors);
         if (disposeRenderer) collectCleanupError(disposeRenderer, cleanupErrors);
         disposeRenderer = undefined;
