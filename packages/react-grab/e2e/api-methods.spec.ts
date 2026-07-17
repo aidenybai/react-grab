@@ -364,14 +364,7 @@ test.describe("API Methods", () => {
   test.describe("Toolbar state", () => {
     test("isolates throwing state subscribers", async ({ reactGrab }) => {
       const result = await reactGrab.page.evaluate(() => {
-        const api = (
-          window as {
-            __REACT_GRAB__?: {
-              onToolbarStateChange: (callback: (state: { collapsed: boolean }) => void) => void;
-              setToolbarState: (state: { collapsed: boolean }) => void;
-            };
-          }
-        ).__REACT_GRAB__;
+        const api = (window as LifecycleWindow).__REACT_GRAB__;
         if (!api) throw new Error("React Grab API unavailable");
 
         let receivedCollapsed: boolean | undefined;
@@ -387,6 +380,41 @@ test.describe("API Methods", () => {
       });
 
       expect(result).toBe(true);
+    });
+
+    test("isolates subscribers from a disposed instance", async ({ reactGrab }) => {
+      const callbackCounts = await reactGrab.page.evaluate(() => {
+        const targetWindow = window as LifecycleWindow;
+        const previousApi = targetWindow.__REACT_GRAB__;
+        const initializeReactGrab = targetWindow.initReactGrab;
+        if (!previousApi || !initializeReactGrab) {
+          throw new Error("React Grab API unavailable");
+        }
+
+        let callbackCount = 0;
+        const sharedCallback = () => {
+          callbackCount += 1;
+        };
+        const unsubscribePrevious = previousApi.onToolbarStateChange(sharedCallback);
+
+        previousApi.dispose();
+        const replacementApi = initializeReactGrab();
+        targetWindow.__REACT_GRAB__ = replacementApi;
+        replacementApi.onToolbarStateChange(sharedCallback);
+
+        previousApi.setToolbarState({ collapsed: true });
+        const afterPreviousUpdate = callbackCount;
+
+        unsubscribePrevious();
+        replacementApi.setToolbarState({ collapsed: false });
+
+        return { afterPreviousUpdate, afterReplacementUpdate: callbackCount };
+      });
+
+      expect(callbackCounts).toEqual({
+        afterPreviousUpdate: 0,
+        afterReplacementUpdate: 1,
+      });
     });
   });
 

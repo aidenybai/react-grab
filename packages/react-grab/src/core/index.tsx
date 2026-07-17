@@ -217,7 +217,6 @@ const CANCELLED_COPY_RESULT: CopyFlowResult = {
 };
 
 let hasInited = false;
-const toolbarStateChangeCallbacks = new Set<(state: ToolbarState) => void>();
 
 export const init = (rawOptions?: Options): ReactGrabAPI => {
   if (typeof window === "undefined") {
@@ -266,6 +265,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     let copyAbortController = new AbortController();
     let pendingCopyMetadataIdentity: object | null = null;
     let disposeRenderer: (() => void) | undefined;
+    const toolbarStateChangeCallbacks = new Set<(state: ToolbarState) => void>();
 
     const pluginRegistry = createPluginRegistry(settableOptions);
 
