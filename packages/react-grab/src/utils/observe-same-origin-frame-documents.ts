@@ -3,6 +3,7 @@ import { getAccessibleIframeDocument } from "./get-accessible-iframe-document.js
 import { isElementNode } from "./is-element-node.js";
 import { isIframeElement } from "./is-iframe-element.js";
 import { isReactGrabElement } from "./is-react-grab-element.js";
+import { collectCleanupError } from "./collect-cleanup-error.js";
 import { throwCollectedErrors } from "./throw-collected-errors.js";
 
 interface FrameDocumentCallback {
@@ -13,14 +14,6 @@ interface ObservedIframe {
   abortController: AbortController;
   document: Document | null;
 }
-
-const collectCleanupError = (cleanup: () => void, cleanupErrors: unknown[]): void => {
-  try {
-    cleanup();
-  } catch (error) {
-    cleanupErrors.push(error);
-  }
-};
 
 export const observeSameOriginFrameDocuments = (callback: FrameDocumentCallback): (() => void) => {
   const documentCleanups = new Map<Document, (() => void) | void>();

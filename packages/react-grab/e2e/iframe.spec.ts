@@ -422,6 +422,9 @@ test.describe("Iframe selection", () => {
 
   test("continues frame cleanup after a shadow root hook fails", async ({ reactGrab }) => {
     const cleanupResult = await reactGrab.page.evaluate(async () => {
+      document.body.style.touchAction = "pan-y";
+      window.__REACT_GRAB__?.activate();
+
       const createIframe = async (): Promise<HTMLIFrameElement> => {
         const iframeElement = document.createElement("iframe");
         iframeElement.srcdoc = "<main>Frame cleanup target</main>";
@@ -473,12 +476,14 @@ test.describe("Iframe selection", () => {
         cleanupErrorMessage,
         didRestoreSubsequentHook:
           Reflect.get(subsequentElementPrototype, "attachShadow") !== subsequentPatchedAttachShadow,
+        restoredTouchAction: document.body.style.touchAction,
       };
     });
 
     expect(cleanupResult).toEqual({
       cleanupErrorMessage: "Expected frame cleanup failure",
       didRestoreSubsequentHook: true,
+      restoredTouchAction: "pan-y",
     });
   });
 
