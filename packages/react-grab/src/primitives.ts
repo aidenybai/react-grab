@@ -57,7 +57,9 @@ export const isElementGrabbable = (element: Element): boolean => isValidGrabbabl
  * Returns viewport bounds in the top-level window, including elements inside
  * transformed same-origin iframes.
  */
-export const getElementBounds = (element: Element): ElementBounds => createElementBounds(element);
+export const getElementBounds = (element: Element): ElementBounds => ({
+  ...createElementBounds(element),
+});
 
 /**
  * Returns a stable selector, crossing open shadow roots and same-origin iframes
