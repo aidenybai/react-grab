@@ -61,17 +61,17 @@ export const copyContent = (content: string, options?: CopyContentOptions): bool
   // Clipboard API. The hidden textarea provides the selection context that
   // execCommand requires, and the copy handler installed above intercepts the
   // browser's default behavior to set our custom clipboard data.
+  const textarea = document.createElement("textarea");
   document.addEventListener("copy", copyHandler);
 
-  const textarea = document.createElement("textarea");
-  textarea.value = content;
-  textarea.style.position = "fixed";
-  textarea.style.left = "-9999px";
-  textarea.ariaHidden = "true";
-  document.body.appendChild(textarea);
-  textarea.select();
-
   try {
+    textarea.value = content;
+    textarea.style.position = "fixed";
+    textarea.style.left = "-9999px";
+    textarea.ariaHidden = "true";
+    document.body.appendChild(textarea);
+    textarea.select();
+
     if (typeof document.execCommand !== "function") {
       return false;
     }
