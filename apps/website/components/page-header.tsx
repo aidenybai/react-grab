@@ -18,7 +18,7 @@ export const PageHeader = ({ title, subtitle }: PageHeaderProps) => (
       React Grab
     </Link>
     <div className="flex items-center justify-between">
-      <h1 className="font-page-title text-h2 font-medium tracking-tight text-title">{title}</h1>
+      <h1 className="font-page-title text-h2 font-medium tracking-tighter text-title">{title}</h1>
       <GithubLink />
     </div>
     {subtitle && <p className="text-prose">{subtitle}</p>}

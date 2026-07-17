@@ -10,7 +10,7 @@ export default function HomePage() {
     <PageShell>
       <div className="flex flex-col gap-3 pt-20">
         <div className="flex items-center justify-between">
-          <h1 className="font-page-title text-h2 font-medium tracking-tight text-title">
+          <h1 className="font-page-title text-h2 font-medium tracking-tighter text-title">
             React Grab
           </h1>
           <GithubLink />
