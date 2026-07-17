@@ -1,3 +1,5 @@
+import type { JSX } from "solid-js";
+
 export interface Position {
   x: number;
   y: number;
@@ -664,7 +666,7 @@ export interface TagBadgeProps {
 }
 
 export interface BottomSectionProps {
-  children: import("solid-js").JSX.Element;
+  children: JSX.Element;
 }
 
 export interface DiscardPromptProps {
