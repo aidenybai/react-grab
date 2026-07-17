@@ -116,7 +116,7 @@ if (process.env.NODE_ENV === "development") {
 
 ## Build your own React Grab
 
-Build a custom interface with the selection engine from `react-grab/primitives`. Use its APIs for hit testing, source context, page freezing, clipboard access, and editor navigation.
+Build a custom interface with the selection engine from `grab/primitives`. Use its APIs for hit testing, source context, page freezing, clipboard access, and editor navigation.
 
 ### Customize hit testing
 
