@@ -1,4 +1,5 @@
 import {
+  PERF_MICROSECONDS_PER_MILLISECOND,
   PERF_MICROSECONDS_PER_SECOND,
   PERF_PAINT_DISPLAY_ITEM_LIMIT,
   PERF_PERCENT_SCALE,
@@ -197,8 +198,10 @@ const getVisualArea = (displayItem: Record<string, unknown>): number => {
 
 const finalizeStage = (stage: MutableTraceStageSummary): PerfTraceStageSummary => ({
   eventCount: stage.eventCount,
-  totalDurationMs: roundTo3(stage.totalDurationMicroseconds / 1000),
-  maximumDurationMs: roundTo3(stage.maximumDurationMicroseconds / 1000),
+  totalDurationMs: roundTo3(stage.totalDurationMicroseconds / PERF_MICROSECONDS_PER_MILLISECOND),
+  maximumDurationMs: roundTo3(
+    stage.maximumDurationMicroseconds / PERF_MICROSECONDS_PER_MILLISECOND,
+  ),
 });
 
 const addDuration = (stage: MutableTraceStageSummary, durationMicroseconds: number): void => {
@@ -452,7 +455,7 @@ export const summarizeRenderTrace = (traceFile: PerfTraceFile): PerfRenderPipeli
     return {
       selector: selectorTiming.selector,
       styleSheetId: selectorTiming.styleSheetId,
-      elapsedMs: roundTo3(selectorTiming.elapsedMicroseconds / 1000),
+      elapsedMs: roundTo3(selectorTiming.elapsedMicroseconds / PERF_MICROSECONDS_PER_MILLISECOND),
       matchAttempts: selectorTiming.matchAttempts,
       matchCount: selectorTiming.matchCount,
       fastRejectCount: selectorTiming.fastRejectCount,
@@ -465,7 +468,7 @@ export const summarizeRenderTrace = (traceFile: PerfTraceFile): PerfRenderPipeli
   };
 
   return {
-    windowDurationMs: roundTo3(windowDurationMicroseconds / 1000),
+    windowDurationMs: roundTo3(windowDurationMicroseconds / PERF_MICROSECONDS_PER_MILLISECOND),
     usedScenarioMarkers,
     traceEventCount: events.length,
     style: finalizeStage(stages.style),
@@ -484,7 +487,7 @@ export const summarizeRenderTrace = (traceFile: PerfTraceFile): PerfRenderPipeli
         selectorTimingSummaries.reduce(
           (total, selectorTiming) => total + selectorTiming.elapsedMicroseconds,
           0,
-        ) / 1000,
+        ) / PERF_MICROSECONDS_PER_MILLISECOND,
       ),
       matchAttempts: selectorMatchAttempts,
       matchCount: selectorMatchCount,
@@ -530,8 +533,12 @@ export const summarizeRenderTrace = (traceFile: PerfTraceFile): PerfRenderPipeli
         name: traceEvent.name,
         category: traceEvent.category,
         eventCount: traceEvent.eventCount,
-        totalDurationMs: roundTo3(traceEvent.totalDurationMicroseconds / 1000),
-        maximumDurationMs: roundTo3(traceEvent.maximumDurationMicroseconds / 1000),
+        totalDurationMs: roundTo3(
+          traceEvent.totalDurationMicroseconds / PERF_MICROSECONDS_PER_MILLISECOND,
+        ),
+        maximumDurationMs: roundTo3(
+          traceEvent.maximumDurationMicroseconds / PERF_MICROSECONDS_PER_MILLISECOND,
+        ),
       })),
   };
 };
