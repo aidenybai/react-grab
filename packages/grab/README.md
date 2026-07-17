@@ -114,72 +114,31 @@ if (process.env.NODE_ENV === "development") {
 }
 ```
 
-## Plugins
+## Build your own React Grab
 
-Use plugins to extend React Grab's built-in UI with context menu actions, toolbar menu items, lifecycle hooks, and theme overrides.
+Build a custom interface with the selection engine from `react-grab/primitives`. Use its APIs for hit testing, source context, page freezing, clipboard access, and editor navigation.
 
-Register a plugin using the `registerPlugin` export:
+### Customize hit testing
 
-```js
-import { registerPlugin } from "grab";
+Scope hit testing to a container or replace the default element filter with your own rules.
 
-registerPlugin({
-  name: "my-plugin",
-  hooks: {
-    onElementSelect: (element) => {
-      console.log("Selected:", element.tagName);
-    },
-  },
-});
-```
+```typescript
+import { getElementAtPoint, isElementGrabbable } from "grab/primitives";
 
-If writing in React, register inside a `useEffect`:
-
-```jsx
-import { registerPlugin, unregisterPlugin } from "grab";
-
-useEffect(() => {
-  registerPlugin({
-    name: "my-plugin",
-    actions: [
-      {
-        id: "my-action",
-        label: "My Action",
-        shortcut: "M",
-        onAction: (context) => {
-          console.log("Action on:", context.element);
-          context.hideContextMenu();
-        },
-      },
-    ],
+export const getPickerTarget = (
+  event: PointerEvent,
+  appElement: Element,
+  toolbarElement: Element,
+): Element | null =>
+  getElementAtPoint(event.clientX, event.clientY, {
+    container: appElement,
+    filter: (candidate) =>
+      isElementGrabbable(candidate) &&
+      !toolbarElement.contains(candidate),
   });
-
-  return () => unregisterPlugin("my-plugin");
-}, []);
 ```
 
-Actions use a `target` field to control where they appear. Omit `target` (or set `"context-menu"`) for the right-click menu, or set `"toolbar"` for the toolbar dropdown:
-
-```js
-actions: [
-  {
-    id: "inspect",
-    label: "Inspect",
-    shortcut: "I",
-    onAction: (ctx) => console.dir(ctx.element),
-  },
-  {
-    id: "toggle-freeze",
-    label: "Freeze",
-    // Only show in the toolbar
-    target: "toolbar",
-    isActive: () => isFrozen,
-    onAction: () => toggleFreeze(),
-  },
-];
-```
-
-See [`packages/react-grab/src/types.ts`](https://github.com/aidenybai/react-grab/blob/main/packages/react-grab/src/types.ts) for the full `Plugin`, `PluginHooks`, and `PluginConfig` interfaces.
+Add `data-react-grab-ignore` to your picker interface so hit testing skips its subtree.
 
 ## Resources & Contributing Back
 
