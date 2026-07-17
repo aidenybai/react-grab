@@ -3495,7 +3495,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const overlayCssText = IS_DEMO
       ? `${resolvedCssText}\n* { pointer-events: none !important; }`
       : resolvedCssText;
-    const { root: rendererRoot, host: rendererHost } = mountRoot(overlayCssText);
+    const {
+      root: rendererRoot,
+      host: rendererHost,
+      cancelPendingAttachment,
+    } = mountRoot(overlayCssText);
+    onCleanup(cancelPendingAttachment);
 
     const themeWatcher = watchAppTheme(rendererHost);
     onCleanup(themeWatcher.cleanup);

@@ -11,6 +11,7 @@ interface LifecycleWindow {
   initReactGrab?: () => ReactGrabAPI;
 }
 
+const HOST_ATTACHMENT_RECHECK_WAIT_MS = 1_100;
 const COPY_CANCELLATION_CASES: CopyCancellationCase[] = [
   { method: "deactivate", label: "deactivation" },
   { method: "dispose", label: "disposal" },
@@ -478,6 +479,52 @@ test.describe("API Methods", () => {
         subscriberCallCount: 1,
         didRejectDuplicateInitialization: true,
       });
+    });
+
+    test("should cancel a disposed host attachment before body is available", async ({
+      reactGrab,
+    }) => {
+      await reactGrab.page.evaluate(() => {
+        const targetWindow: LifecycleWindow = window;
+        const initReactGrab = targetWindow.initReactGrab;
+        if (!initReactGrab) throw new Error("React Grab initializer unavailable");
+        targetWindow.__REACT_GRAB__?.dispose();
+        document.body.remove();
+
+        const disposedApi = initReactGrab();
+        disposedApi.dispose();
+        const activeApi = initReactGrab();
+        targetWindow.__REACT_GRAB__ = activeApi;
+
+        const replacementBody = document.createElement("body");
+        document.documentElement.appendChild(replacementBody);
+        document.dispatchEvent(new Event("DOMContentLoaded"));
+      });
+
+      await reactGrab.page.waitForTimeout(HOST_ATTACHMENT_RECHECK_WAIT_MS);
+      const hostCount = await reactGrab.page.evaluate(
+        () => document.querySelectorAll("[data-react-grab]").length,
+      );
+      expect(hostCount).toBe(1);
+    });
+
+    test("should recheck a host reused by a replacement", async ({ reactGrab }) => {
+      await reactGrab.page.evaluate(() => {
+        const targetWindow: LifecycleWindow = window;
+        const initReactGrab = targetWindow.initReactGrab;
+        if (!initReactGrab) throw new Error("React Grab initializer unavailable");
+
+        targetWindow.__REACT_GRAB__?.dispose();
+        const replacementApi = initReactGrab();
+        targetWindow.__REACT_GRAB__ = replacementApi;
+        document.querySelector("[data-react-grab]")?.remove();
+      });
+
+      await reactGrab.page.waitForTimeout(HOST_ATTACHMENT_RECHECK_WAIT_MS);
+      const hostCount = await reactGrab.page.evaluate(
+        () => document.querySelectorAll("[data-react-grab]").length,
+      );
+      expect(hostCount).toBe(1);
     });
   });
 
