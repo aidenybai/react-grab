@@ -163,6 +163,8 @@ import { forwardSameOriginFrameEvents } from "../utils/forward-same-origin-frame
 import { isHtmlElement } from "../utils/is-html-element.js";
 import { isDocumentAncestorOfElement } from "../utils/is-document-ancestor-of-element.js";
 import { clearGlobalApi } from "../global-api.js";
+import { collectCleanupError } from "../utils/collect-cleanup-error.js";
+import { throwCollectedErrors } from "../utils/throw-collected-errors.js";
 
 const builtInPlugins = [copyPlugin, editPlugin, commentPlugin, openPlugin];
 
@@ -3456,28 +3458,34 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     );
 
     onCleanup(() => {
-      stopForwardingSameOriginFrameEvents();
-      eventListenerManager.abort();
+      const cleanupErrors: unknown[] = [];
+      collectCleanupError(stopForwardingSameOriginFrameEvents, cleanupErrors);
+      collectCleanupError(() => eventListenerManager.abort(), cleanupErrors);
       if (dragPreviewDebounceTimerId !== null) {
         window.clearTimeout(dragPreviewDebounceTimerId);
       }
       if (keydownSpamTimerId) window.clearTimeout(keydownSpamTimerId);
-      clearCopyFeedbackCooldown();
-      stopToolbarMenuTracking?.();
+      collectCleanupError(clearCopyFeedbackCooldown, cleanupErrors);
+      if (stopToolbarMenuTracking) {
+        collectCleanupError(stopToolbarMenuTracking, cleanupErrors);
+      }
       stopToolbarMenuTracking = null;
-      stopEditPanelTracking?.();
+      if (stopEditPanelTracking) {
+        collectCleanupError(stopEditPanelTracking, cleanupErrors);
+      }
       stopEditPanelTracking = null;
       grabbedBoxTimeouts.forEach((timeoutId) => window.clearTimeout(timeoutId));
       grabbedBoxTimeouts.clear();
-      labelController.cancelAllFades();
+      collectCleanupError(labelController.cancelAllFades, cleanupErrors);
       retryCopyByInstanceId.clear();
-      autoScroller.stop();
-      unfreezeGlobalInteractions();
-      restoreHostBodyStyle("userSelect");
-      restoreHostBodyStyle("touchAction");
-      setCursorOverride(null);
-      keyboardClaimer.restore();
-      setScopeContainer(null);
+      collectCleanupError(autoScroller.stop, cleanupErrors);
+      collectCleanupError(unfreezeGlobalInteractions, cleanupErrors);
+      collectCleanupError(() => restoreHostBodyStyle("userSelect"), cleanupErrors);
+      collectCleanupError(() => restoreHostBodyStyle("touchAction"), cleanupErrors);
+      collectCleanupError(() => setCursorOverride(null), cleanupErrors);
+      collectCleanupError(keyboardClaimer.restore, cleanupErrors);
+      collectCleanupError(() => setScopeContainer(null), cleanupErrors);
+      throwCollectedErrors(cleanupErrors, "Disposing React Grab failed");
     });
 
     const resolvedCssText = typeof cssText === "string" ? cssText : "";
@@ -4295,21 +4303,25 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       },
       dispose: () => {
         if (disposed) return;
+        const cleanupErrors: unknown[] = [];
         disposed = true;
         hasInited = false;
-        try {
-          cancelPendingCopies();
-          labelController.clearAll();
-          disposeRenderer?.();
-          stopToolbarMenuTracking?.();
-          stopToolbarMenuTracking = null;
-          stopEditPanelTracking?.();
-          stopEditPanelTracking = null;
-          toolbarStateChangeCallbacks.clear();
-          dispose();
-        } finally {
-          clearGlobalApi(api);
+        collectCleanupError(cancelPendingCopies, cleanupErrors);
+        collectCleanupError(labelController.clearAll, cleanupErrors);
+        if (disposeRenderer) collectCleanupError(disposeRenderer, cleanupErrors);
+        disposeRenderer = undefined;
+        if (stopToolbarMenuTracking) {
+          collectCleanupError(stopToolbarMenuTracking, cleanupErrors);
         }
+        stopToolbarMenuTracking = null;
+        if (stopEditPanelTracking) {
+          collectCleanupError(stopEditPanelTracking, cleanupErrors);
+        }
+        stopEditPanelTracking = null;
+        toolbarStateChangeCallbacks.clear();
+        collectCleanupError(dispose, cleanupErrors);
+        collectCleanupError(() => clearGlobalApi(api), cleanupErrors);
+        throwCollectedErrors(cleanupErrors, "Disposing React Grab failed");
       },
       copyElement: copyElementAPI,
       getSource: async (element: Element): Promise<SourceInfo | null> => {
