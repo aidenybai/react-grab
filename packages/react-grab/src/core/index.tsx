@@ -4294,6 +4294,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         actions.setSelectionSource(null, null);
       },
       dispose: () => {
+        if (disposed) return;
         disposed = true;
         hasInited = false;
         try {
