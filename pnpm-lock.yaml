@@ -448,7 +448,7 @@ importers:
         specifier: ^20.51.4
         version: 20.51.4(@jest/environment@30.4.1)(@jest/types@30.4.1)(expect@30.4.1)(jest-environment-node@30.4.1)(jest@30.4.1(@types/node@26.1.1)(node-notifier@10.0.1))
       jest:
-        specifier: ^30.4.1
+        specifier: 30.4.1
         version: 30.4.1(@types/node@26.1.1)(node-notifier@10.0.1)
       ts-jest:
         specifier: ^29.4.11
