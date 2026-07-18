@@ -1,0 +1,18 @@
+{
+  "name": "@react-grab/native-e2e",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "build:ios": "detox build --configuration ios.sim.debug",
+    "test:ios": "detox test --configuration ios.sim.debug",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@jest/globals": "^30.4.1",
+    "@types/jest": "^30.0.0",
+    "detox": "^20.51.4",
+    "jest": "^30.4.2",
+    "ts-jest": "^29.4.11",
+    "typescript": "^5.9.3"
+  }
+}

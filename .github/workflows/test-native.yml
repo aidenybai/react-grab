@@ -1,0 +1,142 @@
+name: Test Native
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/e2e-app-expo/**"
+      - "packages/native-e2e/**"
+      - "packages/react-grab/**"
+      - ".github/workflows/test-native.yml"
+      - "pnpm-lock.yaml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "apps/e2e-app-expo/**"
+      - "packages/native-e2e/**"
+      - "packages/react-grab/**"
+      - ".github/workflows/test-native.yml"
+      - "pnpm-lock.yaml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: test-native-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-ios:
+    runs-on: macos-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Pre-boot simulator
+        run: |
+          device_name=$(xcrun simctl list devices available | grep -oE 'iPhone [A-Za-z0-9 ]+' | head -1 | xargs)
+          echo "Pre-booting simulator: $device_name"
+          echo "DETOX_DEVICE_NAME=$device_name" >> "$GITHUB_ENV"
+          xcrun simctl boot "$device_name" || true
+
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            apps/*/node_modules
+            packages/*/node_modules
+          key: node-modules-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --prefer-offline
+
+      - name: Build packages
+        run: pnpm build
+
+      - name: Install applesimutils
+        run: brew tap wix/brew && brew trust wix/brew && brew install applesimutils
+
+      - name: Get Xcode version
+        id: xcode
+        run: echo "version=$(xcodebuild -version | tr -d '\n' | tr ' ' '-')" >> "$GITHUB_OUTPUT"
+
+      - name: Cache iOS app binary
+        id: app-cache
+        uses: actions/cache@v4
+        with:
+          path: apps/e2e-app-expo/ios/build/Build/Products/Debug-iphonesimulator/reactgrabe2eexpo.app
+          key: expo-app-${{ steps.xcode.outputs.version }}-${{ hashFiles('pnpm-lock.yaml', 'apps/e2e-app-expo/app.json', 'apps/e2e-app-expo/package.json') }}
+
+      - name: Cache CocoaPods downloads
+        if: steps.app-cache.outputs.cache-hit != 'true'
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Caches/CocoaPods
+          key: cocoapods-${{ runner.os }}-${{ hashFiles('apps/e2e-app-expo/package.json') }}
+          restore-keys: cocoapods-${{ runner.os }}-
+
+      - name: Build iOS app
+        if: steps.app-cache.outputs.cache-hit != 'true'
+        working-directory: apps/e2e-app-expo
+        run: pnpm run build:ios
+
+      - name: Start Metro
+        working-directory: apps/e2e-app-expo
+        run: |
+          nohup pnpm exec expo start --port 8081 > /tmp/metro.log 2>&1 &
+          for readiness_attempt in $(seq 1 60); do
+            if curl -sf http://localhost:8081/status | grep -q "packager-status:running"; then
+              echo "Metro is up"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Metro failed after $readiness_attempt attempts" >&2
+          cat /tmp/metro.log >&2
+          exit 1
+
+      - name: Cache Detox framework
+        id: detox-framework-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Detox/ios
+          key: detox-framework-${{ steps.xcode.outputs.version }}-${{ hashFiles('pnpm-lock.yaml') }}
+
+      - name: Build Detox framework cache
+        if: steps.detox-framework-cache.outputs.cache-hit != 'true'
+        working-directory: packages/native-e2e
+        run: pnpm exec detox clean-framework-cache && pnpm exec detox build-framework-cache
+
+      - name: Run Detox tests
+        working-directory: packages/native-e2e
+        run: pnpm exec detox test --configuration ios.sim.debug --device-name "$DETOX_DEVICE_NAME" --headless --record-logs failing
+
+      - name: Upload Metro log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: metro-log
+          path: /tmp/metro.log
+          retention-days: 14
+
+      - name: Upload Detox artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: detox-artifacts
+          path: packages/native-e2e/artifacts/
+          retention-days: 14
+          if-no-files-found: ignore
