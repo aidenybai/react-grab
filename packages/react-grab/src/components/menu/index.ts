@@ -6,9 +6,6 @@ import { MenuItemLabel } from "./menu-item-label.js";
 import { MenuShortcut } from "./menu-shortcut.js";
 
 export { createMenuStore } from "./menu-store.js";
-export { useMenuStore } from "./menu-context.js";
-export type { MenuStore, MenuItemRegistration } from "./menu-context.js";
-export { MenuProvider, MenuPanel, MenuList, MenuItem, MenuItemLabel, MenuShortcut };
 
 export const Menu = {
   Provider: MenuProvider,

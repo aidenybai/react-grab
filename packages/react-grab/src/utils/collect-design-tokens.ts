@@ -1,4 +1,5 @@
 import type { DesignTokenResolver } from "../types.js";
+import { areArraysShallowEqual } from "./are-arrays-shallow-equal.js";
 import { roundEditableNumericValue } from "./format-css-value.js";
 import { parseAnyColor } from "./parse-any-color.js";
 import { parseNumericValue } from "./parse-numeric-value.js";
@@ -153,13 +154,6 @@ let cachedNames: {
   names: Set<string>;
 } | null = null;
 
-const areSheetsSame = (
-  previousSheets: readonly CSSStyleSheet[],
-  currentSheets: readonly CSSStyleSheet[],
-): boolean =>
-  previousSheets.length === currentSheets.length &&
-  previousSheets.every((sheet, sheetIndex) => sheet === currentSheets[sheetIndex]);
-
 const collectCustomPropertyNames = (): Set<string> => {
   // `document.adoptedStyleSheets` is missing on older Safari/Firefox, and is a
   // live array — snapshot it so the cached copy can't be mutated in place.
@@ -168,7 +162,7 @@ const collectCustomPropertyNames = (): Set<string> => {
   if (
     cachedNames &&
     cachedNames.documentSheetCount === documentSheetCount &&
-    areSheetsSame(cachedNames.adoptedSheets, adoptedSheets)
+    areArraysShallowEqual(cachedNames.adoptedSheets, adoptedSheets)
   ) {
     return cachedNames.names;
   }

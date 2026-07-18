@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "openstory/solid";
 import { expect, waitFor } from "openstory/test";
-import { Toolbar } from "react-grab/src/components/toolbar/index.js";
+import { Toolbar } from "@react-grab-source/components/toolbar/index.js";
 import { Canvas } from "./target-box.js";
 import { noop } from "./noop.js";
 

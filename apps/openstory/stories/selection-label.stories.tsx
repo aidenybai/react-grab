@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "openstory/solid";
 import { expect, waitFor } from "openstory/test";
-import { SelectionLabel } from "react-grab/src/components/selection-label/index.js";
-import type { SelectionLabelProps } from "react-grab/src/types.js";
+import { SelectionLabel } from "@react-grab-source/components/selection-label/index.js";
+import type { SelectionLabelProps } from "@react-grab-source/types.js";
 import { DEMO_BOUNDS, DEMO_MOUSE_X } from "./demo-bounds.js";
 import { Canvas, TargetBox } from "./target-box.js";
 import { noop } from "./noop.js";

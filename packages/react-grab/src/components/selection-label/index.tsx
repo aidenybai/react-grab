@@ -12,7 +12,6 @@ import type { ArrowPosition, SelectionLabelProps } from "../../types.js";
 import {
   FADE_DURATION_MS,
   PANEL_SHADOW,
-  IME_COMPOSING_KEY_CODE,
   VIEWPORT_MARGIN_PX,
   ARROW_CENTER_PERCENT,
   ARROW_LABEL_MARGIN_PX,
@@ -25,6 +24,7 @@ import { autoResizeTextarea } from "../../utils/auto-resize-textarea.js";
 import { focusInOverlay } from "../../utils/focus-in-overlay.js";
 import { getArrowSize } from "../../utils/get-arrow-size.js";
 import { getVisualViewport } from "../../utils/get-visual-viewport.js";
+import { isKeyboardEventComposing } from "../../utils/is-keyboard-event-composing.js";
 import { getScopeContainer, ignoreRealInput } from "../../utils/runtime-mode.js";
 import { isKeyboardEventTriggeredByInput } from "../../utils/is-keyboard-event-triggered-by-input.js";
 import { cn } from "../../utils/cn.js";
@@ -257,16 +257,14 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
       let edgeOffsetX = 0;
       let positionTop = selectionBottom + actualArrowHeight + LABEL_GAP_PX;
 
-      if (labelWidth > 0) {
-        const labelLeft = anchorX - labelWidth / 2;
-        const labelRight = anchorX + labelWidth / 2;
+      const labelLeft = anchorX - labelWidth / 2;
+      const labelRight = anchorX + labelWidth / 2;
 
-        if (labelRight > viewportRight - VIEWPORT_MARGIN_PX) {
-          edgeOffsetX = viewportRight - VIEWPORT_MARGIN_PX - labelRight;
-        }
-        if (labelLeft + edgeOffsetX < viewportLeft + VIEWPORT_MARGIN_PX) {
-          edgeOffsetX = viewportLeft + VIEWPORT_MARGIN_PX - labelLeft;
-        }
+      if (labelRight > viewportRight - VIEWPORT_MARGIN_PX) {
+        edgeOffsetX = viewportRight - VIEWPORT_MARGIN_PX - labelRight;
+      }
+      if (labelLeft + edgeOffsetX < viewportLeft + VIEWPORT_MARGIN_PX) {
+        edgeOffsetX = viewportLeft + VIEWPORT_MARGIN_PX - labelLeft;
       }
 
       const totalHeightNeeded = labelHeight + actualArrowHeight + LABEL_GAP_PX;
@@ -322,7 +320,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   );
 
   const handleKeyDown = (event: KeyboardEvent) => {
-    if (event.isComposing || event.keyCode === IME_COMPOSING_KEY_CODE) {
+    if (isKeyboardEventComposing(event)) {
       return;
     }
 
@@ -391,7 +389,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
         ref={containerRef}
         data-react-grab-ignore-events
         data-react-grab-selection-label
-        class={cn("fixed font-sans text-[13px] antialiased select-none ease-out")}
+        class="fixed font-sans text-[13px] antialiased select-none"
         style={{
           top: `${positionComputation().position.top}px`,
           left: `${positionComputation().position.left}px`,

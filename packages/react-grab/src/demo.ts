@@ -19,10 +19,10 @@ import {
   DEMO_CURSOR_TIP_X_PX,
   DEMO_CURSOR_TIP_Y_PX,
   DEMO_TYPE_CHAR_MS,
-  REACT_GRAB_ATTRIBUTE_NAME,
   REACT_GRAB_INPUT_ATTRIBUTE,
   Z_INDEX_OVERLAY,
 } from "./constants.js";
+import { REACT_GRAB_ATTRIBUTE_NAME } from "./utils/react-grab-attribute-name.js";
 
 const CURSOR_SHADOW_FILTER_ID = "react-grab-demo-cursor-shadow";
 

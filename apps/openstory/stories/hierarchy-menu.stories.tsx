@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "openstory/solid";
 import { expect, waitFor } from "openstory/test";
-import { HierarchyMenu } from "react-grab/src/components/toolbar/hierarchy-menu.js";
-import type { HierarchyState, DropdownAnchor } from "react-grab/src/types.js";
+import { HierarchyMenu } from "@react-grab-source/components/toolbar/hierarchy-menu.js";
+import type { HierarchyState, DropdownAnchor } from "@react-grab-source/types.js";
 import { Canvas, TargetBox } from "./target-box.js";
 
 interface HierarchyMenuSceneProps {

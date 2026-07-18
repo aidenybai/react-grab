@@ -1,5 +1,6 @@
 import type { Component, JSX } from "solid-js";
 import { cn } from "../../utils/cn.js";
+import { isHorizontalEdge } from "../../utils/toolbar-position.js";
 import { IconChevron } from "../icons/icon-chevron.jsx";
 
 interface ToolbarContentProps {
@@ -19,7 +20,7 @@ interface ToolbarContentProps {
 
 export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
   const edge = () => props.snapEdge ?? "bottom";
-  const isVertical = () => edge() === "left" || edge() === "right";
+  const isVertical = () => !isHorizontalEdge(edge());
 
   const sizeDurationClass = () => (props.isCollapsed ? "duration-140" : "duration-220");
   const opacityEnterClass = "transition-opacity duration-180 ease-drawer delay-[80ms]";
@@ -64,30 +65,6 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
     if (!props.isChevronPressed) return undefined;
     return isVertical() ? "scale(0.97, 1)" : "scale(1, 0.97)";
   };
-
-  const defaultCollapseButton = () => (
-    <button
-      data-react-grab-ignore-events
-      data-react-grab-toolbar-collapse
-      aria-label={props.isCollapsed ? "Expand toolbar" : "Collapse toolbar"}
-      aria-expanded={!props.isCollapsed}
-      type="button"
-      class="group contain-layout shrink-0 flex items-center justify-center cursor-pointer interactive-scale a11y-hitbox"
-      onClick={props.onCollapseClick}
-      on:pointerdown={props.onCollapsePointerDown}
-      onPointerUp={props.onCollapsePointerUp}
-      onPointerLeave={props.onCollapsePointerLeave}
-      onPointerCancel={props.onCollapsePointerLeave}
-    >
-      <IconChevron
-        size={18}
-        class={cn(
-          "text-[var(--rg-text-secondary)] group-hover:text-[var(--rg-text-primary)] transition-[transform,color] duration-150 ease-drawer -m-0.5",
-          chevronRotation(),
-        )}
-      />
-    </button>
-  );
 
   const outerTransitionClass = () =>
     props.isChevronPressed
@@ -147,7 +124,27 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
           </div>
         </div>
       </div>
-      {defaultCollapseButton()}
+      <button
+        data-react-grab-ignore-events
+        data-react-grab-toolbar-collapse
+        aria-label={props.isCollapsed ? "Expand toolbar" : "Collapse toolbar"}
+        aria-expanded={!props.isCollapsed}
+        type="button"
+        class="group contain-layout shrink-0 flex items-center justify-center cursor-pointer interactive-scale a11y-hitbox"
+        onClick={props.onCollapseClick}
+        on:pointerdown={props.onCollapsePointerDown}
+        onPointerUp={props.onCollapsePointerUp}
+        onPointerLeave={props.onCollapsePointerLeave}
+        onPointerCancel={props.onCollapsePointerLeave}
+      >
+        <IconChevron
+          size={18}
+          class={cn(
+            "text-[var(--rg-text-secondary)] group-hover:text-[var(--rg-text-primary)] transition-[transform,color] duration-150 ease-drawer -m-0.5",
+            chevronRotation(),
+          )}
+        />
+      </button>
     </div>
   );
 };

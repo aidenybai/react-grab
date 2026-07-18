@@ -1,3 +1,4 @@
+import { fileURLToPath } from "node:url";
 import { defineConfig } from "vite";
 import solid from "vite-plugin-solid";
 import { openstory } from "openstory/plugin";
@@ -12,6 +13,11 @@ export default defineConfig({
     openstory({ framework: "solid" }),
   ],
   resolve: {
+    alias: {
+      "@react-grab-source": fileURLToPath(
+        new URL("../../packages/react-grab/src", import.meta.url),
+      ),
+    },
     dedupe: ["solid-js", "solid-js/web"],
   },
   define: {

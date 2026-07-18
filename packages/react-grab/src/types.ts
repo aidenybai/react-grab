@@ -652,7 +652,6 @@ export interface ArrowProps {
   position: ArrowPosition;
   leftPercent: number;
   leftOffsetPx: number;
-  color?: string;
   labelWidth?: number;
 }
 
@@ -724,7 +723,6 @@ export interface SelectionLabelProps {
   error?: string;
   onAcknowledgeError?: () => void;
   onRetry?: () => void;
-  isContextMenuOpen?: boolean;
   onShowContextMenu?: () => void;
   onHoverChange?: (isHovered: boolean) => void;
   hideArrow?: boolean;

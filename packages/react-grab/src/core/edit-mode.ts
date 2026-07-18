@@ -56,7 +56,7 @@ interface EditModeDependencies {
   onClose?: () => void;
 }
 
-export interface EditModeController {
+interface EditModeController {
   state: Accessor<EditPanelState | null>;
   trigger: (element: Element, position: Position, overrides?: EditModeOverrides) => boolean;
   switchToElement: (element: Element, position: Position) => boolean;

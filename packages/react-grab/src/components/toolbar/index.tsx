@@ -119,7 +119,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     },
   });
 
-  const isVertical = () => snapEdge() === "left" || snapEdge() === "right";
+  const isVertical = () => !isHorizontalEdge(snapEdge());
 
   const buttonSpacingClass = () => (isVertical() ? "mb-1.5" : "mr-1.5");
 
@@ -294,39 +294,28 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       : "text-[var(--rg-text-secondary)] group-hover:text-[var(--rg-text-primary)]";
 
   const handleToggleCollapse = drag.createDragAwareHandler(() => {
-    const rect = containerRef?.getBoundingClientRect();
-    const wasCollapsed = isCollapsed();
-    let newRatio = positionRatio();
+    if (isCollapsed()) {
+      expandToolbarFromCollapsed();
+      return;
+    }
 
-    if (wasCollapsed) {
-      const { position: expandedPosition, ratio } = getExpandedFromCollapsed(
-        currentPosition(),
-        snapEdge(),
-      );
-      newRatio = ratio;
-      setPosition(expandedPosition);
-      setPositionRatio(newRatio);
-    } else if (rect) {
+    const rect = containerRef?.getBoundingClientRect();
+    const currentRatio = positionRatio();
+    if (rect) {
       expandedDimensions = { width: rect.width, height: rect.height };
     }
 
     setIsCollapseAnimating(true);
-    setIsCollapsed((previousCollapsed) => !previousCollapsed);
+    setIsCollapsed(true);
 
     saveAndNotify({
       edge: snapEdge(),
-      ratio: newRatio,
-      collapsed: !wasCollapsed,
-      enabled: wasCollapsed,
+      ratio: currentRatio,
+      collapsed: true,
+      enabled: false,
     });
 
-    if (collapseAnimationTimeout) {
-      clearTimeout(collapseAnimationTimeout);
-    }
-    collapseAnimationTimeout = setTimeout(() => {
-      setIsCollapseAnimating(false);
-      captureDimensionsAfterAnimation();
-    }, TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS);
+    scheduleCollapseAnimationEnd();
   });
 
   const computeCollapsedPosition = (): Position =>
@@ -352,6 +341,34 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       expandedDimensions = { width: finalRect.width, height: finalRect.height };
       lastObservedExpandedSize = { width: finalRect.width, height: finalRect.height };
     }
+  };
+
+  const scheduleCollapseAnimationEnd = (): void => {
+    if (collapseAnimationTimeout) {
+      clearTimeout(collapseAnimationTimeout);
+    }
+    collapseAnimationTimeout = setTimeout(() => {
+      setIsCollapseAnimating(false);
+      captureDimensionsAfterAnimation();
+    }, TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS);
+  };
+
+  const expandToolbarFromCollapsed = (): void => {
+    const { position: expandedPosition, ratio: newRatio } = getExpandedFromCollapsed(
+      currentPosition(),
+      snapEdge(),
+    );
+    setPosition(expandedPosition);
+    setPositionRatio(newRatio);
+    setIsCollapseAnimating(true);
+    setIsCollapsed(false);
+    saveAndNotify({
+      edge: snapEdge(),
+      ratio: newRatio,
+      collapsed: false,
+      enabled: true,
+    });
+    scheduleCollapseAnimationEnd();
   };
 
   // The first onMount measurement can fire before the shadow DOM host is
@@ -507,19 +524,11 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
           );
           setPosition(expandedPosition);
           setPositionRatio(newRatio);
-          clearTimeout(collapseAnimationTimeout);
-          collapseAnimationTimeout = setTimeout(() => {
-            setIsCollapseAnimating(false);
-            captureDimensionsAfterAnimation();
-          }, TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS);
+          scheduleCollapseAnimationEnd();
         } else {
           if (didCollapsedChange) {
             setIsCollapseAnimating(true);
-            clearTimeout(collapseAnimationTimeout);
-            collapseAnimationTimeout = setTimeout(() => {
-              setIsCollapseAnimating(false);
-              captureDimensionsAfterAnimation();
-            }, TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS);
+            scheduleCollapseAnimationEnd();
           }
           setIsCollapsed(state.collapsed);
           const newPosition = getPositionFromEdgeAndRatio(
@@ -711,27 +720,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
         onPanelClick={(event) => {
           if (isCollapsed()) {
             event.stopPropagation();
-            const { position: expandedPosition, ratio: newRatio } = getExpandedFromCollapsed(
-              currentPosition(),
-              snapEdge(),
-            );
-            setPosition(expandedPosition);
-            setPositionRatio(newRatio);
-            setIsCollapseAnimating(true);
-            setIsCollapsed(false);
-            saveAndNotify({
-              edge: snapEdge(),
-              ratio: newRatio,
-              collapsed: false,
-              enabled: true,
-            });
-            if (collapseAnimationTimeout) {
-              clearTimeout(collapseAnimationTimeout);
-            }
-            collapseAnimationTimeout = setTimeout(() => {
-              setIsCollapseAnimating(false);
-              captureDimensionsAfterAnimation();
-            }, TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS);
+            expandToolbarFromCollapsed();
           }
         }}
         actionButtons={

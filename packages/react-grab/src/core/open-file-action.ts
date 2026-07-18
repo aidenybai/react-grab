@@ -3,6 +3,16 @@ import type { OpenFileActionHooks } from "../types.js";
 import { requestOpenFile } from "../utils/open-file.js";
 import { reportRecoverableError } from "../utils/report-recoverable-error.js";
 
+const reportOpenFileError = (
+  error: unknown,
+  filePath: string,
+  lineNumber: number | undefined,
+): void => {
+  reportRecoverableError(
+    error instanceof OpenFileError ? error : new OpenFileError(filePath, lineNumber, error),
+  );
+};
+
 export const executeOpenFileAction = (
   filePath: string,
   lineNumber: number | undefined,
@@ -12,13 +22,9 @@ export const executeOpenFileAction = (
     if (hooks.onOpenFile(filePath, lineNumber)) return;
 
     void requestOpenFile(filePath, lineNumber, hooks.transformOpenFileUrl).catch((error) => {
-      reportRecoverableError(
-        error instanceof OpenFileError ? error : new OpenFileError(filePath, lineNumber, error),
-      );
+      reportOpenFileError(error, filePath, lineNumber);
     });
   } catch (error) {
-    reportRecoverableError(
-      error instanceof OpenFileError ? error : new OpenFileError(filePath, lineNumber, error),
-    );
+    reportOpenFileError(error, filePath, lineNumber);
   }
 };

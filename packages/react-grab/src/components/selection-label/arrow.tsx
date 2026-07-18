@@ -4,7 +4,6 @@ import { PANEL_BACKGROUND, ARROW_TIP_RADIUS_PX, ARROW_PANEL_OVERLAP_PX } from ".
 import { getArrowSize } from "../../utils/get-arrow-size.js";
 
 export const Arrow: Component<ArrowProps> = (props) => {
-  const arrowColor = () => props.color ?? PANEL_BACKGROUND;
   const isBottom = () => props.position === "bottom";
   const arrowSize = () => getArrowSize(props.labelWidth ?? 0);
   const arrowWidth = () => arrowSize() * 2;
@@ -38,7 +37,7 @@ export const Arrow: Component<ArrowProps> = (props) => {
           : `translateX(-50%) translateY(calc(100% - ${ARROW_PANEL_OVERLAP_PX}px))`,
       }}
     >
-      <path d={tipPath()} fill={arrowColor()} />
+      <path d={tipPath()} fill={PANEL_BACKGROUND} />
     </svg>
   );
 };

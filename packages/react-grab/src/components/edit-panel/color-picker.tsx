@@ -1,9 +1,9 @@
 import { createSignal, onCleanup, onMount, Show, type Component } from "solid-js";
-import { IME_COMPOSING_KEY_CODE } from "../../constants.js";
 import { formatColorLabel } from "../../utils/format-color-label.js";
+import { isKeyboardEventComposing } from "../../utils/is-keyboard-event-composing.js";
 import { parseAnyColor } from "../../utils/parse-any-color.js";
 import { Input } from "../ui/input.js";
-import { EDIT_LABEL_CLASS } from "./constants.js";
+import { EDIT_LABEL_CLASS, EDIT_VALUE_CLASS } from "./constants.js";
 
 // Native <input type="color"> only accepts `#rrggbb` (no alpha, no
 // shorthand). Strip the alpha byte if present so the picker opens at
@@ -20,8 +20,6 @@ interface ColorPickerProps {
   onInteract?: () => void;
   emphasized?: boolean;
 }
-
-const HEX_CLASS = "text-[12px] leading-4 font-medium tabular-nums";
 
 export const ColorPicker: Component<ColorPickerProps> = (props) => {
   const [draftText, setDraftText] = createSignal<string | null>(null);
@@ -65,7 +63,7 @@ export const ColorPicker: Component<ColorPickerProps> = (props) => {
   };
 
   const handleHexKeyDown = (event: KeyboardEvent) => {
-    if (event.isComposing || event.keyCode === IME_COMPOSING_KEY_CODE) return;
+    if (isKeyboardEventComposing(event)) return;
     event.stopImmediatePropagation();
     if (event.key === "Enter") {
       event.preventDefault();
@@ -99,7 +97,7 @@ export const ColorPicker: Component<ColorPickerProps> = (props) => {
           when={isEditing()}
           fallback={
             <span
-              class={`${HEX_CLASS} text-[var(--rg-text-primary)] cursor-text`}
+              class={`${EDIT_VALUE_CLASS} text-[var(--rg-text-primary)] cursor-text`}
               data-react-grab-value={displayValue()}
               onPointerDown={(event) => event.stopPropagation()}
               onClick={(event) => {
@@ -116,7 +114,7 @@ export const ColorPicker: Component<ColorPickerProps> = (props) => {
             autoFocusSelect
             inputmode="text"
             aria-label="Style color hex"
-            class={`${HEX_CLASS} text-right`}
+            class={`${EDIT_VALUE_CLASS} text-right`}
             style={{
               "field-sizing": "content",
               "min-width": "32px",

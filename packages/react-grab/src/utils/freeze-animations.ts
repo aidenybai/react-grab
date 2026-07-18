@@ -1,4 +1,5 @@
 import { FROZEN_ELEMENT_ATTRIBUTE, WAAPI_GLOBAL_FREEZE_MAX_ANIMATIONS } from "../constants.js";
+import { areArraysShallowEqual } from "./are-arrays-shallow-equal.js";
 import { createStyleElement } from "./create-style-element.js";
 import { freezeGsap, unfreezeGsap } from "./freeze-gsap.js";
 import { isElementNode } from "./is-element-node.js";
@@ -57,10 +58,6 @@ const ensureStylesInjected = (): void => {
   if (styleElement) return;
   styleElement = createStyleElement("data-react-grab-frozen-styles", FROZEN_STYLES);
 };
-
-const areElementsSame = (firstElements: Element[], secondElements: Element[]): boolean =>
-  firstElements.length === secondElements.length &&
-  firstElements.every((currentElement, index) => currentElement === secondElements[index]);
 
 const collectFrozenSvgElements = (elements: Element[]): SVGSVGElement[] => {
   const svgElements = new Set<SVGSVGElement>();
@@ -178,7 +175,7 @@ const isShadowAnimation = (animation: Animation): boolean => {
 export const freezeAllAnimations = (elements: Element[]): void => {
   if (IS_DEMO) return;
   if (elements.length === 0) return;
-  if (areElementsSame(elements, lastInputElements)) return;
+  if (areArraysShallowEqual(elements, lastInputElements)) return;
 
   unfreezeAllAnimations();
   const elementSnapshot = [...elements];
