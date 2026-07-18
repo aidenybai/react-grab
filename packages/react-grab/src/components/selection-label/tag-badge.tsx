@@ -20,9 +20,9 @@ export const TagBadge: Component<TagBadgeProps> = (props) => {
   // toggling isClickable can make the label vanish (see solidjs/solid#2216,
   // solidjs/solid#2357).
   const renderTagLabel = () => (
-    <span class="text-[13px] leading-4 h-fit font-medium overflow-hidden text-ellipsis whitespace-nowrap min-w-0">
+    <span class="text-[var(--rg-text-primary)] text-[13px] leading-4 h-fit font-medium overflow-hidden text-ellipsis whitespace-nowrap min-w-0">
       <Show when={props.componentName}>
-        <span class="text-[var(--rg-text-primary)]">{props.componentName}</span>
+        <span>{props.componentName}</span>
         <span class="text-[var(--rg-text-secondary)]">.{props.tagName}</span>
       </Show>
       <Show when={!props.componentName}>
