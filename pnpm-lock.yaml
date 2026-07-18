@@ -198,8 +198,8 @@ importers:
   apps/openstory:
     dependencies:
       openstory:
-        specifier: ^0.0.16
-        version: 0.0.16(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)(@voidzero-dev/vite-plus-core@0.1.22(@types/node@25.6.2)(esbuild@0.27.7)(jiti@2.7.0)(terser@5.37.0)(tsx@4.21.0)(typescript@6.0.3)(yaml@2.8.4))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(solid-js@1.9.12)(typescript@6.0.3)
+        specifier: ^0.1.0
+        version: 0.1.0(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)(@voidzero-dev/vite-plus-core@0.1.22(@types/node@25.6.2)(esbuild@0.27.7)(jiti@2.7.0)(terser@5.37.0)(tsx@4.21.0)(typescript@6.0.3)(yaml@2.8.4))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(solid-js@1.9.12)(typescript@6.0.3)
     devDependencies:
       '@types/node':
         specifier: ^25.6.2
@@ -1369,12 +1369,6 @@ packages:
   '@mswjs/interceptors@0.41.8':
     resolution: {integrity: sha512-pRLMNKTSGRoLq+KnEB/7OY5vijw1XmcheAAOiv6pj7W1FG32kAGqj1C/RK/cqxRGr1Fh+zBi8sDur8kj3EQv6A==}
     engines: {node: '>=18'}
-
-  '@napi-rs/wasm-runtime@1.1.4':
-    resolution: {integrity: sha512-3NQNNgA1YSlJb/kMH1ildASP9HW7/7kYnRI2szWJaofaS1hWmbGI4H+d3+22aGzXXN9IJ+n+GiFVcGipJP18ow==}
-    peerDependencies:
-      '@emnapi/core': ^1.7.1
-      '@emnapi/runtime': ^1.7.1
 
   '@napi-rs/wasm-runtime@1.1.6':
     resolution: {integrity: sha512-ZLv/JdUfkvOy9eCnnBaGfiO+XimbjebAeO+MRQqD/B+FR1tnRN0tpKSJHRbE8sFfS6aqsXZ67TQjfwfsxULVbg==}
@@ -3536,9 +3530,6 @@ packages:
     resolution: {integrity: sha512-XoR4bsg62/L/esRVcmoMESEiNZ36+YmyjYGLpoqk8nwMgXzzVjNOgX0lRSz5w/U/ajLGv3nhMsS0Q2QOdvp2AQ==}
     cpu: [arm64]
     os: [win32]
-
-  '@tybys/wasm-util@0.10.2':
-    resolution: {integrity: sha512-RoBvJ2X0wuKlWFIjrwffGw1IqZHKQqzIchKaadZZfnNpsAYp2mM0h36JtPCjNDAHGgYez/15uMBpfGwchhiMgg==}
 
   '@tybys/wasm-util@0.10.3':
     resolution: {integrity: sha512-F3fo1MYrRJYL3zER0OUOmkutjr1Vp23m7OsSgp7nq4SP6OqX6C/56XFIPAl5bt3zaBRjmW7SGz3u/6LwFpYcOg==}
@@ -6397,11 +6388,14 @@ packages:
     resolution: {integrity: sha512-smsWv2LzFjP03xmvFoJ331ss6h+jixfA4UUV/Bsiyuu4YJPfN+FIQGOIiv4w9/+MoHkfkJ22UIaQWRVFRfH6Vw==}
     engines: {node: '>=20'}
 
-  openstory@0.0.16:
-    resolution: {integrity: sha512-Fo44Rgo8fbx7mRssZNZN53cLQsouSH64NKW/OoMHG8fXQR4cy0WDJQqkpmGfLOMShv7BvEFR4NJDJLE2UB5K5g==}
+  openstory@0.1.0:
+    resolution: {integrity: sha512-HVuSd8drAaTp3D81GcVJQecF34U/p+lUm56vMDdsRdzbyYCOnw+nvdrS3SQaLv+wa2AmrLkJqpzXDLZnJu5YSQ==}
     engines: {node: '>=20', pnpm: '>=10'}
     hasBin: true
     peerDependencies:
+      '@effect/platform-browser': 4.0.0-beta.66
+      effect: 4.0.0-beta.66
+      foldkit: '>=0.104.0'
       react: 19.2.6
       react-dom: 19.2.6
       solid-js: ^1.5.0
@@ -6410,6 +6404,12 @@ packages:
       vite: ^5.0.0 || ^6.0.0 || ^7.0.0
       vue: ^3.0.0
     peerDependenciesMeta:
+      '@effect/platform-browser':
+        optional: true
+      effect:
+        optional: true
+      foldkit:
+        optional: true
       react:
         optional: true
       react-dom:
@@ -9216,13 +9216,6 @@ snapshots:
       outvariant: 1.4.3
       strict-event-emitter: 0.5.1
 
-  '@napi-rs/wasm-runtime@1.1.4(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)':
-    dependencies:
-      '@emnapi/core': 1.11.1
-      '@emnapi/runtime': 1.11.1
-      '@tybys/wasm-util': 0.10.2
-    optional: true
-
   '@napi-rs/wasm-runtime@1.1.6(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)':
     dependencies:
       '@emnapi/core': 1.11.1
@@ -9634,7 +9627,7 @@ snapshots:
 
   '@oxc-parser/binding-wasm32-wasi@0.108.0(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)':
     dependencies:
-      '@napi-rs/wasm-runtime': 1.1.4(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)
+      '@napi-rs/wasm-runtime': 1.1.6(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)
     transitivePeerDependencies:
       - '@emnapi/core'
       - '@emnapi/runtime'
@@ -11245,11 +11238,6 @@ snapshots:
     optional: true
 
   '@turbo/windows-arm64@2.9.12':
-    optional: true
-
-  '@tybys/wasm-util@0.10.2':
-    dependencies:
-      tslib: 2.8.1
     optional: true
 
   '@tybys/wasm-util@0.10.3':
@@ -13990,7 +13978,7 @@ snapshots:
       powershell-utils: 0.1.0
       wsl-utils: 0.3.1
 
-  openstory@0.0.16(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)(@voidzero-dev/vite-plus-core@0.1.22(@types/node@25.6.2)(esbuild@0.27.7)(jiti@2.7.0)(terser@5.37.0)(tsx@4.21.0)(typescript@6.0.3)(yaml@2.8.4))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(solid-js@1.9.12)(typescript@6.0.3):
+  openstory@0.1.0(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)(@voidzero-dev/vite-plus-core@0.1.22(@types/node@25.6.2)(esbuild@0.27.7)(jiti@2.7.0)(terser@5.37.0)(tsx@4.21.0)(typescript@6.0.3)(yaml@2.8.4))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(solid-js@1.9.12)(typescript@6.0.3):
     dependencies:
       commander: 14.0.3
       fast-glob: 3.3.3
