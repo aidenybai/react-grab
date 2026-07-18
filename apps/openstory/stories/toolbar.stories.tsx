@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "openstory/solid";
 import { expect, waitFor } from "openstory/test";
 import { Toolbar } from "@react-grab-source/components/toolbar/index.js";
+import { getElementContext } from "@react-grab-source/primitives.js";
 import { Canvas } from "./target-box.js";
 import { noop } from "./noop.js";
 
@@ -49,6 +50,16 @@ const meta: Meta<ToolbarSceneProps> = {
     await waitFor(() => {
       expect(canvasElement.querySelector("[data-react-grab-toolbar]")).not.toBeNull();
     });
+    if (!import.meta.env.DEV) return;
+
+    const actionButton = canvasElement.querySelector("[data-react-grab-toolbar-action]");
+    expect(actionButton).toBeInstanceOf(HTMLButtonElement);
+    if (!(actionButton instanceof HTMLButtonElement)) return;
+
+    const elementContext = await getElementContext(actionButton);
+    expect(elementContext.filePath).toContain(
+      "packages/react-grab/src/components/toolbar/toolbar-action-button.tsx",
+    );
   },
   args: {
     isActive: false,

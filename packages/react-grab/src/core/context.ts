@@ -22,6 +22,7 @@ import { isNextProjectRuntime } from "../utils/is-next-project-runtime.js";
 import { formatComponentNameLines } from "../utils/format-component-name-lines.js";
 import { enrichServerFrameLocations, symbolicateServerFrames } from "./next-server-frames.js";
 import { runQueuedSourceFetch } from "../utils/source-fetch-queue.js";
+import { resolveSolidSourceLocation } from "../utils/resolve-solid-source-location.js";
 import { getHTMLPreview, getInlineHTMLPreview } from "./html-preview.js";
 import { isShadowRoot } from "../utils/is-shadow-root.js";
 import {
@@ -263,6 +264,11 @@ export const selectResolvedSource = (
 };
 
 export const resolveSource = async (element: Element): Promise<ResolvedSource | null> => {
+  if (process.env.REACT_GRAB_SOURCE_LOCATIONS === "true") {
+    const solidSourceLocation = resolveSolidSourceLocation(element);
+    if (solidSourceLocation) return { ...solidSourceLocation, origin: "app" };
+  }
+
   const fiberSource = await getCachedFiberSource(element);
   if (fiberSource?.origin === "app" && isTrustedAppSourcePath(fiberSource.filePath)) {
     return fiberSource;

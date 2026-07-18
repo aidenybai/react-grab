@@ -1,6 +1,7 @@
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig, type Plugin } from "vite";
+import { REACT_GRAB_DEVELOPMENT_ALIASES } from "../e2e-react-grab-development-aliases.js";
 
 // Holds a request open for ?ms (default 30s) so the @perf source-fetch bench can
 // saturate the browser's per-origin connection pool and make react-grab's source
@@ -20,7 +21,7 @@ const slowEndpointPlugin = (): Plugin => ({
   },
 });
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
   plugins: [react(), tailwindcss(), slowEndpointPlugin()],
   server: {
     port: 5175,
@@ -28,7 +29,8 @@ export default defineConfig({
   },
   resolve: {
     alias: {
+      ...(command === "serve" ? REACT_GRAB_DEVELOPMENT_ALIASES : {}),
       "@": "/src",
     },
   },
-});
+}));

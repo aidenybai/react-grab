@@ -30,6 +30,7 @@ const VITE_UPSTREAM_PRODUCTION_URL = "http://localhost:5182";
 const NEXT_DEVELOPMENT_SPEC_PATTERN = /next-(?!production-).*\.spec\.ts/;
 const VITE_PLUS_PRODUCTION_SPEC_PATTERN = /framework-production\.spec\.ts/;
 const FRAMEWORK_SPEC_PATTERN = /framework\/.*\.spec\.ts/;
+const SOLID_SOURCE_LOCATION_SPEC_PATTERN = /solid-source-location\.spec\.ts/;
 
 // The @perf bench (PERF_LABEL set by test-perf.yml) and coverage runs only
 // stimulate the Vite development app. Skip all other framework servers and
@@ -82,31 +83,35 @@ const vitePlusTouchProject: Project = {
 const vitePlusProductionProject: Project = {
   name: "vite-plus-production",
   use: { ...devices["Desktop Chrome"], baseURL: VITE_PLUS_PRODUCTION_URL },
-  testMatch: VITE_PLUS_PRODUCTION_SPEC_PATTERN,
+  testMatch: [VITE_PLUS_PRODUCTION_SPEC_PATTERN, SOLID_SOURCE_LOCATION_SPEC_PATTERN],
 };
 
 const viteUpstreamDevelopmentProject: Project = {
   name: "vite-upstream-development",
   use: { ...devices["Desktop Chrome"], baseURL: VITE_UPSTREAM_DEVELOPMENT_URL },
-  testMatch: FRAMEWORK_SPEC_PATTERN,
+  testMatch: [FRAMEWORK_SPEC_PATTERN, SOLID_SOURCE_LOCATION_SPEC_PATTERN],
 };
 
 const viteUpstreamProductionProject: Project = {
   name: "vite-upstream-production",
   use: { ...devices["Desktop Chrome"], baseURL: VITE_UPSTREAM_PRODUCTION_URL },
-  testMatch: FRAMEWORK_SPEC_PATTERN,
+  testMatch: [FRAMEWORK_SPEC_PATTERN, SOLID_SOURCE_LOCATION_SPEC_PATTERN],
 };
 
 const nextDevelopmentProject: Project = {
   name: "next-development",
   use: { ...devices["Desktop Chrome"], baseURL: NEXT_DEVELOPMENT_URL },
-  testMatch: [NEXT_DEVELOPMENT_SPEC_PATTERN, FRAMEWORK_SPEC_PATTERN],
+  testMatch: [
+    NEXT_DEVELOPMENT_SPEC_PATTERN,
+    FRAMEWORK_SPEC_PATTERN,
+    SOLID_SOURCE_LOCATION_SPEC_PATTERN,
+  ],
 };
 
 const nextProductionProject: Project = {
   name: "next-production",
   use: { ...devices["Desktop Chrome"], baseURL: NEXT_PRODUCTION_URL },
-  testMatch: FRAMEWORK_SPEC_PATTERN,
+  testMatch: [FRAMEWORK_SPEC_PATTERN, SOLID_SOURCE_LOCATION_SPEC_PATTERN],
 };
 
 const tanstackDevelopmentProject: Project = {
@@ -114,7 +119,7 @@ const tanstackDevelopmentProject: Project = {
   fullyParallel: false,
   workers: 1,
   use: { ...devices["Desktop Chrome"], baseURL: TANSTACK_DEVELOPMENT_URL },
-  testMatch: FRAMEWORK_SPEC_PATTERN,
+  testMatch: [FRAMEWORK_SPEC_PATTERN, SOLID_SOURCE_LOCATION_SPEC_PATTERN],
 };
 
 const tanstackProductionProject: Project = {
@@ -122,23 +127,26 @@ const tanstackProductionProject: Project = {
   fullyParallel: false,
   workers: 1,
   use: { ...devices["Desktop Chrome"], baseURL: TANSTACK_PRODUCTION_URL },
-  testMatch: FRAMEWORK_SPEC_PATTERN,
+  testMatch: [FRAMEWORK_SPEC_PATTERN, SOLID_SOURCE_LOCATION_SPEC_PATTERN],
 };
 
 // Under COVERAGE the dist must carry source maps (and stay unminified) so V8
 // byte ranges remap cleanly back onto src/*.ts(x).
-const reactGrabBuildCommand = isCoverageRun
+const reactGrabProductionBuildCommand = isCoverageRun
   ? "pnpm --filter react-grab build:coverage"
   : "pnpm --filter react-grab build";
+const reactGrabDevelopmentBuildCommand = isCoverageRun
+  ? "pnpm --filter react-grab build:e2e-development:coverage"
+  : "pnpm --filter react-grab build:e2e-development";
 
 const requestedEnvironment = shouldRunViteOnly
   ? "vite-plus-development"
   : process.env.E2E_ENVIRONMENT;
 const withRequestedEnvironmentBuild = (command: string): string =>
-  requestedEnvironment ? `${reactGrabBuildCommand} && ${command}` : command;
+  requestedEnvironment ? `${reactGrabProductionBuildCommand} && ${command}` : command;
 
 const vitePlusDevelopmentWebServer = {
-  command: `${reactGrabBuildCommand} && pnpm dev --port ${VITE_PLUS_DEVELOPMENT_PORT}`,
+  command: `${reactGrabDevelopmentBuildCommand} && pnpm dev --port ${VITE_PLUS_DEVELOPMENT_PORT}`,
   url: VITE_PLUS_DEVELOPMENT_URL,
   reuseExistingServer: !process.env.CI && !isCoverageRun,
   cwd: path.resolve(__dirname, "../../apps/e2e-app-vite"),
@@ -154,7 +162,7 @@ const vitePlusProductionWebServer = {
 };
 
 const viteUpstreamDevelopmentWebServer = {
-  command: withRequestedEnvironmentBuild("pnpm dev"),
+  command: requestedEnvironment ? `${reactGrabDevelopmentBuildCommand} && pnpm dev` : "pnpm dev",
   url: VITE_UPSTREAM_DEVELOPMENT_URL,
   reuseExistingServer: !process.env.CI && !isCoverageRun,
   cwd: path.resolve(__dirname, "../../apps/e2e-app-vite-upstream"),
@@ -170,7 +178,7 @@ const viteUpstreamProductionWebServer = {
 };
 
 const nextDevelopmentWebServer = {
-  command: withRequestedEnvironmentBuild("pnpm dev"),
+  command: requestedEnvironment ? `${reactGrabDevelopmentBuildCommand} && pnpm dev` : "pnpm dev",
   url: NEXT_DEVELOPMENT_URL,
   reuseExistingServer: !process.env.CI && !isCoverageRun,
   cwd: path.resolve(__dirname, "../../apps/e2e-app-next"),
@@ -188,7 +196,7 @@ const nextProductionWebServer = {
 };
 
 const tanstackDevelopmentWebServer = {
-  command: withRequestedEnvironmentBuild("pnpm dev"),
+  command: requestedEnvironment ? `${reactGrabDevelopmentBuildCommand} && pnpm dev` : "pnpm dev",
   url: TANSTACK_DEVELOPMENT_URL,
   reuseExistingServer: !process.env.CI && !isCoverageRun,
   cwd: path.resolve(__dirname, "../../apps/e2e-app-tanstack-start"),

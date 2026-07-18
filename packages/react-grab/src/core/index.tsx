@@ -4333,6 +4333,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         return {
           filePath: source.filePath,
           lineNumber: source.lineNumber,
+          columnNumber: source.columnNumber ?? null,
           componentName: source.componentName,
         };
       },

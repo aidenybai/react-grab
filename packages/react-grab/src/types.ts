@@ -443,6 +443,7 @@ export interface SettableOptions extends Options {
 export interface SourceInfo {
   filePath: string;
   lineNumber: number | null;
+  columnNumber: number | null;
   componentName: string | null;
 }
 

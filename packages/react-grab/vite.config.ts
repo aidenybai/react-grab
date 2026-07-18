@@ -3,6 +3,7 @@ import fs from "node:fs";
 import { defineConfig } from "vite-plus";
 import type { PackUserConfig } from "vite-plus/pack";
 import { cssTextPlugin, solidBabelPlugin, solidWebBrowserPlugin } from "./solid-babel-plugin.js";
+import { solidSourceLocationBabelPlugin } from "./solid-source-location-babel-plugin.js";
 
 const getCommitHash = (): string => {
   try {
@@ -35,13 +36,21 @@ const licenseBanner = `/**
 // process.env.IS_DEMO is a build-time constant. The library entries compile it
 // to "" (falsey) so every demo-only branch is dead-code-eliminated; the demo
 // entries compile it to "true" so the same source becomes a display-only build.
+const shouldInstrumentSolidSources = process.env.REACT_GRAB_SOURCE_LOCATIONS === "true";
 const createDefine = (isDemo: boolean) => ({
   "process.env.NODE_ENV": JSON.stringify(process.env.NODE_ENV ?? "development"),
   "process.env.VERSION": JSON.stringify(version),
   "process.env.IS_DEMO": JSON.stringify(isDemo ? "true" : ""),
+  "process.env.REACT_GRAB_SOURCE_LOCATIONS": JSON.stringify(
+    shouldInstrumentSolidSources ? "true" : "",
+  ),
 });
 
 const alwaysBundle = [/^solid-js/, /^bippy/];
+const createSolidBabelPlugin = () =>
+  solidBabelPlugin({
+    plugins: shouldInstrumentSolidSources ? [solidSourceLocationBabelPlugin] : [],
+  });
 
 // Fresh plugin instances per pack; the two shapes (browser IIFE global, neutral
 // cjs/esm module) share everything except entry/format/output, so they're built
@@ -61,7 +70,7 @@ const makeIifePack = (entry: string, globalName: string, isDemo: boolean): PackU
   },
   define: createDefine(isDemo),
   deps: { alwaysBundle },
-  plugins: [solidWebBrowserPlugin(), cssTextPlugin(), solidBabelPlugin()],
+  plugins: [solidWebBrowserPlugin(), cssTextPlugin(), createSolidBabelPlugin()],
 });
 
 const makeModulePack = (entry: string[], isDemo: boolean): PackUserConfig => ({
@@ -75,7 +84,7 @@ const makeModulePack = (entry: string[], isDemo: boolean): PackUserConfig => ({
   banner: licenseBanner,
   define: createDefine(isDemo),
   deps: { alwaysBundle },
-  plugins: [solidWebBrowserPlugin(), cssTextPlugin(), solidBabelPlugin()],
+  plugins: [solidWebBrowserPlugin(), cssTextPlugin(), createSolidBabelPlugin()],
 });
 
 // The demo build is opt-in: `IS_DEMO=true` (via `pnpm build:demo`) emits the
