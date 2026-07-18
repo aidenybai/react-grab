@@ -23,6 +23,9 @@ importers:
       '@types/node':
         specifier: ^25.6.2
         version: 25.6.2
+      picomatch:
+        specifier: ^4.0.4
+        version: 4.0.4
       turbo:
         specifier: ^2.9.12
         version: 2.9.12
