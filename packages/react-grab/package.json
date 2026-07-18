@@ -69,6 +69,27 @@
         "default": "./dist/primitives.cjs"
       }
     },
+    "./targets": {
+      "import": {
+        "types": "./dist/targets.d.ts",
+        "default": "./dist/targets.js"
+      },
+      "require": {
+        "types": "./dist/targets.d.cts",
+        "default": "./dist/targets.cjs"
+      }
+    },
+    "./web-target-adapter": {
+      "import": {
+        "types": "./dist/web-target-adapter.d.ts",
+        "default": "./dist/web-target-adapter.js"
+      },
+      "require": {
+        "types": "./dist/web-target-adapter.d.cts",
+        "default": "./dist/web-target-adapter.cjs"
+      }
+    },
+    "./src/*": "./src/*",
     "./styles.css": "./dist/styles.css",
     "./dist/styles.css": "./dist/styles.css",
     "./dist/*": "./dist/*.js",
@@ -124,6 +145,7 @@
     "babel-preset-solid": "^1.9.12",
     "concurrently": "^9.2.1",
     "expect-sdk": "^0.1.2",
+    "happy-dom": "^20.10.6",
     "solid-js": "^1.9.12",
     "tailwindcss": "^4.3.0",
     "tsx": "^4.21.0",

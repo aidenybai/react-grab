@@ -11,6 +11,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@react-grab/native": "workspace:*",
     "react": "19.2.6",
     "react-native": "0.81.5"
   },

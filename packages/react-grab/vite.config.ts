@@ -95,7 +95,16 @@ const includeDemoBuild = process.env.IS_DEMO === "true";
 export default defineConfig({
   pack: [
     makeIifePack("./src/index.ts", "globalThis.__REACT_GRAB_MODULE__", false),
-    makeModulePack(["./src/index.ts", "./src/core/index.tsx", "./src/primitives.ts"], false),
+    makeModulePack(
+      [
+        "./src/index.ts",
+        "./src/core/index.tsx",
+        "./src/primitives.ts",
+        "./src/targets.ts",
+        "./src/web-target-adapter.ts",
+      ],
+      false,
+    ),
     ...(includeDemoBuild
       ? [
           makeIifePack("./src/demo.ts", "globalThis.__REACT_GRAB_DEMO_MODULE__", true),
