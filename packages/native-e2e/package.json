@@ -13,7 +13,7 @@
     "@jest/globals": "^30.4.1",
     "@types/jest": "^30.0.0",
     "detox": "^20.51.4",
-    "jest": "^30.4.2",
+    "jest": "^30.4.1",
     "ts-jest": "^29.4.11",
     "typescript": "^5.9.3"
   }

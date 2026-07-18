@@ -446,13 +446,13 @@ importers:
         version: 30.0.0
       detox:
         specifier: ^20.51.4
-        version: 20.51.4(@jest/environment@30.4.1)(@jest/types@30.4.1)(expect@30.4.1)(jest-environment-node@30.4.1)(jest@30.4.2(@types/node@26.1.1)(node-notifier@10.0.1))
+        version: 20.51.4(@jest/environment@30.4.1)(@jest/types@30.4.1)(expect@30.4.1)(jest-environment-node@30.4.1)(jest@30.4.1(@types/node@26.1.1)(node-notifier@10.0.1))
       jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@26.1.1)(node-notifier@10.0.1)
+        specifier: ^30.4.1
+        version: 30.4.1(@types/node@26.1.1)(node-notifier@10.0.1)
       ts-jest:
         specifier: ^29.4.11
-        version: 29.4.11(@babel/core@7.29.0)(@jest/transform@30.4.1)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.0))(esbuild@0.27.7)(jest-util@30.4.1)(jest@30.4.2(@types/node@26.1.1)(node-notifier@10.0.1))(typescript@5.9.3)
+        version: 29.4.11(@babel/core@7.29.0)(@jest/transform@30.4.1)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.0))(esbuild@0.27.7)(jest-util@30.4.1)(jest@30.4.1(@types/node@26.1.1)(node-notifier@10.0.1))(typescript@5.9.3)
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -2205,6 +2205,15 @@ packages:
   '@jest/console@30.4.1':
     resolution: {integrity: sha512-v3bhyxUh9Hgmo5p6hAOXe14/R3ZxZDOsvHleh4B07z3m/x4/ngPUXEm9XwK4sF4u+f+P2ORb0Ge+MgpaqRMVDA==}
     engines: {node: ^18.14.0 || ^20.0.0 || ^22.0.0 || >=24.0.0}
+
+  '@jest/core@30.4.1':
+    resolution: {integrity: sha512-zNfBGtukVyc0ClmSzXgeP6eseumdekHfrqa++GsPK8ZUm9Hm3TY8X8LQvGfZVrp23RSz9ebbcruXnAv3no0Q+g==}
+    engines: {node: ^18.14.0 || ^20.0.0 || ^22.0.0 || >=24.0.0}
+    peerDependencies:
+      node-notifier: ^8.0.1 || ^9.0.0 || ^10.0.0
+    peerDependenciesMeta:
+      node-notifier:
+        optional: true
 
   '@jest/core@30.4.2':
     resolution: {integrity: sha512-TZJA6cPJUFxoWhxaLo8t0VX/MZX2wPWr0uIDvLSHIvN4gu9h02vSzqI2kBADG1ExqQlC+cY09xKMSreivvrChQ==}
@@ -8328,9 +8337,23 @@ packages:
     resolution: {integrity: sha512-IuctmYrxi21iOSOaIXpJWalHyPAsVv0GeBHKDn8C1CA4W5htHn7INL+wdnL4Bo0+olEndvAFkmb++tIQJG+vvg==}
     engines: {node: ^18.14.0 || ^20.0.0 || ^22.0.0 || >=24.0.0}
 
+  jest-circus@30.4.1:
+    resolution: {integrity: sha512-kcCeuPX8Kh6TSujMOIzaAXWvvr41LFlbhLyEYzcc8doXIuGdX+hOxSxbAH7sJItvi1H2ZOU5B3ujD3FLiX5e4g==}
+    engines: {node: ^18.14.0 || ^20.0.0 || ^22.0.0 || >=24.0.0}
+
   jest-circus@30.4.2:
     resolution: {integrity: sha512-rvHH7VlY6LgbJXJTQ87GW62g1FntOtbhh0zT+v04kC+pgL6aBKyYINXxWukCpj3dcIBMw5/XUbtDS9dU9JTXeQ==}
     engines: {node: ^18.14.0 || ^20.0.0 || ^22.0.0 || >=24.0.0}
+
+  jest-cli@30.4.1:
+    resolution: {integrity: sha512-wh86tmU2ak4aqaVg4Y+OwNys9Plrh4478+o8Zapeo8iz95uwW/WY+A4Yb3pd6C3ilHhY+Ue6V+yDM8G+zUDX+A==}
+    engines: {node: ^18.14.0 || ^20.0.0 || ^22.0.0 || >=24.0.0}
+    hasBin: true
+    peerDependencies:
+      node-notifier: ^8.0.1 || ^9.0.0 || ^10.0.0
+    peerDependenciesMeta:
+      node-notifier:
+        optional: true
 
   jest-cli@30.4.2:
     resolution: {integrity: sha512-jfA2ocvVHMXS2QijrJ0d31ektP+d/W0T5RpcTX2Pq+3sVqHlsXVCM2+FmwpL+bdY8OfHpIg9xMxLF17Zg0U49Q==}
@@ -8340,6 +8363,21 @@ packages:
       node-notifier: ^8.0.1 || ^9.0.0 || ^10.0.0
     peerDependenciesMeta:
       node-notifier:
+        optional: true
+
+  jest-config@30.4.1:
+    resolution: {integrity: sha512-AHAI8llsQFfz3oE6/AcBrP7tJdVnqczmBvnXONO8RWRqKefLaxKmkIUq0otc+QTZ/0gxBP7wBLfh6caMmNZcLA==}
+    engines: {node: ^18.14.0 || ^20.0.0 || ^22.0.0 || >=24.0.0}
+    peerDependencies:
+      '@types/node': '*'
+      esbuild-register: '>=3.4.0'
+      ts-node: '>=9.0.0'
+    peerDependenciesMeta:
+      '@types/node':
+        optional: true
+      esbuild-register:
+        optional: true
+      ts-node:
         optional: true
 
   jest-config@30.4.2:
@@ -8451,6 +8489,10 @@ packages:
     resolution: {integrity: sha512-mWlvLviKIgIQ8VCuM1xRdD0TWp3zlzionlmDBjuXVBs+VkmXq6FgW9T4Emr7oGz/Rk6feDCGyiugolcQEyp3mg==}
     engines: {node: ^18.14.0 || ^20.0.0 || ^22.0.0 || >=24.0.0}
 
+  jest-resolve-dependencies@30.4.1:
+    resolution: {integrity: sha512-MstV4pRIfUBs9kuMHSzYHPMPYHqQGoknfRv6tEEpOX7755aaK4Hk5ICwTtOHyjCc3+hYMoxnKF3ENu3iayEIog==}
+    engines: {node: ^18.14.0 || ^20.0.0 || ^22.0.0 || >=24.0.0}
+
   jest-resolve-dependencies@30.4.2:
     resolution: {integrity: sha512-gDiVh1I+GxYzz9oXlyw+1wv6VOYX1WYxMOfjsA3iGKePV2oxmbHhwxfkALxNxYy1ciw6APWwkW2zZONwP97aEQ==}
     engines: {node: ^18.14.0 || ^20.0.0 || ^22.0.0 || >=24.0.0}
@@ -8459,8 +8501,16 @@ packages:
     resolution: {integrity: sha512-Zry8Yq/yJcNAZ7dJ5F2heic8AheXvbFZ7XI5V+h28nrYZ7Qoyy4dItq8OodjnYD270mvX+ZudmrNV9cysqhW5Q==}
     engines: {node: ^18.14.0 || ^20.0.0 || ^22.0.0 || >=24.0.0}
 
+  jest-runner@30.4.1:
+    resolution: {integrity: sha512-NbStoXGdqMuYF8m7NEQ6FH2gH4eTvcSyz7BINLLuGacdAKtlsDa7PzPSZUtyiBfdMycO2Yeyn3ibfzUl2plRjA==}
+    engines: {node: ^18.14.0 || ^20.0.0 || ^22.0.0 || >=24.0.0}
+
   jest-runner@30.4.2:
     resolution: {integrity: sha512-2dw0PslVYXxffXGpLo+Ejad+KcI1Qkjn7f4X4619gf21oCUmL+SPfjqIa/losUem3yEOvfNZe/F1HWUcNpODcg==}
+    engines: {node: ^18.14.0 || ^20.0.0 || ^22.0.0 || >=24.0.0}
+
+  jest-runtime@30.4.1:
+    resolution: {integrity: sha512-Ityu3lzs8+it7ABsi7N52Px3Ic1az9w+sBkP/r1xK5MaIq1BdYkYonftpwtX5AtibDSFrKTNEW9KLUXAynXIcA==}
     engines: {node: ^18.14.0 || ^20.0.0 || ^22.0.0 || >=24.0.0}
 
   jest-runtime@30.4.2:
@@ -8498,6 +8548,16 @@ packages:
   jest-worker@30.4.1:
     resolution: {integrity: sha512-SHynN/q/QD++iNyvMdy+WMmbCGk8jIsNcRxycXbWubSOhvo6T+j2afcfUSl+3hYsiBebOTo0cT7c2H7CXugu1g==}
     engines: {node: ^18.14.0 || ^20.0.0 || ^22.0.0 || >=24.0.0}
+
+  jest@30.4.1:
+    resolution: {integrity: sha512-ZXSQlP2bAgIq0XmJ49HNmrgXSoWoHEzciSw3YhPbOA3gVMl3CyLdHjbpV+dbR7ggOVwSEo4cl5OOaYwRrmWqEA==}
+    engines: {node: ^18.14.0 || ^20.0.0 || ^22.0.0 || >=24.0.0}
+    hasBin: true
+    peerDependencies:
+      node-notifier: ^8.0.1 || ^9.0.0 || ^10.0.0
+    peerDependenciesMeta:
+      node-notifier:
+        optional: true
 
   jest@30.4.2:
     resolution: {integrity: sha512-Yi1jqNC/Oq0N4hBgNH/YvBpP1P57QqundgytzYqy3yqAa7NZPNjSoi4SGbRAXDMdBzNE6xBCi5U7RgfrvMEUVQ==}
@@ -14288,6 +14348,44 @@ snapshots:
       jest-util: 30.4.1
       slash: 3.0.0
 
+  '@jest/core@30.4.1(node-notifier@10.0.1)':
+    dependencies:
+      '@jest/console': 30.4.1
+      '@jest/pattern': 30.4.0
+      '@jest/reporters': 30.4.1(node-notifier@10.0.1)
+      '@jest/test-result': 30.4.1
+      '@jest/transform': 30.4.1
+      '@jest/types': 30.4.1
+      '@types/node': 26.1.1
+      ansi-escapes: 4.3.2
+      chalk: 4.1.2
+      ci-info: 4.4.0
+      exit-x: 0.2.2
+      fast-json-stable-stringify: 2.1.0
+      graceful-fs: 4.2.11
+      jest-changed-files: 30.4.1
+      jest-config: 30.4.1(@types/node@26.1.1)
+      jest-haste-map: 30.4.1
+      jest-message-util: 30.4.1
+      jest-regex-util: 30.4.0
+      jest-resolve: 30.4.1
+      jest-resolve-dependencies: 30.4.1
+      jest-runner: 30.4.1
+      jest-runtime: 30.4.1
+      jest-snapshot: 30.4.1
+      jest-util: 30.4.1
+      jest-validate: 30.4.1
+      jest-watcher: 30.4.1
+      pretty-format: 30.4.1
+      slash: 3.0.0
+    optionalDependencies:
+      node-notifier: 10.0.1
+    transitivePeerDependencies:
+      - babel-plugin-macros
+      - esbuild-register
+      - supports-color
+      - ts-node
+
   '@jest/core@30.4.2(node-notifier@10.0.1)':
     dependencies:
       '@jest/console': 30.4.1
@@ -14325,6 +14423,7 @@ snapshots:
       - esbuild-register
       - supports-color
       - ts-node
+    optional: true
 
   '@jest/create-cache-key-function@29.7.0':
     dependencies:
@@ -14661,7 +14760,7 @@ snapshots:
       pkce-challenge: 5.0.1
       raw-body: 3.0.2
       zod: 3.25.76
-      zod-to-json-schema: 3.25.2(zod@3.25.76)
+      zod-to-json-schema: 3.25.2(zod@4.4.3)
     transitivePeerDependencies:
       - supports-color
 
@@ -14683,7 +14782,7 @@ snapshots:
       pkce-challenge: 5.0.1
       raw-body: 3.0.2
       zod: 4.4.3
-      zod-to-json-schema: 3.25.2(zod@4.4.3)
+      zod-to-json-schema: 3.25.2(zod@3.25.76)
     transitivePeerDependencies:
       - supports-color
 
@@ -16303,9 +16402,7 @@ snapshots:
       serve-static: 1.16.3
       ws: 6.2.6
     transitivePeerDependencies:
-      - bufferutil
       - supports-color
-      - utf-8-validate
 
   '@react-native-community/cli-tools@20.0.0':
     dependencies:
@@ -17844,10 +17941,10 @@ snapshots:
     optionalDependencies:
       expect: 30.4.1
 
-  '@wix-pilot/detox@1.0.13(@wix-pilot/core@3.4.2(expect@30.4.1))(detox@20.51.4(@jest/environment@30.4.1)(@jest/types@30.4.1)(expect@30.4.1)(jest-environment-node@30.4.1)(jest@30.4.2(@types/node@26.1.1)(node-notifier@10.0.1)))(expect@30.4.1)':
+  '@wix-pilot/detox@1.0.13(@wix-pilot/core@3.4.2(expect@30.4.1))(detox@20.51.4(@jest/environment@30.4.1)(@jest/types@30.4.1)(expect@30.4.1)(jest-environment-node@30.4.1)(jest@30.4.1(@types/node@26.1.1)(node-notifier@10.0.1)))(expect@30.4.1)':
     dependencies:
       '@wix-pilot/core': 3.4.2(expect@30.4.1)
-      detox: 20.51.4(@jest/environment@30.4.1)(@jest/types@30.4.1)(expect@30.4.1)(jest-environment-node@30.4.1)(jest@30.4.2(@types/node@26.1.1)(node-notifier@10.0.1))
+      detox: 20.51.4(@jest/environment@30.4.1)(@jest/types@30.4.1)(expect@30.4.1)(jest-environment-node@30.4.1)(jest@30.4.1(@types/node@26.1.1)(node-notifier@10.0.1))
       expect: 30.4.1
 
   '@xmldom/xmldom@0.8.13': {}
@@ -19116,10 +19213,10 @@ snapshots:
 
   detect-node-es@1.1.0: {}
 
-  detox@20.51.4(@jest/environment@30.4.1)(@jest/types@30.4.1)(expect@30.4.1)(jest-environment-node@30.4.1)(jest@30.4.2(@types/node@26.1.1)(node-notifier@10.0.1)):
+  detox@20.51.4(@jest/environment@30.4.1)(@jest/types@30.4.1)(expect@30.4.1)(jest-environment-node@30.4.1)(jest@30.4.1(@types/node@26.1.1)(node-notifier@10.0.1)):
     dependencies:
       '@wix-pilot/core': 3.4.2(expect@30.4.1)
-      '@wix-pilot/detox': 1.0.13(@wix-pilot/core@3.4.2(expect@30.4.1))(detox@20.51.4(@jest/environment@30.4.1)(@jest/types@30.4.1)(expect@30.4.1)(jest-environment-node@30.4.1)(jest@30.4.2(@types/node@26.1.1)(node-notifier@10.0.1)))(expect@30.4.1)
+      '@wix-pilot/detox': 1.0.13(@wix-pilot/core@3.4.2(expect@30.4.1))(detox@20.51.4(@jest/environment@30.4.1)(@jest/types@30.4.1)(expect@30.4.1)(jest-environment-node@30.4.1)(jest@30.4.1(@types/node@26.1.1)(node-notifier@10.0.1)))(expect@30.4.1)
       ajv: 8.20.0
       bunyan: 1.8.15
       bunyan-debug-stream: 3.1.1(bunyan@1.8.15)
@@ -19131,7 +19228,7 @@ snapshots:
       funpermaproxy: 1.1.0
       glob: 8.1.0
       ini: 1.3.8
-      jest-environment-emit: 1.2.0(@jest/environment@30.4.1)(@jest/types@30.4.1)(jest-environment-node@30.4.1)(jest@30.4.2(@types/node@26.1.1)(node-notifier@10.0.1))
+      jest-environment-emit: 1.2.0(@jest/environment@30.4.1)(@jest/types@30.4.1)(jest-environment-node@30.4.1)(jest@30.4.1(@types/node@26.1.1)(node-notifier@10.0.1))
       json-cycle: 1.5.0
       lodash: 4.18.1
       multi-sort-stream: 1.0.4
@@ -19156,7 +19253,7 @@ snapshots:
       yargs-parser: 21.1.1
       yargs-unparser: 2.0.0
     optionalDependencies:
-      jest: 30.4.2(@types/node@26.1.1)(node-notifier@10.0.1)
+      jest: 30.4.1(@types/node@26.1.1)(node-notifier@10.0.1)
     transitivePeerDependencies:
       - '@jest/environment'
       - '@jest/types'
@@ -21090,6 +21187,32 @@ snapshots:
       jest-util: 30.4.1
       p-limit: 3.1.0
 
+  jest-circus@30.4.1:
+    dependencies:
+      '@jest/environment': 30.4.1
+      '@jest/expect': 30.4.1
+      '@jest/test-result': 30.4.1
+      '@jest/types': 30.4.1
+      '@types/node': 26.1.1
+      chalk: 4.1.2
+      co: 4.6.0
+      dedent: 1.7.2
+      is-generator-fn: 2.1.0
+      jest-each: 30.4.1
+      jest-matcher-utils: 30.4.1
+      jest-message-util: 30.4.1
+      jest-runtime: 30.4.1
+      jest-snapshot: 30.4.1
+      jest-util: 30.4.1
+      p-limit: 3.1.0
+      pretty-format: 30.4.1
+      pure-rand: 7.0.1
+      slash: 3.0.0
+      stack-utils: 2.0.6
+    transitivePeerDependencies:
+      - babel-plugin-macros
+      - supports-color
+
   jest-circus@30.4.2:
     dependencies:
       '@jest/environment': 30.4.1
@@ -21115,6 +21238,28 @@ snapshots:
     transitivePeerDependencies:
       - babel-plugin-macros
       - supports-color
+    optional: true
+
+  jest-cli@30.4.1(@types/node@26.1.1)(node-notifier@10.0.1):
+    dependencies:
+      '@jest/core': 30.4.1(node-notifier@10.0.1)
+      '@jest/test-result': 30.4.1
+      '@jest/types': 30.4.1
+      chalk: 4.1.2
+      exit-x: 0.2.2
+      import-local: 3.2.0
+      jest-config: 30.4.1(@types/node@26.1.1)
+      jest-util: 30.4.1
+      jest-validate: 30.4.1
+      yargs: 17.7.2
+    optionalDependencies:
+      node-notifier: 10.0.1
+    transitivePeerDependencies:
+      - '@types/node'
+      - babel-plugin-macros
+      - esbuild-register
+      - supports-color
+      - ts-node
 
   jest-cli@30.4.2(@types/node@26.1.1)(node-notifier@10.0.1):
     dependencies:
@@ -21136,6 +21281,38 @@ snapshots:
       - esbuild-register
       - supports-color
       - ts-node
+    optional: true
+
+  jest-config@30.4.1(@types/node@26.1.1):
+    dependencies:
+      '@babel/core': 7.29.0
+      '@jest/get-type': 30.1.0
+      '@jest/pattern': 30.4.0
+      '@jest/test-sequencer': 30.4.1
+      '@jest/types': 30.4.1
+      babel-jest: 30.4.1(@babel/core@7.29.0)
+      chalk: 4.1.2
+      ci-info: 4.4.0
+      deepmerge: 4.3.1
+      glob: 10.5.0
+      graceful-fs: 4.2.11
+      jest-circus: 30.4.1
+      jest-docblock: 30.4.0
+      jest-environment-node: 30.4.1
+      jest-regex-util: 30.4.0
+      jest-resolve: 30.4.1
+      jest-runner: 30.4.1
+      jest-util: 30.4.1
+      jest-validate: 30.4.1
+      parse-json: 5.2.0
+      pretty-format: 30.4.1
+      slash: 3.0.0
+      strip-json-comments: 3.1.1
+    optionalDependencies:
+      '@types/node': 26.1.1
+    transitivePeerDependencies:
+      - babel-plugin-macros
+      - supports-color
 
   jest-config@30.4.2(@types/node@26.1.1):
     dependencies:
@@ -21167,6 +21344,7 @@ snapshots:
     transitivePeerDependencies:
       - babel-plugin-macros
       - supports-color
+    optional: true
 
   jest-diff@30.4.1:
     dependencies:
@@ -21187,7 +21365,7 @@ snapshots:
       jest-util: 30.4.1
       pretty-format: 30.4.1
 
-  jest-environment-emit@1.2.0(@jest/environment@30.4.1)(@jest/types@30.4.1)(jest-environment-node@30.4.1)(jest@30.4.2(@types/node@26.1.1)(node-notifier@10.0.1)):
+  jest-environment-emit@1.2.0(@jest/environment@30.4.1)(@jest/types@30.4.1)(jest-environment-node@30.4.1)(jest@30.4.1(@types/node@26.1.1)(node-notifier@10.0.1)):
     dependencies:
       bunyamin: 1.6.3(bunyan@2.0.5)
       bunyan: 2.0.5
@@ -21200,7 +21378,7 @@ snapshots:
     optionalDependencies:
       '@jest/environment': 30.4.1
       '@jest/types': 30.4.1
-      jest: 30.4.2(@types/node@26.1.1)(node-notifier@10.0.1)
+      jest: 30.4.1(@types/node@26.1.1)(node-notifier@10.0.1)
       jest-environment-node: 30.4.1
     transitivePeerDependencies:
       - '@types/bunyan'
@@ -21314,12 +21492,20 @@ snapshots:
 
   jest-regex-util@30.4.0: {}
 
+  jest-resolve-dependencies@30.4.1:
+    dependencies:
+      jest-regex-util: 30.4.0
+      jest-snapshot: 30.4.1
+    transitivePeerDependencies:
+      - supports-color
+
   jest-resolve-dependencies@30.4.2:
     dependencies:
       jest-regex-util: 30.4.0
       jest-snapshot: 30.4.1
     transitivePeerDependencies:
       - supports-color
+    optional: true
 
   jest-resolve@30.4.1:
     dependencies:
@@ -21331,6 +21517,33 @@ snapshots:
       jest-validate: 30.4.1
       slash: 3.0.0
       unrs-resolver: 1.12.2
+
+  jest-runner@30.4.1:
+    dependencies:
+      '@jest/console': 30.4.1
+      '@jest/environment': 30.4.1
+      '@jest/test-result': 30.4.1
+      '@jest/transform': 30.4.1
+      '@jest/types': 30.4.1
+      '@types/node': 26.1.1
+      chalk: 4.1.2
+      emittery: 0.13.1
+      exit-x: 0.2.2
+      graceful-fs: 4.2.11
+      jest-docblock: 30.4.0
+      jest-environment-node: 30.4.1
+      jest-haste-map: 30.4.1
+      jest-leak-detector: 30.4.1
+      jest-message-util: 30.4.1
+      jest-resolve: 30.4.1
+      jest-runtime: 30.4.1
+      jest-util: 30.4.1
+      jest-watcher: 30.4.1
+      jest-worker: 30.4.1
+      p-limit: 3.1.0
+      source-map-support: 0.5.13
+    transitivePeerDependencies:
+      - supports-color
 
   jest-runner@30.4.2:
     dependencies:
@@ -21356,6 +21569,34 @@ snapshots:
       jest-worker: 30.4.1
       p-limit: 3.1.0
       source-map-support: 0.5.13
+    transitivePeerDependencies:
+      - supports-color
+    optional: true
+
+  jest-runtime@30.4.1:
+    dependencies:
+      '@jest/environment': 30.4.1
+      '@jest/fake-timers': 30.4.1
+      '@jest/globals': 30.4.1
+      '@jest/source-map': 30.0.1
+      '@jest/test-result': 30.4.1
+      '@jest/transform': 30.4.1
+      '@jest/types': 30.4.1
+      '@types/node': 26.1.1
+      chalk: 4.1.2
+      cjs-module-lexer: 2.2.0
+      collect-v8-coverage: 1.0.3
+      glob: 10.5.0
+      graceful-fs: 4.2.11
+      jest-haste-map: 30.4.1
+      jest-message-util: 30.4.1
+      jest-mock: 30.4.1
+      jest-regex-util: 30.4.0
+      jest-resolve: 30.4.1
+      jest-snapshot: 30.4.1
+      jest-util: 30.4.1
+      slash: 3.0.0
+      strip-bom: 4.0.0
     transitivePeerDependencies:
       - supports-color
 
@@ -21385,6 +21626,7 @@ snapshots:
       strip-bom: 4.0.0
     transitivePeerDependencies:
       - supports-color
+    optional: true
 
   jest-snapshot@30.4.1:
     dependencies:
@@ -21474,6 +21716,21 @@ snapshots:
       merge-stream: 2.0.0
       supports-color: 8.1.1
 
+  jest@30.4.1(@types/node@26.1.1)(node-notifier@10.0.1):
+    dependencies:
+      '@jest/core': 30.4.1(node-notifier@10.0.1)
+      '@jest/types': 30.4.1
+      import-local: 3.2.0
+      jest-cli: 30.4.1(@types/node@26.1.1)(node-notifier@10.0.1)
+    optionalDependencies:
+      node-notifier: 10.0.1
+    transitivePeerDependencies:
+      - '@types/node'
+      - babel-plugin-macros
+      - esbuild-register
+      - supports-color
+      - ts-node
+
   jest@30.4.2(@types/node@26.1.1)(node-notifier@10.0.1):
     dependencies:
       '@jest/core': 30.4.2(node-notifier@10.0.1)
@@ -21488,6 +21745,7 @@ snapshots:
       - esbuild-register
       - supports-color
       - ts-node
+    optional: true
 
   jimp-compact@0.16.1: {}
 
@@ -24778,12 +25036,12 @@ snapshots:
 
   ts-interface-checker@0.1.13: {}
 
-  ts-jest@29.4.11(@babel/core@7.29.0)(@jest/transform@30.4.1)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.0))(esbuild@0.27.7)(jest-util@30.4.1)(jest@30.4.2(@types/node@26.1.1)(node-notifier@10.0.1))(typescript@5.9.3):
+  ts-jest@29.4.11(@babel/core@7.29.0)(@jest/transform@30.4.1)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.0))(esbuild@0.27.7)(jest-util@30.4.1)(jest@30.4.1(@types/node@26.1.1)(node-notifier@10.0.1))(typescript@5.9.3):
     dependencies:
       bs-logger: 0.2.6
       fast-json-stable-stringify: 2.1.0
       handlebars: 4.7.9
-      jest: 30.4.2(@types/node@26.1.1)(node-notifier@10.0.1)
+      jest: 30.4.1(@types/node@26.1.1)(node-notifier@10.0.1)
       json5: 2.2.3
       lodash.memoize: 4.1.2
       make-error: 1.3.6
