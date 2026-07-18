@@ -31,5 +31,16 @@ target 'ReactGrabE2EReactNative' do
       :mac_catalyst_enabled => false,
       # :ccache_enabled => true
     )
+
+    # fmt 11.0.2's consteval path does not compile with Apple Clang in Xcode 26.4+.
+    fmt_base_path = File.join(installer.sandbox.pod_dir('fmt'), 'include', 'fmt', 'base.h')
+    if File.exist?(fmt_base_path)
+      fmt_source = File.read(fmt_base_path)
+      patched_fmt_source = fmt_source.gsub(
+        /^#  define FMT_USE_CONSTEVAL 1$/,
+        '#  define FMT_USE_CONSTEVAL 0'
+      )
+      File.write(fmt_base_path, patched_fmt_source) if patched_fmt_source != fmt_source
+    end
   end
 end
