@@ -1,6 +1,4 @@
 *.json
-!baseline-latest.json
-!stage-*.json
 *.log
 
 # Per-run perf bench outputs written by e2e/perf-bench.spec.ts → PERF_LABEL.
@@ -14,5 +12,4 @@
 */
 
 # CPU profile dumps (PERF_TRACE=1). Always local, never committed.
-*.trace.json
 *.cpuprofile

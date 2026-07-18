@@ -9,21 +9,9 @@ const copyProductionContext = async (
   return reactGrab.getClipboardContent();
 };
 
-const getFeatureSourcePattern = (projectName: string): RegExp => {
-  if (projectName.includes("next")) return /production-icon-link\.tsx/;
-  if (projectName.includes("tanstack")) return /routes\/index\.tsx/;
-  return /owner-stack-cases\.tsx/;
-};
-
-const getPageTarget = (projectName: string): { selector: string; sourcePattern: RegExp } => {
-  if (projectName.includes("next")) {
-    return { selector: "[data-testid='page-title']", sourcePattern: /app\/page\.tsx/ };
-  }
-  if (projectName.includes("tanstack")) {
-    return { selector: "[data-testid='page-title']", sourcePattern: /routes\/index\.tsx/ };
-  }
-  return { selector: "[data-testid='main-title']", sourcePattern: /App\.tsx/ };
-};
+const FEATURE_SOURCE_PATTERN = /owner-stack-cases\.tsx/;
+const PAGE_TARGET_SELECTOR = "[data-testid='main-title']";
+const PAGE_TARGET_SOURCE_PATTERN = /App\.tsx/;
 
 const expectActionableContext = (context: string, expectedFeatureSourcePattern: RegExp): void => {
   const hasFeatureSource = expectedFeatureSourcePattern.test(context);
@@ -34,65 +22,49 @@ const expectActionableContext = (context: string, expectedFeatureSourcePattern: 
 };
 
 test.describe("framework production owner-stack degradation", () => {
-  test("keeps a nested SVG path actionable without browser source maps", async ({
-    reactGrab,
-  }, testInfo) => {
+  test("keeps a nested SVG path actionable without browser source maps", async ({ reactGrab }) => {
     const context = await copyProductionContext(
       reactGrab,
       "[data-testid='production-icon-link'] path",
     );
 
     expect(context).toContain("<path");
-    expectActionableContext(context, getFeatureSourcePattern(testInfo.project.name));
-    if (!getFeatureSourcePattern(testInfo.project.name).test(context)) {
+    expectActionableContext(context, FEATURE_SOURCE_PATTERN);
+    if (!FEATURE_SOURCE_PATTERN.test(context)) {
       expect(context).toContain('selector: [data-testid="production-icon-link"]');
     }
   });
 
-  test("keeps an intermediate SVG group actionable", async ({ reactGrab }, testInfo) => {
+  test("keeps an intermediate SVG group actionable", async ({ reactGrab }) => {
     const context = await copyProductionContext(
       reactGrab,
       "[data-testid='production-icon-link'] g",
     );
 
     expect(context).toContain("<g");
-    expectActionableContext(context, getFeatureSourcePattern(testInfo.project.name));
+    expectActionableContext(context, FEATURE_SOURCE_PATTERN);
   });
 
-  test("keeps the SVG root actionable", async ({ reactGrab }, testInfo) => {
+  test("keeps the SVG root actionable", async ({ reactGrab }) => {
     const context = await copyProductionContext(
       reactGrab,
       "[data-testid='production-icon-link'] svg",
     );
 
-    expectActionableContext(context, getFeatureSourcePattern(testInfo.project.name));
+    expectActionableContext(context, FEATURE_SOURCE_PATTERN);
   });
 
-  test("keeps the semantic link actionable", async ({ reactGrab }, testInfo) => {
+  test("keeps the semantic link actionable", async ({ reactGrab }) => {
     const context = await copyProductionContext(reactGrab, "[data-testid='production-icon-link']");
 
     expect(context).toContain('aria-label="Production GitHub link"');
-    expectActionableContext(context, getFeatureSourcePattern(testInfo.project.name));
+    expectActionableContext(context, FEATURE_SOURCE_PATTERN);
   });
 
-  test("keeps a page-owned host element actionable", async ({ reactGrab }, testInfo) => {
-    const pageTarget = getPageTarget(testInfo.project.name);
-    const context = await copyProductionContext(reactGrab, pageTarget.selector);
+  test("keeps a page-owned host element actionable", async ({ reactGrab }) => {
+    const context = await copyProductionContext(reactGrab, PAGE_TARGET_SELECTOR);
 
-    expectActionableContext(context, pageTarget.sourcePattern);
-  });
-
-  test("keeps an SSR-owned child actionable", async ({ reactGrab }, testInfo) => {
-    const projectName = testInfo.project.name;
-    test.skip(projectName.includes("vite"), "The Vite fixture is client-rendered");
-
-    const selector = projectName.includes("next")
-      ? "[data-testid='server-card-body']"
-      : "[data-testid='server-loader-target']";
-    const sourcePattern = projectName.includes("next") ? /server-card\.tsx/ : /routes\/index\.tsx/;
-    const context = await copyProductionContext(reactGrab, selector);
-
-    expectActionableContext(context, sourcePattern);
+    expectActionableContext(context, PAGE_TARGET_SOURCE_PATTERN);
   });
 
   test("does not surface a key from a single keyed child", async ({ reactGrab }) => {
@@ -116,7 +88,7 @@ test.describe("framework production owner-stack degradation", () => {
 
   test("does not let a shared-UI provider suppress the selector fallback", async ({
     reactGrab,
-  }, testInfo) => {
+  }) => {
     const context = await copyProductionContext(
       reactGrab,
       "[data-testid='production-icon-link'] path",
@@ -124,7 +96,7 @@ test.describe("framework production owner-stack degradation", () => {
     const hasSharedUiSource =
       context.includes("components/ui/production-provider.tsx") ||
       context.includes("components/ui/framework-provider.tsx");
-    const hasFeatureSource = getFeatureSourcePattern(testInfo.project.name).test(context);
+    const hasFeatureSource = FEATURE_SOURCE_PATTERN.test(context);
 
     if (hasSharedUiSource && !hasFeatureSource) {
       expect(context).toContain("selector:");

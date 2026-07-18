@@ -8,12 +8,12 @@ import {
   EDIT_SLIDER_RUBBER_SOFT_RANGE_PX,
   EDIT_SLIDER_SPRING_EASING,
   EDIT_COMPACT_SLIDER_MIN_WIDTH_PX,
-  IME_COMPOSING_KEY_CODE,
 } from "../../constants.js";
 import { formatDisplayValue } from "../../utils/format-css-value.js";
+import { isKeyboardEventComposing } from "../../utils/is-keyboard-event-composing.js";
 import { Slot } from "../slot.js";
 import { Input } from "../ui/input.js";
-import { EDIT_LABEL_CLASS } from "./constants.js";
+import { EDIT_LABEL_CLASS, EDIT_VALUE_CLASS } from "./constants.js";
 import { StepArrow } from "./step-arrow.js";
 
 interface ValueStepperProps {
@@ -37,7 +37,6 @@ const HASH_MARK_PERCENTS = Array.from(
   (_, index) => ((index + 1) * 100) / (EDIT_SLIDER_HASH_MARK_COUNT + 1),
 );
 
-const VALUE_CLASS = "text-[12px] leading-4 font-medium tabular-nums";
 const INLINE_VALUE_PATTERN = /^(-?(?:\d+\.?\d*|\.\d+))\s*([a-zA-Z%]*)$/;
 
 export const ValueStepper: Component<ValueStepperProps> = (props) => {
@@ -76,6 +75,12 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
 
   const commitDrag = (clientX: number, rect: DOMRect) => {
     props.onCommitValue?.(positionToValue(clientX, rect), "pointer");
+  };
+
+  const clearDragState = (): void => {
+    dragState = null;
+    setIsDragging(false);
+    setRubberStretchPx(0);
   };
 
   const computeRubberStretch = (clientX: number, trackRect: DOMRect): number => {
@@ -122,18 +127,13 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
       if (dragState.startedOnValueText) startEditing();
       else commitDrag(dragState.startX, dragState.trackRect);
     }
-    dragState = null;
-    setIsDragging(false);
-    setRubberStretchPx(0);
+    clearDragState();
   };
 
   const releaseDrag: JSX.EventHandler<HTMLDivElement, PointerEvent> = (event) => {
     const target = event.currentTarget;
     if (target.hasPointerCapture(event.pointerId)) target.releasePointerCapture(event.pointerId);
-    if (!dragState) return;
-    dragState = null;
-    setIsDragging(false);
-    setRubberStretchPx(0);
+    if (dragState) clearDragState();
   };
 
   // Defensive: alt-tab / focus loss / system gesture can land the
@@ -141,10 +141,8 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
   // fires. Drop the drag state on blur so the stretch can't stay stuck.
   onMount(() => {
     const handleBlur = () => {
-      dragState = null;
-      setIsDragging(false);
+      clearDragState();
       setIsHovered(false);
-      setRubberStretchPx(0);
     };
     window.addEventListener("blur", handleBlur);
     onCleanup(() => window.removeEventListener("blur", handleBlur));
@@ -197,7 +195,7 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
     // `keyCode===229` on the commit tick (Chromium). Bail in both
     // cases so we don't fire commitDraftText() while the user is still picking
     // an IME candidate.
-    if (event.isComposing || event.keyCode === IME_COMPOSING_KEY_CODE) return;
+    if (isKeyboardEventComposing(event)) return;
     event.stopImmediatePropagation();
     if (event.key === "Enter") {
       event.preventDefault();
@@ -323,7 +321,7 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
                 </Show>
                 <span
                   data-react-grab-value-text
-                  class={`${VALUE_CLASS} text-[var(--rg-text-primary)]`}
+                  class={`${EDIT_VALUE_CLASS} text-[var(--rg-text-primary)]`}
                 >
                   <Slot>{formatDisplayValue(props.value)}</Slot>
                   <span class="text-[9px] text-[var(--rg-text-secondary)] ml-px">{props.unit}</span>
@@ -335,7 +333,7 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
               autoFocusSelect
               inputmode="decimal"
               aria-label="Style value"
-              class={`${VALUE_CLASS} text-right pointer-events-auto ml-auto`}
+              class={`${EDIT_VALUE_CLASS} text-right pointer-events-auto ml-auto`}
               style={{
                 "field-sizing": "content",
                 "min-width": "16px",

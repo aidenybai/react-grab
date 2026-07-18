@@ -132,9 +132,7 @@ export const getPickerTarget = (
 ): Element | null =>
   getElementAtPoint(event.clientX, event.clientY, {
     container: appElement,
-    filter: (candidate) =>
-      isElementGrabbable(candidate) &&
-      !toolbarElement.contains(candidate),
+    filter: (candidate) => isElementGrabbable(candidate) && !toolbarElement.contains(candidate),
   });
 ```
 

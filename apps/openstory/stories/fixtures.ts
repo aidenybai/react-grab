@@ -1,4 +1,4 @@
-import type { ContextMenuAction } from "react-grab/src/types.js";
+import type { ContextMenuAction } from "@react-grab-source/types.js";
 import { noop } from "./noop.js";
 
 export const createMenuActions = (openEnabled: boolean): ContextMenuAction[] => [

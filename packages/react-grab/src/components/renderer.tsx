@@ -82,7 +82,6 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           onConfirmDismiss={props.onConfirmDismiss}
           discardPrompt={props.discardPrompt}
           onOpen={props.onOpenSelectionFile}
-          isContextMenuOpen={props.contextMenuPosition !== null}
         />
       </Show>
       <For each={props.labelInstanceAccessors ?? []}>

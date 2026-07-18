@@ -160,7 +160,6 @@
 .rg-slot-column {
   position: relative;
   display: inline-block;
-  vertical-align: top;
 }
 .rg-slot-sizer {
   visibility: hidden;
@@ -175,7 +174,7 @@
   white-space: pre;
   will-change: transform, filter, opacity;
   animation-duration: var(--rg-slot-dur, 350ms);
-  animation-timing-function: var(--rg-slot-ease, cubic-bezier(0.34, 1.56, 0.64, 1));
+  animation-timing-function: var(--ease-spring);
   animation-fill-mode: both;
 }
 .rg-slot-cell.rg-slot-enter[data-dir="1"] {
@@ -211,8 +210,7 @@
   }
 }
 
-:host *:focus,
-:host *:focus-visible {
+:host *:focus {
   outline: none !important;
   box-shadow: none !important;
 }
@@ -330,25 +328,7 @@
   }
 }
 
-@utility touch-hitbox {
-  position: relative;
-
-  &::before {
-    content: "";
-    position: absolute;
-    display: block;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 100%;
-    height: 100%;
-    min-height: 44px;
-    min-width: 44px;
-  }
-}
-
-/* Minimum 24x24 hit area for small icon buttons (WCAG 2.5.8). Use this when
-   touch-hitbox would visually push neighboring controls apart. pointer-events
+/* Minimum 24x24 hit area for small icon buttons (WCAG 2.5.8). pointer-events
    on the pseudo-element is set explicitly so clicks landing outside the
    visual button bounds still reach the host element (pseudo-elements inherit
    pointer-events from their originating element, but stating it removes

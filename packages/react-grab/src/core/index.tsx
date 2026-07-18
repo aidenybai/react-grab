@@ -93,7 +93,6 @@ import {
   DEFAULT_ACTION_ID,
   COMMENT_ACTION_ID,
   EDIT_ACTION_ID,
-  REACT_GRAB_ATTRIBUTE_NAME,
   REACT_GRAB_INPUT_ATTRIBUTE,
 } from "../constants.js";
 import { getBoundsCenter } from "../utils/get-bounds-center.js";
@@ -101,8 +100,12 @@ import { hideFromThirdParties } from "../utils/hide-from-third-parties.js";
 import { detectCspNonce } from "../utils/detect-csp-nonce.js";
 import { isCLikeKey } from "../utils/is-c-like-key.js";
 import { isTargetKeyCombination } from "../utils/is-target-key-combination.js";
-import { parseActivationKey } from "../utils/parse-activation-key.js";
+import {
+  getModifiersFromActivationKey,
+  parseActivationKey,
+} from "../utils/parse-activation-key.js";
 import { isEventFromOverlay } from "../utils/is-event-from-overlay.js";
+import { REACT_GRAB_ATTRIBUTE_NAME } from "../utils/react-grab-attribute-name.js";
 import { executeOpenFileAction } from "./open-file-action.js";
 import { combineBounds } from "../utils/combine-bounds.js";
 import type {
@@ -132,7 +135,7 @@ import { createEditModeController, type EditModeOverrides } from "./edit-mode.js
 import { createPluginRegistry } from "./plugin-registry.js";
 import { createLabelController } from "./label-controller.js";
 import { createArrowNavigator } from "./arrow-navigation.js";
-import { getRequiredModifiers, setupKeyboardEventClaimer } from "./keyboard-handlers.js";
+import { setupKeyboardEventClaimer } from "./keyboard-handlers.js";
 import { createAutoScroller, getAutoScrollDirection } from "./auto-scroll.js";
 import { logIntro } from "./log-intro.js";
 import { getScriptOptions } from "../utils/get-script-options.js";
@@ -414,13 +417,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       isModalPopoverOpen() ||
       keyboardSelection.isPendingDismiss();
 
-    const clearShiftSelectionLabelAnchors = () => {
-      shiftSelectionLabelAnchorRatioByElement = new WeakMap<Element, number>();
-    };
-
     const stopShiftMultiSelecting = () => {
       setIsShiftMultiSelecting(false);
-      clearShiftSelectionLabelAnchors();
+      shiftSelectionLabelAnchorRatioByElement = new WeakMap<Element, number>();
     };
 
     const updateToolbarState = (updates: Partial<ToolbarState>) => {
@@ -501,7 +500,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     );
 
     const preparePromptMode = (element: Element, positionX: number, positionY: number) => {
-      setCopyStartPosition(element, positionX, positionY);
+      actions.setCopyStart({ x: positionX, y: positionY }, element);
       actions.clearInputText();
     };
 
@@ -510,10 +509,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (element) {
         actions.enterPromptMode({ x: pointer().x, y: pointer().y }, element);
       }
-    };
-
-    const setCopyStartPosition = (element: Element, positionX: number, positionY: number) => {
-      actions.setCopyStart({ x: positionX, y: positionY }, element);
     };
 
     const elementDetectionState = {
@@ -2957,7 +2952,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
         if (isEventFromOverlay(event, "data-react-grab-ignore-events")) return;
 
-        const requiredModifiers = getRequiredModifiers(pluginRegistry.store.options);
+        const requiredModifiers = getModifiersFromActivationKey(
+          pluginRegistry.store.options.activationKey,
+        );
         const isReleasingModifier =
           requiredModifiers.metaKey || requiredModifiers.ctrlKey
             ? isMac()

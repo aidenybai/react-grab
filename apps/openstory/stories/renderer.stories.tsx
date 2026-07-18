@@ -1,8 +1,8 @@
 import { createEffect, createSignal, on, onCleanup, onMount } from "solid-js";
 import type { Meta, StoryContext, StoryObj } from "openstory/solid";
 import { expect, waitFor } from "openstory/test";
-import { ReactGrabRenderer } from "react-grab/src/components/renderer.js";
-import type { OverlayBounds } from "react-grab/src/types.js";
+import { ReactGrabRenderer } from "@react-grab-source/components/renderer.js";
+import type { OverlayBounds } from "@react-grab-source/types.js";
 import { createMenuActions } from "./fixtures.js";
 import { noop } from "./noop.js";
 

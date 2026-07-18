@@ -2,7 +2,7 @@ import { splitProps, type Component, type JSX } from "solid-js";
 import { cn } from "../../utils/cn.js";
 import { createVariants } from "../../utils/create-variants.js";
 
-export const surfaceVariants = createVariants(
+const surfaceVariants = createVariants(
   "contain-layout antialiased [font-synthesis:none] bg-[var(--rg-panel-bg)]",
   {
     variants: {

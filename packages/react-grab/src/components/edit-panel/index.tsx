@@ -18,7 +18,6 @@ import {
   EDIT_SLIDER_SPRING_EASING,
   EDIT_VALUE_BUMP_MS,
   EDIT_VALUE_BUMP_PX,
-  IME_COMPOSING_KEY_CODE,
   REACT_GRAB_INPUT_ATTRIBUTE,
   Z_INDEX_OVERLAY,
 } from "../../constants.js";
@@ -39,6 +38,7 @@ import { getShadowActiveElement } from "../../utils/get-shadow-active-element.js
 import { getTagDisplay } from "../../utils/get-tag-display.js";
 import { createPointerMovePromptHandoff } from "../../utils/create-pointer-move-prompt-handoff.js";
 import { isEventFromOverlay } from "../../utils/is-event-from-overlay.js";
+import { isKeyboardEventComposing } from "../../utils/is-keyboard-event-composing.js";
 import { ignoreRealInput } from "../../utils/runtime-mode.js";
 import { registerOverlayDismiss } from "../../utils/register-overlay-dismiss.js";
 import { suppressMenuEvent } from "../../utils/suppress-menu-event.js";
@@ -420,9 +420,8 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     };
   };
 
-  const getCurrentColorPickerTrigger = () => {
-    return colorPickerTriggers[colorPickerTriggers.length - 1] ?? null;
-  };
+  const getCurrentColorPickerTrigger = () =>
+    colorPickerTriggers[colorPickerTriggers.length - 1] ?? null;
 
   const pressArrowOrOpenColorPicker = (key: "ArrowLeft" | "ArrowRight", event: KeyboardEvent) => {
     if (activeProperty()?.kind === "color") {
@@ -459,7 +458,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
 
   const handleSearchKeyDown = (event: KeyboardEvent) => {
     // Chromium reports keyCode 229 on the IME commit tick after isComposing resets.
-    if (event.isComposing || event.keyCode === IME_COMPOSING_KEY_CODE) return;
+    if (isKeyboardEventComposing(event)) return;
     if (discardConfirmation.isPending()) {
       const target = event.composedPath()[0];
       const isOnDiscardButton =
@@ -670,7 +669,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
             class={
               isSearchInputHidden()
                 ? ""
-                : "[font-synthesis:none] contain-layout shrink-0 flex flex-col items-start px-2 py-1.5 w-full self-stretch [border-top-width:0.5px] border-t-solid border-t-[var(--rg-border-subtle)] antialiased"
+                : "[font-synthesis:none] contain-layout shrink-0 flex flex-col items-start px-2 py-1.5 w-full self-stretch [border-top-width:0.5px] border-t-[var(--rg-border-subtle)] antialiased"
             }
             style={isSearchInputHidden() ? HIDDEN_FOCUS_PRESERVING_STYLE : undefined}
           >

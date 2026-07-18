@@ -41,7 +41,7 @@ const createDefine = (isDemo: boolean) => ({
   "process.env.IS_DEMO": JSON.stringify(isDemo ? "true" : ""),
 });
 
-const alwaysBundle = ["clsx", /^solid-js/, /^bippy/];
+const alwaysBundle = [/^solid-js/, /^bippy/];
 
 // Fresh plugin instances per pack; the two shapes (browser IIFE global, neutral
 // cjs/esm module) share everything except entry/format/output, so they're built

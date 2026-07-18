@@ -3,7 +3,7 @@ import { cn } from "./cn.js";
 type VariantOptions = Record<string, string>;
 type VariantsSchema = Record<string, VariantOptions>;
 
-export type VariantSelection<Schema extends VariantsSchema> = {
+type VariantSelection<Schema extends VariantsSchema> = {
   [Group in keyof Schema]?: keyof Schema[Group];
 };
 

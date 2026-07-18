@@ -22,10 +22,6 @@ export const DiscardPrompt: Component<DiscardPromptProps> = (props) => {
         props.onCancel?.();
         return;
       }
-      if (targetElement?.closest("[data-react-grab-discard-yes]")) {
-        props.onConfirm?.();
-        return;
-      }
       props.onConfirm?.();
     },
     onEscape: (event) => {
