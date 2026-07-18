@@ -21,7 +21,7 @@ const CounterFixture = () => {
 const App = () => (
   <SafeAreaView>
     <Text testID="native-harness-title">React Grab Native Harness</Text>
-    <Text testID="native-runtime">expo</Text>
+    <Text testID="native-runtime">react-native</Text>
     <CounterFixture />
   </SafeAreaView>
 );

@@ -3,8 +3,10 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "build:ios": "detox build --configuration ios.sim.debug",
-    "test:ios": "detox test --configuration ios.sim.debug",
+    "build:ios:expo": "detox build --configuration ios.expo.debug",
+    "build:ios:react-native": "detox build --configuration ios.react-native.debug",
+    "test:ios:expo": "detox test --configuration ios.expo.debug",
+    "test:ios:react-native": "detox test --configuration ios.react-native.debug",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {

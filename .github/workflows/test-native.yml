@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - "apps/e2e-app-expo/**"
+      - "apps/e2e-app-react-native/**"
       - "packages/native-e2e/**"
       - "packages/react-grab/**"
       - ".github/workflows/test-native.yml"
@@ -13,6 +14,7 @@ on:
     branches: [main]
     paths:
       - "apps/e2e-app-expo/**"
+      - "apps/e2e-app-react-native/**"
       - "packages/native-e2e/**"
       - "packages/react-grab/**"
       - ".github/workflows/test-native.yml"
@@ -28,8 +30,21 @@ concurrency:
 
 jobs:
   test-ios:
+    name: test-ios (${{ matrix.runtime.name }})
     runs-on: macos-latest
     timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        runtime:
+          - name: expo
+            app_directory: apps/e2e-app-expo
+            app_binary: apps/e2e-app-expo/ios/build/Build/Products/Debug-iphonesimulator/reactgrabe2eexpo.app
+            detox_configuration: ios.expo.debug
+          - name: react-native
+            app_directory: apps/e2e-app-react-native
+            app_binary: apps/e2e-app-react-native/ios/build/Build/Products/Debug-iphonesimulator/ReactGrabE2EReactNative.app
+            detox_configuration: ios.react-native.debug
 
     steps:
       - name: Checkout
@@ -77,26 +92,26 @@ jobs:
         id: app-cache
         uses: actions/cache@v4
         with:
-          path: apps/e2e-app-expo/ios/build/Build/Products/Debug-iphonesimulator/reactgrabe2eexpo.app
-          key: expo-app-${{ steps.xcode.outputs.version }}-${{ hashFiles('pnpm-lock.yaml', 'apps/e2e-app-expo/app.json', 'apps/e2e-app-expo/package.json') }}
+          path: ${{ matrix.runtime.app_binary }}
+          key: native-app-${{ matrix.runtime.name }}-${{ steps.xcode.outputs.version }}-${{ hashFiles('pnpm-lock.yaml', 'apps/e2e-app-expo/app.json', 'apps/e2e-app-expo/package.json', 'apps/e2e-app-react-native/app.json', 'apps/e2e-app-react-native/package.json', 'apps/e2e-app-react-native/ios/**') }}
 
       - name: Cache CocoaPods downloads
         if: steps.app-cache.outputs.cache-hit != 'true'
         uses: actions/cache@v4
         with:
           path: ~/Library/Caches/CocoaPods
-          key: cocoapods-${{ runner.os }}-${{ hashFiles('apps/e2e-app-expo/package.json') }}
-          restore-keys: cocoapods-${{ runner.os }}-
+          key: cocoapods-${{ matrix.runtime.name }}-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: cocoapods-${{ matrix.runtime.name }}-${{ runner.os }}-
 
       - name: Build iOS app
         if: steps.app-cache.outputs.cache-hit != 'true'
-        working-directory: apps/e2e-app-expo
+        working-directory: ${{ matrix.runtime.app_directory }}
         run: pnpm run build:ios
 
       - name: Start Metro
-        working-directory: apps/e2e-app-expo
+        working-directory: ${{ matrix.runtime.app_directory }}
         run: |
-          nohup pnpm exec expo start --port 8081 > /tmp/metro.log 2>&1 &
+          nohup pnpm run start -- --port 8081 > /tmp/metro.log 2>&1 &
           for readiness_attempt in $(seq 1 60); do
             if curl -sf http://localhost:8081/status | grep -q "packager-status:running"; then
               echo "Metro is up"
@@ -122,13 +137,15 @@ jobs:
 
       - name: Run Detox tests
         working-directory: packages/native-e2e
-        run: pnpm exec detox test --configuration ios.sim.debug --device-name "$DETOX_DEVICE_NAME" --headless --record-logs failing
+        env:
+          NATIVE_RUNTIME: ${{ matrix.runtime.name }}
+        run: pnpm exec detox test --configuration "${{ matrix.runtime.detox_configuration }}" --device-name "$DETOX_DEVICE_NAME" --headless --record-logs failing
 
       - name: Upload Metro log
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: metro-log
+          name: metro-log-${{ matrix.runtime.name }}
           path: /tmp/metro.log
           retention-days: 14
 
@@ -136,7 +153,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: detox-artifacts
+          name: detox-artifacts-${{ matrix.runtime.name }}
           path: packages/native-e2e/artifacts/
           retention-days: 14
           if-no-files-found: ignore

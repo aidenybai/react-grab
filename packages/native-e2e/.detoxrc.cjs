@@ -12,11 +12,17 @@ module.exports = {
     },
   },
   apps: {
-    "ios.debug": {
+    "ios.expo.debug": {
       type: "ios.app",
       binaryPath:
         "../../apps/e2e-app-expo/ios/build/Build/Products/Debug-iphonesimulator/reactgrabe2eexpo.app",
       build: "cd ../../apps/e2e-app-expo && nr build:ios",
+    },
+    "ios.react-native.debug": {
+      type: "ios.app",
+      binaryPath:
+        "../../apps/e2e-app-react-native/ios/build/Build/Products/Debug-iphonesimulator/ReactGrabE2EReactNative.app",
+      build: "cd ../../apps/e2e-app-react-native && nr build:ios",
     },
   },
   devices: {
@@ -26,9 +32,13 @@ module.exports = {
     },
   },
   configurations: {
-    "ios.sim.debug": {
+    "ios.expo.debug": {
       device: "simulator",
-      app: "ios.debug",
+      app: "ios.expo.debug",
+    },
+    "ios.react-native.debug": {
+      device: "simulator",
+      app: "ios.react-native.debug",
     },
   },
 };
