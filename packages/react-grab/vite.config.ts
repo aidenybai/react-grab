@@ -1,5 +1,7 @@
 import { execSync } from "node:child_process";
+import { build } from "esbuild";
 import fs from "node:fs";
+import { dirname, resolve } from "node:path";
 import { defineConfig } from "vite-plus";
 import type { PackUserConfig } from "vite-plus/pack";
 import { cssTextPlugin, solidBabelPlugin, solidWebBrowserPlugin } from "./solid-babel-plugin.js";
@@ -33,6 +35,8 @@ const licenseBanner = `/**
  * LICENSE file in the root directory of this source tree.
  */`;
 
+const INLINE_WORKER_SUFFIX = "?worker&inline";
+
 // process.env.IS_DEMO is a build-time constant. The library entries compile it
 // to "" (falsey) so every demo-only branch is dead-code-eliminated; the demo
 // entries compile it to "true" so the same source becomes a display-only build.
@@ -52,6 +56,49 @@ const createSolidBabelPlugin = () =>
     plugins: shouldInstrumentSolidSources ? [solidSourceLocationBabelPlugin] : [],
   });
 
+const inlineWorkerPlugin = () => ({
+  name: "inline-worker",
+  enforce: "pre" as const,
+  resolveId(source: string, importer: string | undefined) {
+    if (!source.endsWith(INLINE_WORKER_SUFFIX)) return;
+    const workerPath = source.slice(0, -INLINE_WORKER_SUFFIX.length);
+    return `${importer ? resolve(dirname(importer), workerPath) : workerPath}${INLINE_WORKER_SUFFIX}`;
+  },
+  async load(id: string) {
+    if (!id.endsWith(INLINE_WORKER_SUFFIX)) return;
+    const workerPath = id.slice(0, -INLINE_WORKER_SUFFIX.length);
+    const result = await build({
+      entryPoints: [workerPath],
+      bundle: true,
+      write: false,
+      format: "iife",
+      platform: "browser",
+      target: "es2022",
+      minify: process.env.NODE_ENV === "production",
+      define: createDefine(false),
+    });
+    const workerSource = result.outputFiles[0]?.text;
+    if (!workerSource) throw new Error(`Failed to bundle inline worker: ${workerPath}`);
+    return `
+const workerSource = ${JSON.stringify(
+      `(self.URL || self.webkitURL).revokeObjectURL(self.location.href);${workerSource}`,
+    )};
+const InlineWorker = function (options) {
+  const workerUrl = URL.createObjectURL(new Blob([workerSource], { type: "text/javascript" }));
+  try {
+    const worker = new Worker(workerUrl, options);
+    worker.addEventListener("error", () => URL.revokeObjectURL(workerUrl), { once: true });
+    return worker;
+  } catch (error) {
+    URL.revokeObjectURL(workerUrl);
+    throw error;
+  }
+};
+export default InlineWorker;
+`;
+  },
+});
+
 // Fresh plugin instances per pack; the two shapes (browser IIFE global, neutral
 // cjs/esm module) share everything except entry/format/output, so they're built
 // from these factories to avoid lockstep edits across the four packs.
@@ -70,7 +117,12 @@ const makeIifePack = (entry: string, globalName: string, isDemo: boolean): PackU
   },
   define: createDefine(isDemo),
   deps: { alwaysBundle },
-  plugins: [solidWebBrowserPlugin(), cssTextPlugin(), createSolidBabelPlugin()],
+  plugins: [
+    inlineWorkerPlugin(),
+    solidWebBrowserPlugin(),
+    cssTextPlugin(),
+    createSolidBabelPlugin(),
+  ],
 });
 
 const makeModulePack = (entry: string[], isDemo: boolean): PackUserConfig => ({
@@ -84,7 +136,12 @@ const makeModulePack = (entry: string[], isDemo: boolean): PackUserConfig => ({
   banner: licenseBanner,
   define: createDefine(isDemo),
   deps: { alwaysBundle },
-  plugins: [solidWebBrowserPlugin(), cssTextPlugin(), createSolidBabelPlugin()],
+  plugins: [
+    inlineWorkerPlugin(),
+    solidWebBrowserPlugin(),
+    cssTextPlugin(),
+    createSolidBabelPlugin(),
+  ],
 });
 
 // The demo build is opt-in: `IS_DEMO=true` (via `pnpm build:demo`) emits the
