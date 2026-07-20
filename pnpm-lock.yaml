@@ -423,6 +423,9 @@ importers:
       concurrently:
         specifier: ^9.2.1
         version: 9.2.1
+      esbuild:
+        specifier: 0.27.7
+        version: 0.27.7
       expect-sdk:
         specifier: ^0.1.2
         version: 0.1.2(@types/react@19.2.14)(express@5.2.1)(ioredis@5.10.1)(playwright@1.59.1)(zod@4.4.3)

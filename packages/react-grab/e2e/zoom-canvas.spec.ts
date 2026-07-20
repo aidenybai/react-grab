@@ -1,5 +1,7 @@
 import { test, expect } from "./fixtures.js";
-import { ATTRIBUTE_NAME } from "./constants.js";
+import { countScreenshotPixelDifferences } from "./count-screenshot-pixel-differences.js";
+
+const MIN_CHANGED_PIXELS = 10;
 
 // Browser zoom shrinks window.innerWidth/innerHeight (the visual viewport) while
 // getBoundingClientRect keeps returning full layout coordinates. The overlay
@@ -27,39 +29,13 @@ test.describe("Overlay canvas under browser zoom", () => {
     await page.evaluate(simulateBrowserZoom, 1.5);
 
     await reactGrab.activate();
+    const target = page.locator("[data-testid='edge-bottom-right']");
+    const beforeScreenshot = await target.screenshot();
     await reactGrab.hoverUntilSelected("[data-testid='edge-bottom-right']");
+    const afterScreenshot = await target.screenshot();
 
-    await expect
-      .poll(() =>
-        page.evaluate(
-          ({ attributeName, selector }) => {
-            const host = document.querySelector(`[${attributeName}]`);
-            const canvas = host?.shadowRoot?.querySelector("canvas");
-            const element = document.querySelector(selector);
-            if (!canvas || !element) return -1;
-            const context = canvas.getContext("2d");
-            if (!context) return -1;
-            const bounds = element.getBoundingClientRect();
-            const scale =
-              canvas.width / parseFloat(canvas.style.width || String(window.innerWidth));
-            const startX = Math.max(0, Math.round((bounds.x - 10) * scale));
-            const startY = Math.max(0, Math.round((bounds.y - 10) * scale));
-            const width = Math.min(canvas.width - startX, Math.round((bounds.width + 20) * scale));
-            const height = Math.min(
-              canvas.height - startY,
-              Math.round((bounds.height + 20) * scale),
-            );
-            if (width <= 0 || height <= 0) return 0;
-            const pixels = context.getImageData(startX, startY, width, height).data;
-            let drawnPixels = 0;
-            for (let index = 3; index < pixels.length; index += 4) {
-              if (pixels[index] > 5) drawnPixels += 1;
-            }
-            return drawnPixels;
-          },
-          { attributeName: ATTRIBUTE_NAME, selector: "[data-testid='edge-bottom-right']" },
-        ),
-      )
-      .toBeGreaterThan(0);
+    expect(
+      await countScreenshotPixelDifferences(page, beforeScreenshot, afterScreenshot),
+    ).toBeGreaterThan(MIN_CHANGED_PIXELS);
   });
 });
