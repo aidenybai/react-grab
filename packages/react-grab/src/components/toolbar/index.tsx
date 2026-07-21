@@ -217,24 +217,36 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
           return;
         }
 
-        const handlePointerMove = ignoreRealInput((event: PointerEvent | MouseEvent) => {
+        let pointerFrameId: number | null = null;
+        let latestPointerX = 0;
+        let latestPointerY = 0;
+        const updateSelectIconRotation = () => {
+          pointerFrameId = null;
           if (!selectButtonRef) return;
           const rect = selectButtonRef.getBoundingClientRect();
           const centerX = rect.left + rect.width / 2;
           const centerY = rect.top + rect.height / 2;
-          const deltaX = event.clientX - centerX;
-          const deltaY = event.clientY - centerY;
+          const deltaX = latestPointerX - centerX;
+          const deltaY = latestPointerY - centerY;
           if (Math.hypot(deltaX, deltaY) < SELECT_ICON_POINT_MIN_DISTANCE_PX) return;
           const targetAngleDeg = (Math.atan2(deltaY, deltaX) * 180) / Math.PI;
           const desiredRotationDeg = targetAngleDeg - SELECT_ICON_NATURAL_POINT_ANGLE_DEG;
           setSelectIconRotationDeg((previousRotationDeg) =>
             accumulateRotationDeg(previousRotationDeg, desiredRotationDeg),
           );
+        };
+
+        const handlePointerMove = ignoreRealInput((event: PointerEvent | MouseEvent) => {
+          latestPointerX = event.clientX;
+          latestPointerY = event.clientY;
+          if (pointerFrameId !== null) return;
+          pointerFrameId = nativeRequestAnimationFrame(updateSelectIconRotation);
         });
 
         window.addEventListener("pointermove", handlePointerMove, { passive: true });
         onCleanup(() => {
           window.removeEventListener("pointermove", handlePointerMove);
+          if (pointerFrameId !== null) nativeCancelAnimationFrame(pointerFrameId);
         });
       },
     ),
