@@ -36,13 +36,6 @@ const LAYER_STYLES = {
   grabbed: DEFAULT_LAYER_STYLE,
 } as const;
 
-type LayerName = "drag" | "selection" | "grabbed";
-
-interface OffscreenLayer {
-  canvas: OffscreenCanvas | null;
-  context: OffscreenCanvasRenderingContext2D | null;
-}
-
 interface AnimatedBounds {
   id: string;
   current: { x: number; y: number; width: number; height: number };
@@ -84,30 +77,11 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
   let fadeWakeTimeoutId: number | null = null;
   let previousFrameTimestamp: number | null = null;
 
-  const layers: Record<LayerName, OffscreenLayer> = {
-    drag: { canvas: null, context: null },
-    selection: { canvas: null, context: null },
-    grabbed: { canvas: null, context: null },
-  };
-
   let selectionAnimations: AnimatedBounds[] = [];
   let dragAnimation: AnimatedBounds | null = null;
   let grabbedAnimations: AnimatedBounds[] = [];
 
   const canvasColorSpace: PredefinedColorSpace = supportsDisplayP3() ? "display-p3" : "srgb";
-
-  const createOffscreenLayer = (
-    layerWidth: number,
-    layerHeight: number,
-    scaleFactor: number,
-  ): OffscreenLayer => {
-    const canvas = new OffscreenCanvas(layerWidth * scaleFactor, layerHeight * scaleFactor);
-    const context = canvas.getContext("2d", { colorSpace: canvasColorSpace });
-    if (context) {
-      context.scale(scaleFactor, scaleFactor);
-    }
-    return { canvas, context };
-  };
 
   const initializeCanvas = () => {
     if (!canvasRef) return;
@@ -130,10 +104,6 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
     mainContext = canvasRef.getContext("2d", { colorSpace: canvasColorSpace });
     if (mainContext) {
       mainContext.scale(devicePixelRatio, devicePixelRatio);
-    }
-
-    for (const layerName of Object.keys(layers) as LayerName[]) {
-      layers[layerName] = createOffscreenLayer(canvasWidth, canvasHeight, devicePixelRatio);
     }
   };
 
@@ -192,7 +162,7 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
     instance.boundsMultiple ?? [instance.bounds];
 
   const drawRoundedRectangle = (
-    context: OffscreenCanvasRenderingContext2D,
+    context: CanvasRenderingContext2D,
     rectX: number,
     rectY: number,
     rectWidth: number,
@@ -224,17 +194,11 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
   };
 
   const renderDragLayer = () => {
-    const layer = layers.drag;
-    if (!layer.context) return;
-
-    const context = layer.context;
-    context.clearRect(0, 0, canvasWidth, canvasHeight);
-
-    if (!props.dragVisible || !dragAnimation) return;
+    if (!mainContext || !props.dragVisible || !dragAnimation) return;
 
     const style = LAYER_STYLES.drag;
     drawRoundedRectangle(
-      context,
+      mainContext,
       dragAnimation.current.x,
       dragAnimation.current.y,
       dragAnimation.current.width,
@@ -246,19 +210,13 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
   };
 
   const renderSelectionLayer = () => {
-    const layer = layers.selection;
-    if (!layer.context) return;
-
-    const context = layer.context;
-    context.clearRect(0, 0, canvasWidth, canvasHeight);
-
-    if (!props.selectionVisible) return;
+    if (!mainContext || !props.selectionVisible) return;
 
     const style = LAYER_STYLES.selection;
 
     for (const animation of selectionAnimations) {
       drawRoundedRectangle(
-        context,
+        mainContext,
         animation.current.x,
         animation.current.y,
         animation.current.width,
@@ -271,21 +229,14 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
     }
   };
 
-  const renderBoundsLayer = (
-    layerName: keyof typeof LAYER_STYLES,
-    animations: AnimatedBounds[],
-  ) => {
-    const layer = layers[layerName];
-    if (!layer.context) return;
+  const renderBoundsLayer = (animations: AnimatedBounds[]) => {
+    if (!mainContext) return;
 
-    const context = layer.context;
-    context.clearRect(0, 0, canvasWidth, canvasHeight);
-
-    const style = LAYER_STYLES[layerName];
+    const style = LAYER_STYLES.grabbed;
 
     for (const animation of animations) {
       drawRoundedRectangle(
-        context,
+        mainContext,
         animation.current.x,
         animation.current.y,
         animation.current.width,
@@ -308,15 +259,7 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
 
     renderDragLayer();
     renderSelectionLayer();
-    renderBoundsLayer("grabbed", grabbedAnimations);
-
-    const layerRenderOrder: LayerName[] = ["drag", "selection", "grabbed"];
-    for (const layerName of layerRenderOrder) {
-      const layer = layers[layerName];
-      if (layer.canvas) {
-        mainContext.drawImage(layer.canvas, 0, 0, canvasWidth, canvasHeight);
-      }
-    }
+    renderBoundsLayer(grabbedAnimations);
   };
 
   const interpolateBounds = (
