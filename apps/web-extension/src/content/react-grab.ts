@@ -20,10 +20,11 @@ const turndownService = new TurndownService();
 let extensionApi: ReactGrabAPI | null = null;
 let lastToolbarState: ToolbarState | null = null;
 let isApplyingExternalState = false;
+let hasHydratedInitialState = false;
 let stateChangeUnsubscribe: (() => void) | null = null;
 
 const handleToolbarStateFromApi = (toolbarState: ToolbarState | null): void => {
-  if (isApplyingExternalState) return;
+  if (isApplyingExternalState || !hasHydratedInitialState) return;
   if (!toolbarState) return;
   if (
     lastToolbarState &&
@@ -37,6 +38,18 @@ const handleToolbarStateFromApi = (toolbarState: ToolbarState | null): void => {
   }
   lastToolbarState = toolbarState;
   window.postMessage({ type: "__REACT_GRAB_TOOLBAR_STATE_SAVE__", state: toolbarState }, "*");
+};
+
+const applyExternalToolbarState = (api: ReactGrabAPI, toolbarState: ToolbarState): void => {
+  isApplyingExternalState = true;
+  try {
+    api.setToolbarState(toolbarState);
+  } finally {
+    isApplyingExternalState = false;
+  }
+
+  const appliedToolbarState = api.getToolbarState();
+  handleToolbarStateFromApi(appliedToolbarState);
 };
 
 const subscribeToStateChanges = (api: ReactGrabAPI): void => {
@@ -125,9 +138,7 @@ const handleToolbarStateChange = async (state: ToolbarState): Promise<void> => {
   await initializeReactGrab();
   const api = getActiveApi();
   if (api) {
-    isApplyingExternalState = true;
-    api.setToolbarState(state);
-    isApplyingExternalState = false;
+    applyExternalToolbarState(api, state);
   }
 };
 
@@ -186,17 +197,19 @@ const queryInitialState = (): Promise<InitialState> => {
 
 const startup = async (): Promise<void> => {
   const initialState = await queryInitialState();
+  lastToolbarState = initialState.toolbarState;
   const api = await initializeReactGrab();
 
   if (api) {
     if (initialState.toolbarState) {
-      isApplyingExternalState = true;
-      api.setToolbarState(initialState.toolbarState);
-      isApplyingExternalState = false;
+      applyExternalToolbarState(api, initialState.toolbarState);
     } else if (!initialState.enabled) {
       api.setEnabled(false);
     }
   }
+
+  hasHydratedInitialState = true;
+  handleToolbarStateFromApi(api?.getToolbarState() ?? null);
 };
 
 if (document.readyState === "loading") {

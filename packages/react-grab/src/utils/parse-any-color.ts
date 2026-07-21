@@ -104,10 +104,8 @@ const getCanvasContext = (): CanvasRenderingContext2D | null => {
 
 // Last resort for colors the canvas accepts but reflects back in a non-sRGB
 // form rather than `#rgb`/`rgb()` — modern wide-gamut syntaxes like `lab()`,
-// `lch()`, `oklab()`, and `color()`. Computed design tokens commonly land here
-// (Tailwind v4 / shadcn resolve `oklch(...)` to `lab(...)` in getComputedStyle),
-// so painting one pixel and reading it back lets the browser do the gamut
-// conversion to sRGB bytes for us.
+// `lch()`, `oklab()`, and `color()`. Painting one pixel and reading it back lets
+// the browser perform the gamut conversion to sRGB bytes.
 const rasterizeColorToHex = (
   canvasContext2d: CanvasRenderingContext2D,
   cssColor: string,

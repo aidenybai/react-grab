@@ -362,6 +362,32 @@ test.describe("API Methods", () => {
   });
 
   test.describe("Toolbar state", () => {
+    test("falls back when an external state references an unregistered action", async ({
+      reactGrab,
+    }) => {
+      const defaultAction = await reactGrab.page.evaluate(() => {
+        const api = (window as LifecycleWindow).__REACT_GRAB__;
+        if (!api) throw new Error("React Grab API unavailable");
+
+        api.setToolbarState({ defaultAction: "removed-action" });
+        return api.getToolbarState()?.defaultAction;
+      });
+
+      expect(defaultAction).toBe("copy");
+    });
+
+    test("preserves registered actions in externally applied state", async ({ reactGrab }) => {
+      const defaultAction = await reactGrab.page.evaluate(() => {
+        const api = (window as LifecycleWindow).__REACT_GRAB__;
+        if (!api) throw new Error("React Grab API unavailable");
+
+        api.setToolbarState({ defaultAction: "comment" });
+        return api.getToolbarState()?.defaultAction;
+      });
+
+      expect(defaultAction).toBe("comment");
+    });
+
     test("isolates throwing state subscribers", async ({ reactGrab }) => {
       const result = await reactGrab.page.evaluate(() => {
         const api = (window as LifecycleWindow).__REACT_GRAB__;
@@ -449,6 +475,41 @@ test.describe("API Methods", () => {
   });
 
   test.describe("dispose()", () => {
+    test("does not normalize persisted toolbar state after same-turn disposal", async ({
+      reactGrab,
+    }) => {
+      const persistedDefaultAction = await reactGrab.page.evaluate(async () => {
+        const targetWindow = window as LifecycleWindow;
+        const initializeReactGrab = targetWindow.initReactGrab;
+        if (!initializeReactGrab) throw new Error("React Grab initializer unavailable");
+
+        targetWindow.__REACT_GRAB__?.dispose();
+        localStorage.setItem(
+          "react-grab-toolbar-state",
+          JSON.stringify({
+            edge: "bottom",
+            ratio: 0.5,
+            collapsed: false,
+            enabled: true,
+            defaultAction: "removed-action",
+          }),
+        );
+
+        const disposedApi = initializeReactGrab();
+        disposedApi.dispose();
+        await Promise.resolve();
+
+        const persistedState = JSON.parse(
+          localStorage.getItem("react-grab-toolbar-state") ?? "null",
+        );
+        localStorage.removeItem("react-grab-toolbar-state");
+        targetWindow.__REACT_GRAB__ = initializeReactGrab();
+        return persistedState?.defaultAction;
+      });
+
+      expect(persistedDefaultAction).toBe("removed-action");
+    });
+
     test("should clear the disposed global API", async ({ reactGrab }) => {
       await reactGrab.dispose();
 

@@ -354,14 +354,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     );
 
     const initialToolbarState = loadToolbarState();
-    if (
-      initialToolbarState &&
-      !pluginRegistry.store.actions.some(
-        (action) => action.id === initialToolbarState.defaultAction,
-      )
-    ) {
-      initialToolbarState.defaultAction = DEFAULT_ACTION_ID;
-    }
     const [isEnabled, setIsEnabled] = createSignal(
       initialToolbarState ? !initialToolbarState.collapsed : true,
     );
@@ -370,6 +362,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const [currentToolbarState, setCurrentToolbarState] = createSignal<ToolbarState | null>(
       initialToolbarState,
     );
+    const resolveDefaultActionId = (actionId: string): string =>
+      pluginRegistry.store.actions.some((action) => action.id === actionId)
+        ? actionId
+        : DEFAULT_ACTION_ID;
     const [isToolbarSelectHovered, setIsToolbarSelectHovered] = createSignal(false);
     const isShiftKeyHeld = createModifierTracker((event) => event.shiftKey);
     const [toolbarMenuPosition, setToolbarMenuPosition] = createSignal<DropdownAnchor | null>(null);
@@ -2367,7 +2363,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         !store.wasActivatedByToggle;
 
       if (shouldBlockEnter) {
-        // React Grab inputs keep Enter so inline editors can commit.
+        // The prompt input keeps Enter so its textarea handler can submit.
         if (isEventFromOverlay(event, REACT_GRAB_INPUT_ATTRIBUTE)) return false;
         keyboardClaimer.claimedEvents.add(event);
         event.preventDefault();
@@ -3981,7 +3977,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 frozenLabelEntryAccessors={visibleFrozenLabelEntryAccessors()}
                 pendingShiftPreviewEntry={pendingShiftPreviewEntry() ?? undefined}
                 selectionFilePath={store.selectionFilePath ?? undefined}
-                selectionLineNumber={store.selectionLineNumber ?? undefined}
                 selectionTagName={selectionTagName()}
                 selectionComponentName={resolvedComponentName()}
                 selectionLabelVisible={selectionLabelVisible()}
@@ -4124,12 +4119,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         // persistence is gated off (demo mode), falling back to storage.
         const currentState = currentToolbarState() ?? loadToolbarState();
         const resolvedCollapsed = state.collapsed ?? currentState?.collapsed ?? false;
+        const requestedDefaultAction =
+          state.defaultAction ?? currentState?.defaultAction ?? DEFAULT_ACTION_ID;
         const newState: ToolbarState = {
           edge: state.edge ?? currentState?.edge ?? "bottom",
           ratio: state.ratio ?? currentState?.ratio ?? TOOLBAR_DEFAULT_POSITION_RATIO,
           collapsed: resolvedCollapsed,
           enabled: state.enabled ?? !resolvedCollapsed,
-          defaultAction: state.defaultAction ?? currentState?.defaultAction ?? DEFAULT_ACTION_ID,
+          defaultAction: resolveDefaultActionId(requestedDefaultAction),
         };
         saveToolbarState(newState);
         setCurrentToolbarState(newState);
@@ -4218,6 +4215,15 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     for (const plugin of builtInPlugins) {
       pluginRegistry.register(plugin, api);
     }
+
+    queueMicrotask(() => {
+      if (disposed) return;
+      const toolbarState = currentToolbarState();
+      if (!toolbarState) return;
+      const defaultAction = resolveDefaultActionId(toolbarState.defaultAction ?? DEFAULT_ACTION_ID);
+      if (defaultAction === toolbarState.defaultAction) return;
+      updateToolbarState({ defaultAction });
+    });
 
     setTimeout(() => {
       isNextProjectRuntime(true);

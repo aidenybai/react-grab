@@ -442,7 +442,6 @@ export interface ReactGrabRendererProps {
   frozenLabelEntryAccessors?: FrozenLabelEntryAccessor[];
   pendingShiftPreviewEntry?: FrozenLabelEntry;
   selectionFilePath?: string;
-  selectionLineNumber?: number;
   selectionTagName?: string;
   selectionComponentName?: string;
   selectionLabelVisible?: boolean;
