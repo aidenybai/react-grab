@@ -14,9 +14,14 @@ test.describe("Toolbar Action Buttons", () => {
     }) => {
       await waitForToolbar(reactGrab);
 
+      const actionIds = await reactGrab.page
+        .locator("[data-react-grab-toolbar-action]")
+        .evaluateAll((elements) =>
+          elements.map((element) => element.getAttribute("data-react-grab-toolbar-action")),
+        );
+      expect(actionIds).toEqual(["copy", "comment"]);
       expect(await reactGrab.getToolbarActionPressed("copy")).toBe(false);
       expect(await reactGrab.getToolbarActionPressed("comment")).toBe(false);
-      expect(await reactGrab.getToolbarActionPressed("edit")).toBeNull();
     });
   });
 

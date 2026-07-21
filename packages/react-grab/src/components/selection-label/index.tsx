@@ -332,7 +332,6 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     event.stopImmediatePropagation();
     if (props.filePath && props.onOpen) {
       props.onOpen();
-      return;
     }
   };
 
