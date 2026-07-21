@@ -175,125 +175,6 @@ export interface ActionContext {
 
 export interface ContextMenuActionContext extends ActionContext {
   copy?: () => void;
-  enterEditMode?: () => void;
-}
-
-interface EditablePropertyBase {
-  // Stable identity across renders and sessionStorage. For aggregates this
-  // is a comma-joined cssProperties (e.g. "padding-top,padding-bottom") so
-  // the key survives DOM round-trips without parsing back.
-  key: string;
-  label: string;
-  cssProperties: readonly string[];
-  tailwindAliases: string[];
-  isPrioritized: boolean;
-  isDefault: boolean;
-  // True when this entry is the highest-level form that captures the
-  // current snapshot (e.g. "padding" when all 4 sides are equal). Default
-  // view shows only canonical rows; searching surfaces the rest.
-  isCanonical: boolean;
-}
-
-export interface NumericEditableProperty extends EditablePropertyBase {
-  kind: "numeric";
-  min: number;
-  max: number;
-  value: number;
-  original: number;
-  unit: string;
-}
-
-export interface ColorEditableProperty extends EditablePropertyBase {
-  kind: "color";
-  value: string;
-  original: string;
-}
-
-export interface EnumEditableOption {
-  value: string;
-  label: string;
-}
-
-export interface EnumEditableProperty extends EditablePropertyBase {
-  kind: "enum";
-  value: string;
-  original: string;
-  options: ReadonlyArray<EnumEditableOption>;
-}
-
-export type EditableProperty =
-  | NumericEditableProperty
-  | ColorEditableProperty
-  | EnumEditableProperty;
-
-interface NumericPendingEdit {
-  kind: "numeric";
-  key: string;
-  cssProperties: readonly string[];
-  value: number;
-  unit: string;
-}
-
-interface ColorPendingEdit {
-  kind: "color";
-  key: string;
-  cssProperties: readonly string[];
-  value: string;
-}
-
-interface EnumPendingEdit {
-  kind: "enum";
-  key: string;
-  cssProperties: readonly string[];
-  value: string;
-}
-
-export type PendingEdit = NumericPendingEdit | ColorPendingEdit | EnumPendingEdit;
-
-export type PendingEdits = PendingEdit[];
-
-export interface DesignTokenResolver {
-  // Whether the page exposes any color/length design tokens at all.
-  readonly hasTokens: boolean;
-  // Returns the matching custom property name (e.g. "--primary") for a hex
-  // color, or null when no token resolves to that value.
-  matchColor: (hex: string) => string | null;
-  // Returns the matching custom property name for a px length, gated on the
-  // token name sharing the css property's family so unrelated scales that
-  // happen to share a value (font-size vs spacing) don't cross-match.
-  matchLength: (px: number, cssProperty: string) => string | null;
-  // Returns the next/previous px value on the css property's token scale
-  // relative to `px`, or null when there is no token scale for the family or
-  // `px` sits outside it (so the caller can fall back to a raw step instead of
-  // dead-ending or teleporting across the scale).
-  stepLength: (px: number, direction: 1 | -1, cssProperty: string) => number | null;
-}
-
-export interface PendingEditsEntry {
-  filePath: string;
-  lineNumber: number;
-  edits: PendingEdits;
-  designTokens?: DesignTokenResolver;
-}
-
-export interface PreviewStyles {
-  apply: (cssProperties: readonly string[], cssValue: string) => void;
-  restore: () => void;
-  hasAppliedStyles: () => boolean;
-}
-
-export interface EditPanelState {
-  element: Element;
-  position: Position;
-  properties: EditableProperty[];
-  preview: PreviewStyles;
-  filePath?: string;
-  lineNumber?: number;
-  componentName?: string;
-  tagName?: string;
-  initialSearchQuery?: string;
-  hasSessionEdits?: boolean;
-  designTokens?: DesignTokenResolver;
 }
 
 export interface ContextMenuAction {
@@ -587,7 +468,6 @@ export interface ReactGrabRendererProps {
   onLabelInstanceHoverChange?: (instanceId: string, isHovered: boolean) => void;
   onInputChange?: (value: string) => void;
   onInputSubmit?: () => void;
-  onToggleExpand?: () => void;
   selectionLabelShakeCount?: number;
   onConfirmDismiss?: () => void;
   onOpenSelectionFile?: () => void;
@@ -618,12 +498,6 @@ export interface ReactGrabRendererProps {
   onSetDefaultAction?: (actionId: string) => void;
   onToggleToolbarMenu?: () => void;
   onToolbarMenuDismiss?: () => void;
-  editPanelState?: EditPanelState | null;
-  editPanelPosition?: DropdownAnchor | null;
-  onEditPanelDismiss?: () => void;
-  onEditPanelSubmit?: (pendingEdits: PendingEdits) => void;
-  onEditPanelPendingEditsChange?: (pendingEdits: PendingEdits) => void;
-  onEditPanelInteractingChange?: (interacting: boolean) => void;
 }
 
 export interface GrabbedBox {
@@ -712,10 +586,8 @@ export interface SelectionLabelProps {
   status?: SelectionLabelStatus;
   statusText?: string;
   filePath?: string;
-  shouldToggleExpandOnClick?: boolean;
   onInputChange?: (value: string) => void;
   onSubmit?: () => void;
-  onToggleExpand?: () => void;
   onOpen?: () => void;
   onDismiss?: () => void;
   selectionLabelShakeCount?: number;

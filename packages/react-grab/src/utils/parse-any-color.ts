@@ -1,4 +1,3 @@
-import { EDIT_TRANSPARENT_COLOR_HEX } from "../constants.js";
 import { rgbaChannelsToHex, rgbStringToHex } from "./parse-color.js";
 
 const HEX_PATTERN = /^#?([0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;
@@ -20,6 +19,7 @@ const normalizeHex = (raw: string): string | null => {
 // user input is either fully-transparent black OR was rejected — the
 // caller disambiguates from the input form.
 const REJECTED_FILL_STYLE_SENTINEL = "rgba(0, 0, 0, 0)";
+const TRANSPARENT_COLOR_HEX = "#00000000";
 const OPAQUE_HEX_LENGTH = 7;
 const OKLCH_PATTERN =
   /^oklch\(\s*([+-]?\d*\.?\d+%?)\s+([+-]?\d*\.?\d+%?)\s+([+-]?\d*\.?\d+)(deg|grad|rad|turn)?(?:\s*\/\s*([+-]?\d*\.?\d+%?))?\s*\)$/i;
@@ -116,7 +116,7 @@ const rasterizeColorToHex = (
   canvasContext2d.fillStyle = cssColor;
   canvasContext2d.fillRect(0, 0, 1, 1);
   const pixel = canvasContext2d.getImageData(0, 0, 1, 1).data;
-  if (pixel[3] === 0) return EDIT_TRANSPARENT_COLOR_HEX;
+  if (pixel[3] === 0) return TRANSPARENT_COLOR_HEX;
   return rgbaChannelsToHex(pixel[0], pixel[1], pixel[2], pixel[3] / 255);
 };
 
@@ -128,7 +128,7 @@ export const parseAnyColor = (input: string): string | null => {
   // `rgba(0,0,0,0)` — same string as the rejection sentinel — so
   // without this allow-list it'd fall through to null and silently
   // refuse a perfectly valid color.
-  if (trimmedColorInput.toLowerCase() === "transparent") return EDIT_TRANSPARENT_COLOR_HEX;
+  if (trimmedColorInput.toLowerCase() === "transparent") return TRANSPARENT_COLOR_HEX;
 
   const directHex = normalizeHex(trimmedColorInput);
   if (directHex) return directHex;
@@ -146,7 +146,7 @@ export const parseAnyColor = (input: string): string | null => {
     // Sentinel came back unchanged — input was either rejected OR is
     // itself fully-transparent black. The input form disambiguates.
     return trimmedColorInput.toLowerCase().replace(/\s+/g, "") === "rgba(0,0,0,0)"
-      ? EDIT_TRANSPARENT_COLOR_HEX
+      ? TRANSPARENT_COLOR_HEX
       : null;
   }
   if (resolved.startsWith("#") && resolved.length === OPAQUE_HEX_LENGTH) return resolved;
