@@ -7,7 +7,6 @@ import { FrozenGlow } from "./frozen-glow.js";
 import { SelectionLabel } from "./selection-label/index.js";
 import { Toolbar } from "./toolbar/index.js";
 import { ContextMenu } from "./context-menu.js";
-import { EditPanel } from "./edit-panel/index.js";
 import { ToolbarMenu } from "./toolbar/toolbar-menu.js";
 import { HierarchyMenu } from "./toolbar/hierarchy-menu.js";
 
@@ -29,7 +28,7 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
         when={props.selectionLabelVisible && (props.frozenLabelEntryAccessors?.length ?? 0) > 0}
       >
         <For each={props.frozenLabelEntryAccessors ?? []}>
-          {(entryAccessor, entryIndex) => (
+          {(entryAccessor) => (
             <Show when={entryAccessor.read()}>
               {(entry) => (
                 <SelectionLabel
@@ -38,8 +37,6 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
                   selectionBounds={entry().bounds}
                   mouseX={entry().mouseX}
                   visible={true}
-                  shouldToggleExpandOnClick={entryIndex() === 0}
-                  onToggleExpand={entryIndex() === 0 ? props.onToggleExpand : undefined}
                 />
               )}
             </Show>
@@ -77,7 +74,6 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           filePath={props.selectionFilePath}
           onInputChange={props.onInputChange}
           onSubmit={props.onInputSubmit}
-          onToggleExpand={props.onToggleExpand}
           selectionLabelShakeCount={props.selectionLabelShakeCount}
           onConfirmDismiss={props.onConfirmDismiss}
           discardPrompt={props.discardPrompt}
@@ -155,14 +151,6 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
         onDismiss={props.onToolbarMenuDismiss ?? (() => {})}
       />
       <HierarchyMenu position={props.hierarchyMenuPosition ?? null} state={props.hierarchyState} />
-      <EditPanel
-        state={props.editPanelState ?? null}
-        position={props.editPanelPosition ?? null}
-        onDismiss={props.onEditPanelDismiss ?? (() => {})}
-        onSubmit={props.onEditPanelSubmit ?? (() => {})}
-        onPendingEditsChange={props.onEditPanelPendingEditsChange}
-        onInteractingChange={props.onEditPanelInteractingChange}
-      />
     </>
   );
 };

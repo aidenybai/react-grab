@@ -4,7 +4,6 @@ import { cn } from "../../utils/cn.js";
 import { loadToolbarState, saveToolbarState, type SnapEdge, type ToolbarState } from "./state.js";
 import { IconSelect } from "../icons/icon-select.jsx";
 import { IconComment } from "../icons/icon-comment.jsx";
-import { IconStyle } from "../icons/icon-style.jsx";
 import { ToolbarActionButton } from "./toolbar-action-button.jsx";
 import {
   TOOLBAR_SNAP_MARGIN_PX,
@@ -18,7 +17,6 @@ import {
   SELECT_ICON_POINT_MIN_DISTANCE_PX,
   DEFAULT_ACTION_ID,
   COMMENT_ACTION_ID,
-  EDIT_ACTION_ID,
 } from "../../constants.js";
 import { freezeUpdates } from "../../utils/freeze-updates.js";
 import {
@@ -294,8 +292,6 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   const handleComment = drag.createDragAwareHandler(() =>
     props.onActivateAction?.(COMMENT_ACTION_ID),
   );
-  const handleStyle = drag.createDragAwareHandler(() => props.onActivateAction?.(EDIT_ACTION_ID));
-
   const actionButtonClass =
     "group contain-layout flex items-center justify-center cursor-pointer interactive-scale a11y-hitbox";
   const actionButtonWrapperClass = () =>
@@ -778,19 +774,6 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
               tooltipVisible={isTooltipVisible(COMMENT_ACTION_ID)}
               tooltipPosition={tooltipPosition()}
               tooltip="Comment"
-            />
-            <ToolbarActionButton
-              actionId={EDIT_ACTION_ID}
-              label="Style element"
-              isActive={isActionActive(EDIT_ACTION_ID)}
-              class={actionButtonClass}
-              wrapperClass={actionButtonWrapperClass()}
-              onClick={handleStyle}
-              {...createFreezeHandlers(EDIT_ACTION_ID)}
-              icon={<IconStyle size={14} class={actionIconClass(isActionActive(EDIT_ACTION_ID))} />}
-              tooltipVisible={isTooltipVisible(EDIT_ACTION_ID)}
-              tooltipPosition={tooltipPosition()}
-              tooltip="Style"
             />
           </>
         }

@@ -1,6 +1,5 @@
 import { test, expect } from "./fixtures.js";
 import { goToSizedPerfGrid } from "./perf-fixtures.js";
-import { openEditPanel, isEditPanelVisible, BUTTON_SELECTOR } from "./edit-panel-helpers.js";
 
 const STATE_SETTLE_WAIT_MS = 300;
 // Copy commits run source resolution before writing the clipboard, which can
@@ -371,24 +370,6 @@ test.describe("Combinatorial Interactions", () => {
       expect(boundsAfter).toEqual(boundsBefore);
     });
 
-    test("style panel opens for an arrow-frozen ancestor selection", async ({ reactGrab }) => {
-      await reactGrab.activate();
-      await reactGrab.hoverUntilSelected("[data-testid='todo-list'] li:first-child");
-      await reactGrab.pressArrowUp();
-      await reactGrab.waitForSelectionBox();
-
-      const bounds = await reactGrab.getSelectionBoxBounds();
-      if (!bounds) throw new Error("Expected a frozen selection box");
-      await reactGrab.rightClickAtPosition(
-        bounds.x + bounds.width / 2,
-        bounds.y + bounds.height / 2,
-      );
-      await expect.poll(() => reactGrab.isContextMenuVisible()).toBe(true);
-      await reactGrab.clickContextMenuItem("Style");
-
-      await expect.poll(() => isEditPanelVisible(reactGrab.page)).toBe(true);
-    });
-
     test("arrow keys typed inside the prompt textarea do not move the selection", async ({
       reactGrab,
     }) => {
@@ -401,39 +382,6 @@ test.describe("Combinatorial Interactions", () => {
 
       expect(await reactGrab.isPromptModeActive()).toBe(true);
       expect(await reactGrab.getInputValue()).toBe("helXXlo");
-    });
-  });
-
-  test.describe("Style panel crossed with lifecycle", () => {
-    test("style panel survives a viewport resize", async ({ reactGrab }) => {
-      await openEditPanel(reactGrab, BUTTON_SELECTOR);
-
-      await reactGrab.setViewportSize(1000, 650);
-      await reactGrab.page.waitForTimeout(STATE_SETTLE_WAIT_MS);
-
-      expect(await isEditPanelVisible(reactGrab.page)).toBe(true);
-    });
-
-    test("style panel survives page scrolling", async ({ reactGrab }) => {
-      await openEditPanel(reactGrab, BUTTON_SELECTOR);
-
-      await reactGrab.scrollPage(300);
-      await reactGrab.page.waitForTimeout(STATE_SETTLE_WAIT_MS);
-
-      expect(await isEditPanelVisible(reactGrab.page)).toBe(true);
-    });
-
-    test("dispose while the style panel is open tears down and allows reinitialization", async ({
-      reactGrab,
-    }) => {
-      await openEditPanel(reactGrab, BUTTON_SELECTOR);
-
-      await reactGrab.dispose();
-      await reactGrab.page.waitForTimeout(STATE_SETTLE_WAIT_MS);
-
-      await reactGrab.reinitialize();
-      await reactGrab.activate();
-      expect(await reactGrab.isOverlayVisible()).toBe(true);
     });
   });
 });

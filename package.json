@@ -6,7 +6,7 @@
   ],
   "type": "module",
   "scripts": {
-    "build": "cp README.md packages/react-grab/README.md && turbo run build --filter=@react-grab/cli --filter=react-grab --filter=grab",
+    "build": "rm -rf packages/react-grab/dist && cp README.md packages/react-grab/README.md && turbo run build --filter=@react-grab/cli --filter=react-grab --filter=grab",
     "build:fixtures": "pnpm --filter @react-grab/e2e-app-vite build && pnpm --filter @react-grab/e2e-app-vite-upstream build && pnpm --filter @react-grab/e2e-app-next build:production-test && pnpm --filter @react-grab/e2e-app-tanstack-start build",
     "dev": "turbo run dev --filter=react-grab",
     "test": "turbo run test",
