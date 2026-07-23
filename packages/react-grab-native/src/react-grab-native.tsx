@@ -71,7 +71,12 @@ export const ReactGrabNative = (props: ReactGrabNativeProps) => {
       clearSelection();
       return;
     }
-    setSelectionBounds(getRelativeBounds(bounds, selectionLayerBounds));
+    const relativeBounds = getRelativeBounds(bounds, selectionLayerBounds);
+    if (!relativeBounds) {
+      clearSelection();
+      return;
+    }
+    setSelectionBounds(relativeBounds);
     setSelectionDescription(description);
   };
 
