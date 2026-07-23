@@ -9,6 +9,8 @@ import {
   EDIT_SEARCH_TAILWIND_PREFIX_SCORE,
 } from "../constants.js";
 import type { EditableProperty } from "../types.js";
+import { parseComparativeIntent } from "./comparative-intent.js";
+import { resolveComparativeTargets } from "./resolve-comparative-target.js";
 import { isNumericQuery } from "./is-numeric-query.js";
 import {
   getTailwindPrefixPropertyKeysForSearchQuery,
@@ -136,6 +138,19 @@ export const createPropertySearchIndex = (properties: EditableProperty[]): Prope
   };
 
   const search = (query: string): EditableProperty[] => {
+    // A natural-language comparative ("make it bigger", "less padding")
+    // surfaces its resolved target(s) first so the panel highlights the row
+    // the same edit will mutate, with the remaining rows kept underneath.
+    const comparativeIntent = parseComparativeIntent(query);
+    if (comparativeIntent) {
+      const resolution = resolveComparativeTargets(comparativeIntent, properties);
+      if (resolution) {
+        const targetKeys = new Set(resolution.targets.map((target) => target.key));
+        const remaining = properties.filter((property) => !targetKeys.has(property.key));
+        return [...resolution.targets, ...remaining];
+      }
+    }
+
     const normalized = normalizeSearchText(query);
     if (!normalized || isNumericQuery(normalized)) return properties;
 
