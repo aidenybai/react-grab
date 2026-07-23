@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { registerThreeScene } from "react-grab/primitives";
+import * as ReactGrabPrimitives from "react-grab/primitives";
 import {
   AmbientLight,
   BoxGeometry,
@@ -46,7 +46,7 @@ export const ThreeJsFixture = (): React.JSX.Element => {
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas || typeof ReactGrabPrimitives.registerThreeScene !== "function") return;
 
     const renderer = new WebGLRenderer({ antialias: true, canvas });
     const scene = new Scene();
@@ -89,7 +89,13 @@ export const ThreeJsFixture = (): React.JSX.Element => {
     const resizeObserver = new ResizeObserver(renderScene);
     resizeObserver.observe(canvas);
     renderScene();
-    const unregisterScene = registerThreeScene({ camera, pointer, raycaster, renderer, scene });
+    const unregisterScene = ReactGrabPrimitives.registerThreeScene({
+      camera,
+      pointer,
+      raycaster,
+      renderer,
+      scene,
+    });
 
     return () => {
       unregisterScene();
