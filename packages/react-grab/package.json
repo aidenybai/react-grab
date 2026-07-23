@@ -103,7 +103,7 @@
     "test:perf:baseline": "PERF_LABEL=baseline playwright test --grep @perf --reporter=list",
     "test:expect": "bun e2e/react-grab.expect.ts",
     "typecheck": "tsc --noEmit",
-    "prepublishOnly": "pnpm build",
+    "prepublishOnly": "rm -rf dist && pnpm build",
     "test:e2e:ui": "playwright test --ui",
     "perf:deopt": "node scripts/deopt-trace.mjs"
   },

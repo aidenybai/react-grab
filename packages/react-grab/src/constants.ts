@@ -183,8 +183,7 @@ export const LIGHT_TEXT_LUMINANCE_THRESHOLD = 0.6;
 // theme signal, so the foreground heuristic ignores anything more translucent.
 export const OPAQUE_TEXT_MIN_ALPHA = 0.5;
 
-// Marks the overlay's comment/edit input; queried by the demo driver and the
-// Enter-blocking and prompt-mode checks in core.
+// Marks the overlay's comment input; queried by the demo driver and prompt-mode checks in core.
 export const REACT_GRAB_INPUT_ATTRIBUTE = "data-react-grab-input";
 
 export const USER_IGNORE_ATTRIBUTE = "data-react-grab-ignore";
@@ -205,12 +204,11 @@ export const TOOLBAR_COLLAPSED_LONG_PX = 30;
 // can flip true mid-fade-in and start a dim transition on the outer
 // container while the inner content is still materializing.
 export const TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS = 260;
-export const TOOLBAR_DEFAULT_WIDTH_PX = 78;
+export const TOOLBAR_DEFAULT_WIDTH_PX = 58;
 export const TOOLBAR_DEFAULT_HEIGHT_PX = 28;
 export const TOOLBAR_DEFAULT_POSITION_RATIO = 0.5;
 export const DEFAULT_ACTION_ID = "copy";
 export const COMMENT_ACTION_ID = "comment";
-export const EDIT_ACTION_ID = "edit";
 
 export const TOOLTIP_DELAY_MS = 400;
 export const TOOLTIP_GRACE_PERIOD_MS = 800;
@@ -270,68 +268,6 @@ export const DROPDOWN_EDGE_TRANSFORM_ORIGIN = {
 export const NEXTJS_REVALIDATION_DELAY_MS = 1000;
 
 export const TEXTAREA_MAX_HEIGHT_PX = 95;
-
-export const EDIT_PROPERTY_LIST_MAX_HEIGHT_PX = 280;
-export const EDIT_PROPERTY_MAX_COUNT = 40;
-export const EDIT_TRANSPARENT_COLOR_HEX = "#00000000";
-export const EDIT_TRANSPARENT_COLOR_LABEL = "transparent";
-export const EDIT_ROOT_FONT_SIZE_PX = 16;
-export const EDIT_PANEL_MIN_WIDTH_PX = 200;
-export const EDIT_PANEL_MAX_WIDTH_PX = 320;
-export const EDIT_SHIFT_STEP_MULTIPLIER = 10;
-// Idle window after the last control-interact pulse before the
-// transient-interaction signal clears. Must comfortably exceed the
-// long-press repeat cadence (60ms) so holding ←/→ stays "interacting",
-// but short enough that hover-swap re-enables almost immediately
-// after a release.
-export const EDIT_PANEL_ADJUSTING_IDLE_MS = 150;
-export const EDIT_DISCARD_PROMPT_IDLE_MS = 2000;
-export const EDIT_PANEL_ACTIVE_KEY_FLASH_MS = 100;
-export const EDIT_INLINE_NUMERIC_REPLACE_IDLE_MS = 500;
-export const EDIT_SLIDER_CLICK_THRESHOLD_PX = 3;
-export const EDIT_SLIDER_HASH_MARK_COUNT = 9;
-// Rubber-band: cursor must overshoot DEAD_ZONE_PX before the track
-// pulls; stretch grows sqrt(past / SOFT_RANGE_PX) up to MAX_PX, springs
-// back over SETTLE_MS on release.
-export const EDIT_SLIDER_RUBBER_DEAD_ZONE_PX = 32;
-export const EDIT_SLIDER_RUBBER_SOFT_RANGE_PX = 200;
-export const EDIT_SLIDER_RUBBER_MAX_PX = 8;
-export const EDIT_SLIDER_RUBBER_SETTLE_MS = 350;
-export const EDIT_SLIDER_SPRING_EASING = "cubic-bezier(0.34, 1.56, 0.64, 1)";
-export const EDIT_VALUE_BUMP_PX = 2;
-export const EDIT_VALUE_BUMP_MS = 280;
-export const EDIT_STEP_REPEAT_INITIAL_DELAY_MS = 280;
-export const EDIT_STEP_REPEAT_INTERVAL_MS = 60;
-export const SLOT_TRANSITION_MS = 350;
-export const SLOT_STAGGER_MS = 18;
-export const TAILWIND_SPACING_MAX_UNITS = 96;
-export const TAILWIND_BORDER_MAX_PX = 8;
-export const TAILWIND_Z_INDEX_MAX = 50;
-export const TAILWIND_OPACITY_GRANULARITY = 5;
-export const EDIT_SEARCH_TAILWIND_INTENT_SCORE = 12000;
-export const EDIT_SEARCH_TAILWIND_PREFIX_SCORE = 9000;
-export const EDIT_SEARCH_EXACT_ALIAS_SCORE = 10000;
-export const EDIT_SEARCH_PREFIX_ALIAS_SCORE = 8000;
-export const EDIT_SEARCH_STARTS_WITH_SCORE = 5000;
-export const EDIT_SEARCH_SUBSTRING_SCORE = 1000;
-export const EDIT_SEARCH_POSITION_PENALTY = 100;
-export const EDIT_SEARCH_LENGTH_PENALTY = 1;
-export const EDIT_COMPACT_SLIDER_MIN_WIDTH_PX = 96;
-
-export const CSS_VALUE_DECIMAL_PLACES = 2;
-// Tailwind v4's `rounded-full` is calc(infinity * 1px). Browsers clamp
-// it to their internal length maximum (~3.36e7px in Chromium, ~1.79e7px
-// in Firefox, float max in WebKit) — all far past this threshold and
-// none a real length. Cap to the row's max bound instead of showing
-// (and re-emitting) 33554400px.
-export const CSS_LENGTH_INFINITY_THRESHOLD_PX = 1e7;
-export const OPACITY_PERCENT_MAX = 100;
-export const FONT_SIZE_LINE_HEIGHT_RATIO = 1.2;
-// Tailwind's spacing scale: `p-1` = 0.25rem = 4px, so each "unit"
-// in `p-{n}` translates to n × 4px when auto-applied from the search.
-export const TAILWIND_SPACING_UNIT_PX = 4;
-
-export const PIXELS_PER_REM = 16;
 
 export const IME_COMPOSING_KEY_CODE = 229;
 export const SELECTION_LABEL_OFFSCREEN_PX = -9999;

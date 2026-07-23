@@ -43,14 +43,3 @@ export const rgbStringToHex = (cssValue: string): string | null => {
   }
   return rgbaChannelsToHex(Number(match[1]), Number(match[2]), Number(match[3]), alpha);
 };
-
-// True when the computed color is fully transparent — used to skip the
-// default `rgba(0, 0, 0, 0)` background-color that every unset element
-// reports, since it would clutter the panel with empty entries.
-export const isTransparentRgbString = (cssValue: string): boolean => {
-  const match = cssValue.match(NUMERIC_RGB);
-  if (!match) return false;
-  if (match[4] === undefined) return false;
-  const alpha = match[4].endsWith("%") ? Number(match[4].slice(0, -1)) / 100 : Number(match[4]);
-  return alpha === 0;
-};

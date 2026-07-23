@@ -49,13 +49,16 @@ test.describe("Context Menu", () => {
       await reactGrab.page.keyboard.up(reactGrab.modifierKey);
     });
 
-    test("should show context menu with Copy and Open items", async ({ reactGrab }) => {
+    test("should show only the built-in context menu actions", async ({ reactGrab }) => {
       await reactGrab.activate();
       await reactGrab.hoverUntilSelected("li");
       await reactGrab.rightClickElement("li");
 
       const isContextMenuVisible = await reactGrab.isContextMenuVisible();
       expect(isContextMenuVisible).toBe(true);
+
+      const menuInfo = await reactGrab.getContextMenuInfo();
+      expect(menuInfo.menuItems).toEqual(["Copy", "Comment", "Open"]);
 
       const isCopyEnabled = await reactGrab.isContextMenuItemEnabled("Copy");
       expect(isCopyEnabled).toBe(true);
@@ -420,8 +423,8 @@ test.describe("Context Menu", () => {
           name: "custom-prompt-action",
           actions: [
             {
-              id: "custom-edit",
-              label: "Custom Edit",
+              id: "custom-prompt",
+              label: "Custom Prompt",
               shortcut: "E",
               onAction: (context: { enterPromptMode?: () => void }) => {
                 context.enterPromptMode?.();
@@ -437,7 +440,9 @@ test.describe("Context Menu", () => {
 
       const menuInfo = await reactGrab.getContextMenuInfo();
       expect(menuInfo.isVisible).toBe(true);
-      expect(menuInfo.menuItems.map((item: string) => item.toLowerCase())).toContain("custom edit");
+      expect(menuInfo.menuItems.map((item: string) => item.toLowerCase())).toContain(
+        "custom prompt",
+      );
     });
 
     test("custom action should trigger enterPromptMode", async ({ reactGrab }) => {
@@ -456,8 +461,8 @@ test.describe("Context Menu", () => {
           name: "custom-prompt-action",
           actions: [
             {
-              id: "custom-edit",
-              label: "Custom Edit",
+              id: "custom-prompt",
+              label: "Custom Prompt",
               shortcut: "E",
               onAction: (context: { enterPromptMode?: () => void }) => {
                 context.enterPromptMode?.();
@@ -472,7 +477,7 @@ test.describe("Context Menu", () => {
       await reactGrab.rightClickElement("li:first-child");
       await reactGrab.page.waitForTimeout(100);
 
-      await reactGrab.clickContextMenuItem("Custom edit");
+      await reactGrab.clickContextMenuItem("Custom prompt");
       await reactGrab.page.waitForTimeout(200);
 
       const isPromptMode = await reactGrab.isPromptModeActive();

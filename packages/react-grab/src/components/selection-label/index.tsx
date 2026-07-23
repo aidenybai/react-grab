@@ -25,8 +25,7 @@ import { focusInOverlay } from "../../utils/focus-in-overlay.js";
 import { getArrowSize } from "../../utils/get-arrow-size.js";
 import { getVisualViewport } from "../../utils/get-visual-viewport.js";
 import { isKeyboardEventComposing } from "../../utils/is-keyboard-event-composing.js";
-import { getScopeContainer, ignoreRealInput } from "../../utils/runtime-mode.js";
-import { isKeyboardEventTriggeredByInput } from "../../utils/is-keyboard-event-triggered-by-input.js";
+import { getScopeContainer } from "../../utils/runtime-mode.js";
 import { cn } from "../../utils/cn.js";
 import { getTagDisplay } from "../../utils/get-tag-display.js";
 import { IconSubmit } from "../icons/icon-submit.jsx";
@@ -83,17 +82,9 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
 
   const isCompletedStatus = () => props.status === "copied" || props.status === "fading";
 
-  const canToggleExpand = () =>
-    Boolean(props.shouldToggleExpandOnClick) &&
-    Boolean(props.onToggleExpand) &&
-    canInteract() &&
-    !props.discardPrompt &&
-    !props.isPromptMode;
-
   const shouldEnablePointerEvents = (): boolean => {
     if (props.isPromptMode) return true;
     if (props.discardPrompt) return true;
-    if (canToggleExpand()) return true;
     if (isCompletedStatus() && (props.onDismiss || props.onShowContextMenu)) {
       return true;
     }
@@ -112,19 +103,6 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   const handleViewportChange = () => {
     setViewportVersion((version) => version + 1);
   };
-
-  const handleGlobalKeyDown = ignoreRealInput((event: KeyboardEvent) => {
-    if (isKeyboardEventTriggeredByInput(event)) return;
-
-    const isEnterToExpand =
-      event.code === "Enter" && !props.isPromptMode && !props.discardPrompt && canInteract();
-
-    if (isEnterToExpand) {
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      props.onToggleExpand?.();
-    }
-  });
 
   onMount(() => {
     const scopeContainer = getScopeContainer();
@@ -161,9 +139,6 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     window.addEventListener("resize", handleViewportChange);
     window.visualViewport?.addEventListener("resize", handleViewportChange);
     window.visualViewport?.addEventListener("scroll", handleViewportChange);
-    if (props.onToggleExpand) {
-      window.addEventListener("keydown", handleGlobalKeyDown, { capture: true });
-    }
   });
 
   onCleanup(() => {
@@ -172,13 +147,6 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     window.removeEventListener("resize", handleViewportChange);
     window.visualViewport?.removeEventListener("resize", handleViewportChange);
     window.visualViewport?.removeEventListener("scroll", handleViewportChange);
-    // removeEventListener is a no-op for a listener that was never added,
-    // so it does not need to mirror the onMount onToggleExpand guard. If
-    // props.onToggleExpand were ever reactive between mount and cleanup,
-    // mirroring would leak the listener.
-    window.removeEventListener("keydown", handleGlobalKeyDown, {
-      capture: true,
-    });
   });
 
   const elementIdentity = () => `${props.tagName ?? ""}:${props.componentName ?? ""}`;
@@ -364,10 +332,6 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     event.stopImmediatePropagation();
     if (props.filePath && props.onOpen) {
       props.onOpen();
-      return;
-    }
-    if (canToggleExpand()) {
-      props.onToggleExpand?.();
     }
   };
 

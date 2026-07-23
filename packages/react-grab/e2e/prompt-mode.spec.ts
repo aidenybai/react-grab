@@ -2,7 +2,7 @@ import { test, expect } from "./fixtures.js";
 
 test.describe("Prompt Mode", () => {
   test.describe("Entering Prompt Mode", () => {
-    test("context menu edit should enter prompt mode when comment action is registered", async ({
+    test("context menu Comment should enter prompt mode when the action is registered", async ({
       reactGrab,
     }) => {
       await reactGrab.registerCommentAction();
@@ -247,7 +247,7 @@ test.describe("Prompt Mode", () => {
       await expect.poll(() => reactGrab.isPromptModeActive()).toBe(false);
     });
 
-    test("context menu edit maintains overlay in prompt mode", async ({ reactGrab }) => {
+    test("comment prompt mode maintains the overlay", async ({ reactGrab }) => {
       await reactGrab.registerCommentAction();
       await reactGrab.enterPromptMode("li:first-child");
 

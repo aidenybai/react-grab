@@ -334,7 +334,6 @@ const Scene = (props: SceneProps) => {
         actions={createMenuActions(Boolean(props.filePath))}
         onInputChange={noop}
         onInputSubmit={noop}
-        onToggleExpand={noop}
         onConfirmDismiss={noop}
         onToggleActive={noop}
         onToolbarStateChange={noop}

@@ -1,7 +1,7 @@
 import { test, expect, type ReactGrabPageObject } from "./fixtures.js";
-import { isEditPanelVisible, BUTTON_SELECTOR } from "./edit-panel-helpers.js";
 
 const LIST_ITEM_SELECTOR = "li:first-child";
+const BUTTON_SELECTOR = "button";
 
 const waitForToolbar = async (reactGrab: ReactGrabPageObject) => {
   await expect.poll(() => reactGrab.isToolbarVisible(), { timeout: 2000 }).toBe(true);
@@ -9,14 +9,19 @@ const waitForToolbar = async (reactGrab: ReactGrabPageObject) => {
 
 test.describe("Toolbar Action Buttons", () => {
   test.describe("Layout", () => {
-    test("renders copy, comment, and style buttons, all unpressed initially", async ({
+    test("renders only copy and comment buttons, both unpressed initially", async ({
       reactGrab,
     }) => {
       await waitForToolbar(reactGrab);
 
+      const actionIds = await reactGrab.page
+        .locator("[data-react-grab-toolbar-action]")
+        .evaluateAll((elements) =>
+          elements.map((element) => element.getAttribute("data-react-grab-toolbar-action")),
+        );
+      expect(actionIds).toEqual(["copy", "comment"]);
       expect(await reactGrab.getToolbarActionPressed("copy")).toBe(false);
       expect(await reactGrab.getToolbarActionPressed("comment")).toBe(false);
-      expect(await reactGrab.getToolbarActionPressed("edit")).toBe(false);
     });
   });
 
@@ -27,16 +32,6 @@ test.describe("Toolbar Action Buttons", () => {
 
       expect(await reactGrab.getToolbarActionPressed("comment")).toBe(true);
       expect(await reactGrab.getToolbarActionPressed("copy")).toBe(false);
-      expect(await reactGrab.getToolbarActionPressed("edit")).toBe(false);
-    });
-
-    test("clicking Style marks only the Style button as pressed", async ({ reactGrab }) => {
-      await waitForToolbar(reactGrab);
-      await reactGrab.clickToolbarAction("edit");
-
-      expect(await reactGrab.getToolbarActionPressed("edit")).toBe(true);
-      expect(await reactGrab.getToolbarActionPressed("copy")).toBe(false);
-      expect(await reactGrab.getToolbarActionPressed("comment")).toBe(false);
     });
 
     test("clicking Copy marks only the Copy button as pressed", async ({ reactGrab }) => {
@@ -45,7 +40,6 @@ test.describe("Toolbar Action Buttons", () => {
 
       expect(await reactGrab.getToolbarActionPressed("copy")).toBe(true);
       expect(await reactGrab.getToolbarActionPressed("comment")).toBe(false);
-      expect(await reactGrab.getToolbarActionPressed("edit")).toBe(false);
     });
 
     test("activating via API (no toolbar button) marks Copy as pressed", async ({ reactGrab }) => {
@@ -54,7 +48,6 @@ test.describe("Toolbar Action Buttons", () => {
 
       expect(await reactGrab.getToolbarActionPressed("copy")).toBe(true);
       expect(await reactGrab.getToolbarActionPressed("comment")).toBe(false);
-      expect(await reactGrab.getToolbarActionPressed("edit")).toBe(false);
     });
 
     test("clicking a different action while active switches without deactivating", async ({
@@ -71,7 +64,6 @@ test.describe("Toolbar Action Buttons", () => {
         .poll(() => reactGrab.getToolbarActionPressed("comment"), { timeout: 2000 })
         .toBe(true);
       expect(await reactGrab.getToolbarActionPressed("copy")).toBe(false);
-      expect(await reactGrab.getToolbarActionPressed("edit")).toBe(false);
     });
 
     test("clicking the already-active action toggles selection off", async ({ reactGrab }) => {
@@ -94,7 +86,6 @@ test.describe("Toolbar Action Buttons", () => {
 
       expect(await reactGrab.getToolbarActionPressed("copy")).toBe(false);
       expect(await reactGrab.getToolbarActionPressed("comment")).toBe(false);
-      expect(await reactGrab.getToolbarActionPressed("edit")).toBe(false);
     });
 
     test("context menu Comment marks only the Comment button as pressed", async ({ reactGrab }) => {
@@ -107,7 +98,6 @@ test.describe("Toolbar Action Buttons", () => {
       await expect.poll(() => reactGrab.isPromptModeActive(), { timeout: 2000 }).toBe(true);
       expect(await reactGrab.getToolbarActionPressed("comment")).toBe(true);
       expect(await reactGrab.getToolbarActionPressed("copy")).toBe(false);
-      expect(await reactGrab.getToolbarActionPressed("edit")).toBe(false);
     });
   });
 
@@ -119,103 +109,6 @@ test.describe("Toolbar Action Buttons", () => {
       await reactGrab.clickElement(LIST_ITEM_SELECTOR);
 
       await expect.poll(() => reactGrab.isPromptModeActive(), { timeout: 2000 }).toBe(true);
-    });
-
-    test("Style button selects an element into the style panel", async ({ reactGrab }) => {
-      await waitForToolbar(reactGrab);
-      await reactGrab.clickToolbarAction("edit");
-      await reactGrab.hoverUntilSelected(BUTTON_SELECTOR);
-      await reactGrab.clickElement(BUTTON_SELECTOR);
-
-      await expect.poll(() => isEditPanelVisible(reactGrab.page), { timeout: 2000 }).toBe(true);
-    });
-
-    test("Style button opens the style panel from a comment discard prompt", async ({
-      reactGrab,
-    }) => {
-      await waitForToolbar(reactGrab);
-      await reactGrab.clickToolbarAction("comment");
-      await reactGrab.hoverUntilSelected(BUTTON_SELECTOR);
-      await reactGrab.clickElement(BUTTON_SELECTOR);
-      await reactGrab.typeInInput("Discard this comment");
-      await reactGrab.page.mouse.click(10, 10);
-      await expect.poll(() => reactGrab.isPendingDismissVisible(), { timeout: 2000 }).toBe(true);
-
-      await reactGrab.clickToolbarAction("edit");
-
-      await expect.poll(() => isEditPanelVisible(reactGrab.page), { timeout: 2000 }).toBe(true);
-      await expect.poll(() => reactGrab.isPromptModeActive(), { timeout: 2000 }).toBe(false);
-      expect(await reactGrab.getInputValue()).toBe("");
-      expect(await reactGrab.getToolbarActionPressed("edit")).toBe(true);
-    });
-
-    test("Style shortcut opens the style panel from a comment discard prompt", async ({
-      reactGrab,
-    }) => {
-      await waitForToolbar(reactGrab);
-      await reactGrab.clickToolbarAction("comment");
-      await reactGrab.hoverUntilSelected(BUTTON_SELECTOR);
-      await reactGrab.clickElement(BUTTON_SELECTOR);
-      await reactGrab.typeInInput("Discard this comment");
-      await reactGrab.page.mouse.click(10, 10);
-      await expect.poll(() => reactGrab.isPendingDismissVisible(), { timeout: 2000 }).toBe(true);
-
-      await reactGrab.page.keyboard.press("s");
-
-      await expect.poll(() => isEditPanelVisible(reactGrab.page), { timeout: 2000 }).toBe(true);
-      await expect.poll(() => reactGrab.isPromptModeActive(), { timeout: 2000 }).toBe(false);
-      expect(await reactGrab.getInputValue()).toBe("");
-      expect(await reactGrab.getToolbarActionPressed("edit")).toBe(true);
-    });
-
-    test("Style button opens from a context-menu comment after pending toolbar selection", async ({
-      reactGrab,
-    }) => {
-      await waitForToolbar(reactGrab);
-      await reactGrab.clickToolbarAction("edit");
-      await reactGrab.hoverUntilSelected(BUTTON_SELECTOR);
-      await reactGrab.rightClickElement(BUTTON_SELECTOR);
-      await reactGrab.clickContextMenuItem("Comment");
-      await reactGrab.typeInInput("Discard this context comment");
-      await reactGrab.page.mouse.click(10, 10);
-      await expect.poll(() => reactGrab.isPendingDismissVisible(), { timeout: 2000 }).toBe(true);
-
-      await reactGrab.clickToolbarAction("edit");
-
-      await expect.poll(() => isEditPanelVisible(reactGrab.page), { timeout: 2000 }).toBe(true);
-      await expect.poll(() => reactGrab.isPromptModeActive(), { timeout: 2000 }).toBe(false);
-      expect(await reactGrab.getToolbarActionPressed("edit")).toBe(true);
-    });
-
-    test("Style button switches from API comment selection mode", async ({ reactGrab }) => {
-      await waitForToolbar(reactGrab);
-      await reactGrab.page.evaluate(() => {
-        window.__REACT_GRAB__?.comment();
-      });
-      await expect
-        .poll(() => reactGrab.getToolbarActionPressed("comment"), { timeout: 2000 })
-        .toBe(true);
-
-      await reactGrab.clickToolbarAction("edit");
-      await reactGrab.hoverUntilSelected(BUTTON_SELECTOR);
-      await reactGrab.clickElement(BUTTON_SELECTOR);
-
-      await expect.poll(() => isEditPanelVisible(reactGrab.page), { timeout: 2000 }).toBe(true);
-      expect(await reactGrab.getToolbarActionPressed("edit")).toBe(true);
-    });
-
-    test("keyboard shortcut switches a pending toolbar selection to style mode", async ({
-      reactGrab,
-    }) => {
-      await waitForToolbar(reactGrab);
-      await reactGrab.clickToolbarAction("comment");
-      await reactGrab.hoverUntilSelected(BUTTON_SELECTOR);
-
-      await reactGrab.page.keyboard.press("s");
-
-      await expect.poll(() => isEditPanelVisible(reactGrab.page), { timeout: 2000 }).toBe(true);
-      expect(await reactGrab.getToolbarActionPressed("edit")).toBe(true);
-      expect(await reactGrab.getToolbarActionPressed("comment")).toBe(false);
     });
   });
 });
