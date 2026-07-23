@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import type { HostBounds, HostPoint, HostTargetDescription } from "react-grab/targets";
 import {
@@ -19,6 +19,7 @@ import {
   NATIVE_SELECTION_LABEL_PADDING_PX,
 } from "./constants";
 import type { ReactGrabNativeProps } from "./types";
+import { measureNativeHandle } from "./utils/measure-native-handle";
 
 export const ReactGrabNative = (props: ReactGrabNativeProps) => {
   const [isActive, setIsActive] = useState(false);
@@ -26,25 +27,54 @@ export const ReactGrabNative = (props: ReactGrabNativeProps) => {
   const [selectionDescription, setSelectionDescription] = useState<HostTargetDescription | null>(
     null,
   );
+  const isActiveRef = useRef(false);
+  const selectionLayerRef = useRef<View | null>(null);
+  const selectionRequestIdRef = useRef(0);
 
-  const deactivate = () => {
-    setIsActive(false);
+  const clearSelection = () => {
     setSelectionBounds(null);
     setSelectionDescription(null);
   };
 
+  const activate = () => {
+    isActiveRef.current = true;
+    setIsActive(true);
+  };
+
+  const deactivate = () => {
+    isActiveRef.current = false;
+    selectionRequestIdRef.current += 1;
+    setIsActive(false);
+    clearSelection();
+  };
+
   const selectAtPoint = async (point: HostPoint) => {
+    selectionRequestIdRef.current += 1;
+    const selectionRequestId = selectionRequestIdRef.current;
+    const isCurrentRequest = () =>
+      isActiveRef.current && selectionRequestIdRef.current === selectionRequestId;
+
     const target = await props.registry.adapter.getTargetAtPoint(point);
+    if (!isCurrentRequest()) return;
     if (!target) {
-      setSelectionBounds(null);
-      setSelectionDescription(null);
+      clearSelection();
       return;
     }
-    const [bounds, description] = await Promise.all([
+    const [bounds, description, selectionLayerBounds] = await Promise.all([
       target.capabilities.measure(),
       target.capabilities.describe(),
+      measureNativeHandle(selectionLayerRef.current),
     ]);
-    setSelectionBounds(bounds);
+    if (!isCurrentRequest()) return;
+    if (!bounds || !selectionLayerBounds) {
+      clearSelection();
+      return;
+    }
+    setSelectionBounds({
+      ...bounds,
+      x: bounds.x - selectionLayerBounds.x,
+      y: bounds.y - selectionLayerBounds.y,
+    });
     setSelectionDescription(description);
   };
 
@@ -52,7 +82,7 @@ export const ReactGrabNative = (props: ReactGrabNativeProps) => {
     <>
       <Pressable
         accessibilityRole="button"
-        onPress={() => setIsActive(true)}
+        onPress={activate}
         style={styles.control}
         testID="react-grab-native-toggle"
       >
@@ -66,6 +96,7 @@ export const ReactGrabNative = (props: ReactGrabNativeProps) => {
               y: event.nativeEvent.pageY,
             });
           }}
+          ref={selectionLayerRef}
           style={styles.selectionLayer}
           testID="react-grab-native-selection-layer"
         >
