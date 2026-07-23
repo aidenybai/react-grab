@@ -25,9 +25,20 @@ describe("native app contract", () => {
     if (!("frame" in targetAttributes)) throw new Error("Target frame is unavailable");
 
     await element(by.id("react-grab-native-toggle")).tap();
-    await element(by.id("react-grab-native-selection-layer")).tap({
-      x: targetAttributes.frame.x + targetAttributes.frame.width / CENTER_DIVISOR,
-      y: targetAttributes.frame.y + targetAttributes.frame.height / CENTER_DIVISOR,
+    const selectionLayer = element(by.id("react-grab-native-selection-layer"));
+    const selectionLayerAttributes = await selectionLayer.getAttributes();
+    if (!("frame" in selectionLayerAttributes))
+      throw new Error("Selection layer frame is unavailable");
+
+    await selectionLayer.tap({
+      x:
+        targetAttributes.frame.x -
+        selectionLayerAttributes.frame.x +
+        targetAttributes.frame.width / CENTER_DIVISOR,
+      y:
+        targetAttributes.frame.y -
+        selectionLayerAttributes.frame.y +
+        targetAttributes.frame.height / CENTER_DIVISOR,
     });
 
     await expect(element(by.id("react-grab-native-highlight"))).toExist();
