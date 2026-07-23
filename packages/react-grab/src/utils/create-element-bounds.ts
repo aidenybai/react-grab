@@ -3,7 +3,7 @@ import { BOUNDS_CACHE_TTL_MS, BORDER_RADIUS_CACHE_TTL_MS } from "../constants.js
 import { convertClientPositionToTopWindow } from "./convert-client-position-to-top-window.js";
 import { getElementComputedStyle } from "./get-element-computed-style.js";
 import { scaleBorderRadius } from "./scale-border-radius.js";
-import { getElementAdapter } from "./element-adapter.js";
+import { getElementAdapter } from "../core/element-adapter.js";
 
 interface CachedBounds {
   bounds: OverlayBounds;

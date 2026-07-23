@@ -1,25 +1,33 @@
 import { expect, test } from "./fixtures.js";
 import { moveToThreeObject } from "./move-to-three-object.js";
-
-const LEFT_OBJECT_HORIZONTAL_RATIO = 0.39;
-const RIGHT_OBJECT_HORIZONTAL_RATIO = 0.61;
+import {
+  THREE_LEFT_OBJECT_HORIZONTAL_RATIO,
+  THREE_RIGHT_OBJECT_HORIZONTAL_RATIO,
+  THREE_SELECTION_MAX_CANVAS_WIDTH_RATIO,
+} from "./constants.js";
 
 test.describe("Three.js selection", () => {
   test("grabs an individual mesh with projected bounds", async ({ reactGrab, page }) => {
     await reactGrab.activate();
-    const position = await moveToThreeObject(page, "three-js-canvas", LEFT_OBJECT_HORIZONTAL_RATIO);
+    const pointerPosition = await moveToThreeObject(
+      page,
+      "three-js-canvas",
+      THREE_LEFT_OBJECT_HORIZONTAL_RATIO,
+    );
     await reactGrab.waitForSelectionBox();
 
-    const label = await reactGrab.getSelectionLabelInfo();
-    expect(label.tagName).toBe("mesh");
+    const selectionLabel = await reactGrab.getSelectionLabelInfo();
+    expect(selectionLabel.tagName).toBe("mesh");
 
     const canvasBounds = await page.getByTestId("three-js-canvas").boundingBox();
     const selectionBounds = await reactGrab.getSelectionBoxBounds();
     if (!canvasBounds || !selectionBounds) throw new Error("Selection bounds were not rendered");
-    expect(selectionBounds.width).toBeLessThan(canvasBounds.width / 2);
+    expect(selectionBounds.width).toBeLessThan(
+      canvasBounds.width * THREE_SELECTION_MAX_CANVAS_WIDTH_RATIO,
+    );
     expect(selectionBounds.height).toBeLessThan(canvasBounds.height);
 
-    await page.mouse.click(position.x, position.y);
+    await page.mouse.click(pointerPosition.x, pointerPosition.y);
     await expect
       .poll(() => reactGrab.getClipboardContent())
       .toContain('<mesh name="three-js-left-cube"');
@@ -30,23 +38,23 @@ test.describe("Three.js selection", () => {
     page,
   }) => {
     await reactGrab.activate();
-    const position = await moveToThreeObject(
+    const pointerPosition = await moveToThreeObject(
       page,
       "three-js-canvas",
-      RIGHT_OBJECT_HORIZONTAL_RATIO,
+      THREE_RIGHT_OBJECT_HORIZONTAL_RATIO,
     );
     await reactGrab.waitForSelectionBox();
-    await reactGrab.rightClickAtPosition(position.x, position.y);
+    await reactGrab.rightClickAtPosition(pointerPosition.x, pointerPosition.y);
 
-    const contextMenu = await reactGrab.getContextMenuInfo();
-    expect(contextMenu.tagBadgeText).toBe("mesh");
+    const contextMenuInfo = await reactGrab.getContextMenuInfo();
+    expect(contextMenuInfo.tagBadgeText).toBe("mesh");
     expect(await reactGrab.isContextMenuItemEnabled("Style")).toBe(false);
 
     await reactGrab.clickContextMenuItem("Copy");
     await expect
       .poll(() => reactGrab.getClipboardContent())
       .toContain('<mesh name="three-js-right-cube"');
-    const clipboard = await reactGrab.getClipboardContent();
-    expect(clipboard).not.toContain('<mesh name="three-js-left-cube"');
+    const clipboardContent = await reactGrab.getClipboardContent();
+    expect(clipboardContent).not.toContain('<mesh name="three-js-left-cube"');
   });
 });

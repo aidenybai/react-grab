@@ -14,8 +14,7 @@ import { isIframeElement } from "./is-iframe-element.js";
 import { isPointInsideRect } from "./is-point-inside-rect.js";
 import { isValidGrabbableElement } from "./is-valid-grabbable-element.js";
 import { resumePointerEventsFreeze, suspendPointerEventsFreeze } from "./pointer-events-freeze.js";
-import { resolveElementAtPoint } from "./element-adapter.js";
-import "./three-selection.js";
+import { resolveThreeElementAtPoint } from "../core/three-selection.js";
 
 interface PositionCache {
   clientX: number;
@@ -69,12 +68,7 @@ export const getElementsAtPoint = (clientX: number, clientY: number): Element[] 
     const scopedElements = getScopeContainer() ? elements.filter(isWithinScope) : elements;
     const resolvedElements: Element[] = [];
     for (const element of scopedElements) {
-      const adaptedElement = resolveElementAtPoint(element, clientX, clientY);
-      if (adaptedElement) {
-        resolvedElements.push(adaptedElement);
-        continue;
-      }
-      resolvedElements.push(element);
+      resolvedElements.push(resolveThreeElementAtPoint(element, clientX, clientY));
     }
     return resolvedElements;
   } finally {
@@ -141,11 +135,16 @@ export const getElementAtPosition = (clientX: number, clientY: number): Element 
     // overlapping the scoped container) we fall back to elementsFromPoint, which
     // returns the full z-ordered stack, and take the first grabbable in-scope one.
     const topElement = getDeepElementAtPoint(clientX, clientY);
-    const adaptedElement = topElement ? resolveElementAtPoint(topElement, clientX, clientY) : null;
-    if (adaptedElement && topElement && isWithinScope(topElement)) {
-      result = adaptedElement;
-    } else if (topElement && isValidGrabbableElement(topElement) && isWithinScope(topElement)) {
-      result = topElement;
+    const resolvedElement = topElement
+      ? resolveThreeElementAtPoint(topElement, clientX, clientY)
+      : null;
+    if (
+      topElement &&
+      resolvedElement &&
+      isValidGrabbableElement(resolvedElement) &&
+      isWithinScope(topElement)
+    ) {
+      result = resolvedElement;
     } else {
       result = getDeepFallbackElementAtPoint(clientX, clientY);
     }

@@ -11,7 +11,7 @@ import { isInternalAttribute } from "../utils/strip-internal-attributes.js";
 import { getPreviewTextContent } from "../utils/get-preview-text-content.js";
 import { isElementNode } from "../utils/is-element-node.js";
 import { isHtmlElement } from "../utils/is-html-element.js";
-import { getElementAdapter } from "../utils/element-adapter.js";
+import { getElementAdapter } from "./element-adapter.js";
 
 const truncateAttrValue = (attributeValue: string): string =>
   truncateString(attributeValue, PREVIEW_ATTR_VALUE_MAX_LENGTH);

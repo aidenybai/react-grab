@@ -1,5 +1,9 @@
+export const THREE_AMBIENT_LIGHT_INTENSITY = 1.5;
 export const THREE_BOX_SIZE_UNITS = 1.4;
 export const THREE_CAMERA_FOV_DEGREES = 45;
 export const THREE_CAMERA_POSITION_Z_UNITS = 5;
+export const THREE_DEVICE_PIXEL_RATIO = 1;
+export const THREE_DIRECTIONAL_LIGHT_INTENSITY = 2;
+export const THREE_DIRECTIONAL_LIGHT_POSITION = [3, 4, 5] satisfies [number, number, number];
 export const THREE_LEFT_BOX_POSITION = [-1.1, 0, 0] satisfies [number, number, number];
 export const THREE_RIGHT_BOX_POSITION = [1.1, 0, 0] satisfies [number, number, number];

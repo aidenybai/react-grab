@@ -9,7 +9,7 @@ import { isRootElement } from "./is-root-element.js";
 import { getElementComputedStyle } from "./get-element-computed-style.js";
 import { isReactGrabElement } from "./is-react-grab-element.js";
 import { isUserIgnoredElement } from "./is-user-ignored-element.js";
-import { getElementAdapter } from "./element-adapter.js";
+import { getElementAdapter } from "../core/element-adapter.js";
 
 // Dev tools like react-scan create full-viewport canvas overlays with
 // pointer-events:none that elementsFromPoint still returns. Without this

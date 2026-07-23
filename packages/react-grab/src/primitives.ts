@@ -26,10 +26,10 @@ import { createElementBounds } from "./utils/create-element-bounds.js";
 import { getUnfilteredElementsAtPoint } from "./utils/get-unfiltered-elements-at-point.js";
 import { matchesElementAtPointOptions } from "./utils/matches-element-at-point-options.js";
 import type { ElementAtPointOptions, ElementBounds } from "./types.js";
-import { getReactFiberForElement, resolveElementAtPoint } from "./utils/element-adapter.js";
-import "./utils/three-selection.js";
+import { getReactFiberForElement } from "./core/element-adapter.js";
+import { resolveThreeElementAtPoint } from "./core/three-selection.js";
 
-export { registerThreeScene, type ThreeSceneRegistration } from "./utils/three-selection.js";
+export { registerThreeScene, type ThreeSceneRegistration } from "./core/three-selection.js";
 
 export type { ElementAtPointOptions, ElementBounds } from "./types.js";
 
@@ -134,11 +134,12 @@ export const getElementAtPoint = (
 ): Element | null => {
   const elements = getUnfilteredElementsAtPoint(clientX, clientY);
   for (const element of elements) {
-    const adaptedElement = resolveElementAtPoint(element, clientX, clientY);
-    if (adaptedElement && matchesElementAtPointOptions(adaptedElement, options)) {
-      return adaptedElement;
+    const resolvedElement = resolveThreeElementAtPoint(element, clientX, clientY);
+    if (matchesElementAtPointOptions(resolvedElement, options)) {
+      return resolvedElement;
     }
-    if (matchesElementAtPointOptions(element, options)) return element;
+    if (resolvedElement !== element && matchesElementAtPointOptions(element, options))
+      return element;
   }
   return null;
 };
@@ -156,12 +157,14 @@ export const getElementsAtPoint = (
   const elements = getUnfilteredElementsAtPoint(clientX, clientY);
   const matchingElements: Element[] = [];
   for (const element of elements) {
-    const adaptedElement = resolveElementAtPoint(element, clientX, clientY);
-    if (adaptedElement && matchesElementAtPointOptions(adaptedElement, options)) {
-      matchingElements.push(adaptedElement);
+    const resolvedElement = resolveThreeElementAtPoint(element, clientX, clientY);
+    if (matchesElementAtPointOptions(resolvedElement, options)) {
+      matchingElements.push(resolvedElement);
       continue;
     }
-    if (matchesElementAtPointOptions(element, options)) matchingElements.push(element);
+    if (resolvedElement !== element && matchesElementAtPointOptions(element, options)) {
+      matchingElements.push(element);
+    }
   }
   return matchingElements;
 };

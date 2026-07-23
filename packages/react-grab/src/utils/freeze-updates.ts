@@ -118,7 +118,11 @@ const isDomFiberRoot = (fiberRoot: FiberRootLike): boolean => {
 // to a DOM walk when the app mounted before bippy instrumented the renderers.
 const collectFiberRoots = (): Set<FiberRootLike> => {
   if (typedFiberRoots.size > 0) {
-    return new Set(Array.from(typedFiberRoots).filter(isDomFiberRoot));
+    const domFiberRoots = new Set<FiberRootLike>();
+    for (const fiberRoot of typedFiberRoots) {
+      if (isDomFiberRoot(fiberRoot)) domFiberRoots.add(fiberRoot);
+    }
+    return domFiberRoots;
   }
 
   const collectedRoots = new Set<FiberRootLike>();

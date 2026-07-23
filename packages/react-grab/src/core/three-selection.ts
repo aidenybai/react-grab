@@ -6,9 +6,12 @@ import {
   type FiberRoot,
 } from "bippy";
 import type { OverlayBounds } from "../types.js";
-import { THREE_SELECTION_FALLBACK_BOUNDS_PX } from "../constants.js";
-import { convertClientPositionToTopWindow } from "./convert-client-position-to-top-window.js";
-import { registerElementAdapter, registerElementPointResolver } from "./element-adapter.js";
+import {
+  THREE_PREVIEW_ARRAY_MAX_LENGTH,
+  THREE_SELECTION_FALLBACK_BOUNDS_PX,
+} from "../constants.js";
+import { createElementBounds } from "../utils/create-element-bounds.js";
+import { registerElementAdapter } from "./element-adapter.js";
 
 interface ThreeVectorLike {
   x: number;
@@ -39,7 +42,7 @@ interface ThreeCameraLike {
   isCamera: boolean;
 }
 
-interface ThreeInstanceLike {
+interface ReactThreeFiberInstanceLike {
   type: string;
   props: Record<string, unknown>;
   object: ThreeObjectLike;
@@ -58,7 +61,7 @@ interface ThreeObjectLike {
   updateWorldMatrix: (updateParents: boolean, updateChildren: boolean) => void;
   getMatrixAt?: (instanceId: number, matrix: ThreeMatrixLike) => void;
   children?: ThreeObjectLike[];
-  __r3f?: ThreeInstanceLike;
+  __r3f?: ReactThreeFiberInstanceLike;
 }
 
 interface ThreeIntersectionLike {
@@ -102,7 +105,7 @@ export interface ThreeSceneRegistration {
 }
 
 interface ThreeRoot {
-  isReactRenderer: boolean;
+  isReactThreeFiber: boolean;
   state: ThreeRootState;
 }
 
@@ -110,22 +113,25 @@ interface ThreeSelection {
   canvas: HTMLCanvasElement;
   element: Element;
   fiber: Fiber | null;
+  instance: ReactThreeFiberInstanceLike | null;
   instanceId: number | null;
   intersectionPoint: ThreeVectorLike | null;
   object: ThreeObjectLike;
   rootState: ThreeRootState;
+  tagName: string;
 }
 
-interface CanvasBounds {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
-
-const selectionByElement = new WeakMap<Element, ThreeSelection>();
-const elementsByObject = new WeakMap<ThreeObjectLike, Map<number | null, Element>>();
-const rootByCanvas = new WeakMap<HTMLCanvasElement, ThreeRoot>();
+const selectionsByObject = new WeakMap<ThreeObjectLike, Map<number | null, ThreeSelection>>();
+const threeRootByCanvas = new WeakMap<HTMLCanvasElement, ThreeRoot>();
+const THREE_PREVIEW_PROP_NAMES = [
+  "name",
+  "position",
+  "rotation",
+  "scale",
+  "color",
+  "visible",
+  "args",
+];
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
@@ -152,7 +158,7 @@ const isThreeMatrix = (value: unknown): value is ThreeMatrixLike =>
 const isThreeGeometry = (value: unknown): value is ThreeGeometryLike =>
   isRecord(value) && "boundingBox" in value && hasFunction(value, "computeBoundingBox");
 
-const isThreeInstance = (value: unknown): value is ThreeInstanceLike =>
+const isReactThreeFiberInstance = (value: unknown): value is ReactThreeFiberInstanceLike =>
   isRecord(value) &&
   typeof value.type === "string" &&
   isRecord(value.props) &&
@@ -197,10 +203,10 @@ const isThreeRootState = (value: unknown): value is ThreeRootState =>
   isThreeRaycaster(value.raycaster) &&
   isThreePointer(value.pointer);
 
-const getThreeInstance = (object: ThreeObjectLike): ThreeInstanceLike | null =>
-  isThreeInstance(object.__r3f) ? object.__r3f : null;
+const getReactThreeFiberInstance = (object: ThreeObjectLike): ReactThreeFiberInstanceLike | null =>
+  isReactThreeFiberInstance(object.__r3f) ? object.__r3f : null;
 
-const getRootState = (root: FiberRoot): ThreeRootState | null => {
+const getThreeRootState = (root: FiberRoot): ThreeRootState | null => {
   const stateNode = root.current.stateNode;
   if (!isRecord(stateNode) || !isObjectOrFunction(stateNode.containerInfo)) return null;
   const getState = Reflect.get(stateNode.containerInfo, "getState");
@@ -209,40 +215,28 @@ const getRootState = (root: FiberRoot): ThreeRootState | null => {
   return isThreeRootState(state) ? state : null;
 };
 
-const getCanvasBounds = (canvas: HTMLCanvasElement): CanvasBounds => {
-  const rect = canvas.getBoundingClientRect();
-  const position = convertClientPositionToTopWindow(
-    canvas.ownerDocument.defaultView,
-    rect.left,
-    rect.top,
-  );
-  return {
-    x: position.x,
-    y: position.y,
-    width: rect.width * position.scaleX,
-    height: rect.height * position.scaleY,
-  };
-};
-
 instrument({
   name: "react-grab-three-selection",
   onCommitFiberRoot: (_rendererId, root) => {
-    const state = getRootState(root);
-    if (!state) return;
-    rootByCanvas.set(state.gl.domElement, { isReactRenderer: true, state });
+    const rootState = getThreeRootState(root);
+    if (!rootState) return;
+    threeRootByCanvas.set(rootState.gl.domElement, {
+      isReactThreeFiber: true,
+      state: rootState,
+    });
   },
 });
 
-const findManagedHitObject = (object: ThreeObjectLike): ThreeObjectLike | null => {
+const findReactThreeFiberObject = (object: ThreeObjectLike): ThreeObjectLike | null => {
   let currentObject: ThreeObjectLike | null = object;
   while (currentObject) {
-    if (getThreeInstance(currentObject)) return currentObject;
+    if (getReactThreeFiberInstance(currentObject)) return currentObject;
     currentObject = currentObject.parent;
   }
   return null;
 };
 
-const isObjectInScene = (object: ThreeObjectLike, scene: ThreeSceneLike): boolean => {
+const isThreeObjectInScene = (object: ThreeObjectLike, scene: ThreeSceneLike): boolean => {
   let currentObject: ThreeObjectLike | null = object;
   while (currentObject) {
     if (currentObject === scene) return true;
@@ -260,128 +254,120 @@ const getOrCreateSelectionElement = (
     typeof intersection.instanceId === "number" && Number.isInteger(intersection.instanceId)
       ? intersection.instanceId
       : null;
-  let elementsByInstance = elementsByObject.get(object);
-  if (!elementsByInstance) {
-    elementsByInstance = new Map();
-    elementsByObject.set(object, elementsByInstance);
+  let selectionsByInstance = selectionsByObject.get(object);
+  if (!selectionsByInstance) {
+    selectionsByInstance = new Map();
+    selectionsByObject.set(object, selectionsByInstance);
   }
 
-  let element = elementsByInstance.get(instanceId);
-  if (!element) {
-    const instance = getThreeInstance(object);
-    const fiber = instance ? getFiberFromHostInstance(instance) : null;
-    if (instance && !fiber) return null;
-    const tagName = instance?.type || object.type || "object-3d";
-    const createdElement = rootState.gl.domElement.ownerDocument.createElement(
-      tagName.toLowerCase(),
-    );
-    const selection: ThreeSelection = {
-      canvas: rootState.gl.domElement,
-      element: createdElement,
-      fiber,
-      instanceId,
-      intersectionPoint: isThreeVector(intersection.point) ? intersection.point : null,
-      object,
-      rootState,
-    };
-    const nativeGetBoundingClientRect = createdElement.getBoundingClientRect.bind(createdElement);
-    createdElement.getBoundingClientRect = () => {
-      const bounds = createThreeSelectionBounds(selection);
-      const DomRect = createdElement.ownerDocument.defaultView?.DOMRect;
-      if (!DomRect) return nativeGetBoundingClientRect();
-      return new DomRect(bounds.x, bounds.y, bounds.width, bounds.height);
-    };
-    registerElementAdapter(createdElement, {
-      physicalElement: selection.canvas,
-      supportsDomEditing: false,
-      getBounds: () => createThreeSelectionBounds(selection),
-      getFiber: () => (selection.fiber ? getLatestFiber(selection.fiber) : null),
-      getPreview: () => getThreeSelectionPreview(selection),
-      getSelector: () => createThreeSelectionSelector(selection),
-      getTagName: () => getThreeSelectionTagName(selection),
-      isConnected: () =>
-        selection.canvas.isConnected &&
-        isObjectInScene(selection.object, selection.rootState.scene),
-    });
-    selectionByElement.set(createdElement, selection);
-    element = createdElement;
-    elementsByInstance.set(instanceId, element);
-    return element;
+  const existingSelection = selectionsByInstance.get(instanceId);
+  if (existingSelection) {
+    existingSelection.canvas = rootState.gl.domElement;
+    existingSelection.intersectionPoint = isThreeVector(intersection.point)
+      ? intersection.point
+      : null;
+    existingSelection.object = object;
+    existingSelection.rootState = rootState;
+    return existingSelection.element;
   }
 
-  const selection = selectionByElement.get(element);
-  if (!selection) {
-    elementsByInstance.delete(instanceId);
-    return getOrCreateSelectionElement(rootState, object, intersection);
-  }
-  selection.canvas = rootState.gl.domElement;
-  selection.intersectionPoint = isThreeVector(intersection.point) ? intersection.point : null;
-  selection.object = object;
-  selection.rootState = rootState;
-  return element;
+  const instance = getReactThreeFiberInstance(object);
+  const fiber = instance ? getFiberFromHostInstance(instance) : null;
+  if (instance && !fiber) return null;
+  const tagName = (instance?.type || object.type || "object-3d").toLowerCase();
+  const createdElement = rootState.gl.domElement.ownerDocument.createElement(tagName);
+  const selection: ThreeSelection = {
+    canvas: rootState.gl.domElement,
+    element: createdElement,
+    fiber,
+    instance,
+    instanceId,
+    intersectionPoint: isThreeVector(intersection.point) ? intersection.point : null,
+    object,
+    rootState,
+    tagName,
+  };
+  const nativeGetBoundingClientRect = createdElement.getBoundingClientRect.bind(createdElement);
+  createdElement.getBoundingClientRect = () => {
+    const bounds = createThreeSelectionBounds(selection);
+    const domRectConstructor = createdElement.ownerDocument.defaultView?.DOMRect;
+    if (!domRectConstructor) return nativeGetBoundingClientRect();
+    return new domRectConstructor(bounds.x, bounds.y, bounds.width, bounds.height);
+  };
+  registerElementAdapter(createdElement, {
+    hostElement: selection.canvas,
+    supportsDomEditing: false,
+    getBounds: () => createThreeSelectionBounds(selection),
+    getFiber: () => (selection.fiber ? getLatestFiber(selection.fiber) : null),
+    getPreview: () => getThreeSelectionPreview(selection),
+    getSelector: () => createThreeSelectionSelector(selection),
+    getTagName: () => selection.tagName,
+    isConnected: () =>
+      selection.canvas.isConnected &&
+      isThreeObjectInScene(selection.object, selection.rootState.scene),
+  });
+  selectionsByInstance.set(instanceId, selection);
+  return createdElement;
 };
 
-const getThreeElementAtPoint = (
+export const resolveThreeElementAtPoint = (
   candidateElement: Element,
   clientX: number,
   clientY: number,
-): Element | null => {
-  if (!isCanvasElement(candidateElement)) return null;
-  const root = rootByCanvas.get(candidateElement);
-  if (!root) return null;
+): Element => {
+  if (!isCanvasElement(candidateElement)) return candidateElement;
+  const root = threeRootByCanvas.get(candidateElement);
+  if (!root) return candidateElement;
 
-  const bounds = getCanvasBounds(candidateElement);
-  if (bounds.width <= 0 || bounds.height <= 0) return null;
-  const pointerX = ((clientX - bounds.x) / bounds.width) * 2 - 1;
-  const pointerY = -((clientY - bounds.y) / bounds.height) * 2 + 1;
-  if (pointerX < -1 || pointerX > 1 || pointerY < -1 || pointerY > 1) return null;
+  const canvasBounds = createElementBounds(candidateElement);
+  if (canvasBounds.width <= 0 || canvasBounds.height <= 0) return candidateElement;
+  const pointerX = ((clientX - canvasBounds.x) / canvasBounds.width) * 2 - 1;
+  const pointerY = -((clientY - canvasBounds.y) / canvasBounds.height) * 2 + 1;
+  if (pointerX < -1 || pointerX > 1 || pointerY < -1 || pointerY > 1) {
+    return candidateElement;
+  }
 
   try {
     root.state.pointer.set(pointerX, pointerY);
     root.state.raycaster.setFromCamera(root.state.pointer, root.state.camera);
     const intersections = root.state.raycaster.intersectObjects(root.state.scene.children, true);
     for (const intersection of intersections) {
-      const object = root.isReactRenderer
-        ? findManagedHitObject(intersection.object)
+      const object = root.isReactThreeFiber
+        ? findReactThreeFiberObject(intersection.object)
         : intersection.object;
       if (!object || object.visible === false) continue;
       const element = getOrCreateSelectionElement(root.state, object, intersection);
       if (element) return element;
     }
   } catch {}
-  return null;
+  return candidateElement;
 };
 
-registerElementPointResolver(getThreeElementAtPoint);
-
 export const registerThreeScene = (registration: ThreeSceneRegistration): (() => void) => {
-  const rootStateCandidate = {
+  const rootState = {
     gl: registration.renderer,
     scene: registration.scene,
     camera: registration.camera,
     raycaster: registration.raycaster,
     pointer: registration.pointer,
   };
-  if (!isThreeRootState(rootStateCandidate)) {
+  if (!isThreeRootState(rootState)) {
     throw new TypeError("Invalid Three.js scene registration");
   }
-  const canvas = rootStateCandidate.gl.domElement;
-  const root = { isReactRenderer: false, state: rootStateCandidate };
-  rootByCanvas.set(canvas, root);
+  const canvas = rootState.gl.domElement;
+  const rootRegistration = { isReactThreeFiber: false, state: rootState };
+  threeRootByCanvas.set(canvas, rootRegistration);
   return () => {
-    if (rootByCanvas.get(canvas) === root) rootByCanvas.delete(canvas);
+    if (threeRootByCanvas.get(canvas) === rootRegistration) threeRootByCanvas.delete(canvas);
   };
 };
-
-const getThreeSelectionTagName = (selection: ThreeSelection): string =>
-  getThreeInstance(selection.object)?.type ?? selection.object.type.toLowerCase();
 
 const formatPropValue = (value: unknown): string | null => {
   if (typeof value === "string") return JSON.stringify(value);
   if (typeof value === "number" || typeof value === "boolean") return `{${String(value)}}`;
   if (
     Array.isArray(value) &&
-    value.length <= 4 &&
+    value.length <= THREE_PREVIEW_ARRAY_MAX_LENGTH &&
     value.every((item) => typeof item === "number" || typeof item === "string")
   ) {
     return `{${JSON.stringify(value)}}`;
@@ -390,13 +376,10 @@ const formatPropValue = (value: unknown): string | null => {
 };
 
 const getThreeSelectionPreview = (selection: ThreeSelection): string => {
-  const instance = getThreeInstance(selection.object);
-  const type = instance?.type ?? selection.object.type.toLowerCase();
-  const props = instance?.props ?? {};
+  const props = selection.instance?.props ?? {};
   const attributes: string[] = [];
-  const propNames = ["name", "position", "rotation", "scale", "color", "visible", "args"];
 
-  for (const propName of propNames) {
+  for (const propName of THREE_PREVIEW_PROP_NAMES) {
     let propValue = props[propName];
     if (propName === "name" && propValue === undefined && selection.object.name) {
       propValue = selection.object.name;
@@ -405,14 +388,15 @@ const getThreeSelectionPreview = (selection: ThreeSelection): string => {
     if (formattedValue) attributes.push(`${propName}=${formattedValue}`);
   }
   if (selection.instanceId !== null) attributes.push(`instanceId={${selection.instanceId}}`);
-  return `<${type}${attributes.length > 0 ? ` ${attributes.join(" ")}` : ""} />`;
+  return `<${selection.tagName}${attributes.length > 0 ? ` ${attributes.join(" ")}` : ""} />`;
 };
 
 const createThreeSelectionSelector = (selection: ThreeSelection): string => {
-  const type = getThreeInstance(selection.object)?.type ?? selection.object.type.toLowerCase();
-  if (selection.object.name) return `${type}[name=${JSON.stringify(selection.object.name)}]`;
+  if (selection.object.name) {
+    return `${selection.tagName}[name=${JSON.stringify(selection.object.name)}]`;
+  }
   const instanceSuffix = selection.instanceId === null ? "" : `:${selection.instanceId}`;
-  return `${type}[uuid=${JSON.stringify(`${selection.object.uuid}${instanceSuffix}`)}]`;
+  return `${selection.tagName}[uuid=${JSON.stringify(`${selection.object.uuid}${instanceSuffix}`)}]`;
 };
 
 const getObjectMatrix = (selection: ThreeSelection): ThreeMatrixLike => {
@@ -436,7 +420,7 @@ const getGeometryBoundingBox = (object: ThreeObjectLike): ThreeBoxLike | null =>
 
 const createFallbackBounds = (
   selection: ThreeSelection,
-  canvasBounds: CanvasBounds,
+  canvasBounds: OverlayBounds,
 ): OverlayBounds => {
   const fallbackSize = THREE_SELECTION_FALLBACK_BOUNDS_PX;
   let centerX = canvasBounds.x + canvasBounds.width / 2;
@@ -458,7 +442,7 @@ const createFallbackBounds = (
 };
 
 const createThreeSelectionBounds = (selection: ThreeSelection): OverlayBounds => {
-  const canvasBounds = getCanvasBounds(selection.canvas);
+  const canvasBounds = createElementBounds(selection.canvas);
   const boundingBox = getGeometryBoundingBox(selection.object);
   if (!boundingBox) return createFallbackBounds(selection, canvasBounds);
 
@@ -470,12 +454,12 @@ const createThreeSelectionBounds = (selection: ThreeSelection): OverlayBounds =>
   let minY = Number.POSITIVE_INFINITY;
   let maxX = Number.NEGATIVE_INFINITY;
   let maxY = Number.NEGATIVE_INFINITY;
+  const projectedCorner = boundingBox.min.clone();
 
   for (const xValue of xValues) {
     for (const yValue of yValues) {
       for (const zValue of zValues) {
-        const projectedCorner = boundingBox.min
-          .clone()
+        projectedCorner
           .set(xValue, yValue, zValue)
           .applyMatrix4(matrix)
           .project(selection.rootState.camera);
@@ -490,7 +474,12 @@ const createThreeSelectionBounds = (selection: ThreeSelection): OverlayBounds =>
     }
   }
 
-  if (![minX, minY, maxX, maxY].every(Number.isFinite)) {
+  if (
+    !Number.isFinite(minX) ||
+    !Number.isFinite(minY) ||
+    !Number.isFinite(maxX) ||
+    !Number.isFinite(maxY)
+  ) {
     return createFallbackBounds(selection, canvasBounds);
   }
   const clampedMinX = Math.max(canvasBounds.x, minX);

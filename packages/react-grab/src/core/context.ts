@@ -29,7 +29,7 @@ import {
   isUsefulComponentName,
 } from "../utils/is-useful-component-name.js";
 import type { SourceLocation } from "../types.js";
-import { getReactFiberForElement } from "../utils/element-adapter.js";
+import { getReactFiberForElement } from "./element-adapter.js";
 
 const isSourceComponentName = (name: string): boolean => {
   if (name.length <= 1) return false;

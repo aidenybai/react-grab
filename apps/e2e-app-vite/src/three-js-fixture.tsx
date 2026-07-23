@@ -14,27 +14,34 @@ import {
   WebGLRenderer,
 } from "three";
 import {
+  THREE_AMBIENT_LIGHT_INTENSITY,
   THREE_BOX_SIZE_UNITS,
   THREE_CAMERA_FOV_DEGREES,
   THREE_CAMERA_POSITION_Z_UNITS,
+  THREE_DIRECTIONAL_LIGHT_INTENSITY,
+  THREE_DIRECTIONAL_LIGHT_POSITION,
   THREE_LEFT_BOX_POSITION,
   THREE_RIGHT_BOX_POSITION,
 } from "./three-fixture-constants";
 
-const createBox = (name: string, color: Color, position: [number, number, number]) => {
+const createTestBox = (
+  name: string,
+  color: Color,
+  position: [number, number, number],
+): Mesh<BoxGeometry, MeshStandardMaterial> => {
   const geometry = new BoxGeometry(
     THREE_BOX_SIZE_UNITS,
     THREE_BOX_SIZE_UNITS,
     THREE_BOX_SIZE_UNITS,
   );
   const material = new MeshStandardMaterial({ color });
-  const box = new Mesh(geometry, material);
-  box.name = name;
-  box.position.set(...position);
-  return box;
+  const boxMesh = new Mesh(geometry, material);
+  boxMesh.name = name;
+  boxMesh.position.set(...position);
+  return boxMesh;
 };
 
-export const ThreeJsFixture = () => {
+export const ThreeJsFixture = (): React.JSX.Element => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -51,17 +58,26 @@ export const ThreeJsFixture = () => {
     camera.position.z = THREE_CAMERA_POSITION_Z_UNITS;
     const raycaster = new Raycaster();
     const pointer = new Vector2();
-    const leftBox = createBox("three-js-left-cube", new Color("#a3e635"), THREE_LEFT_BOX_POSITION);
-    const rightBox = createBox(
+    const leftBox = createTestBox(
+      "three-js-left-cube",
+      new Color("#a3e635"),
+      THREE_LEFT_BOX_POSITION,
+    );
+    const rightBox = createTestBox(
       "three-js-right-cube",
       new Color("#fb923c"),
       THREE_RIGHT_BOX_POSITION,
     );
-    const directionalLight = new DirectionalLight("#ffffff", 2);
-    directionalLight.position.set(3, 4, 5);
-    scene.add(new AmbientLight("#ffffff", 1.5), directionalLight, leftBox, rightBox);
+    const directionalLight = new DirectionalLight("#ffffff", THREE_DIRECTIONAL_LIGHT_INTENSITY);
+    directionalLight.position.set(...THREE_DIRECTIONAL_LIGHT_POSITION);
+    scene.add(
+      new AmbientLight("#ffffff", THREE_AMBIENT_LIGHT_INTENSITY),
+      directionalLight,
+      leftBox,
+      rightBox,
+    );
 
-    const renderScene = () => {
+    const renderScene = (): void => {
       const width = canvas.clientWidth;
       const height = canvas.clientHeight;
       if (width === 0 || height === 0) return;

@@ -1,5 +1,5 @@
 import type { Plugin } from "../../types.js";
-import { getElementAdapter } from "../../utils/element-adapter.js";
+import { getElementAdapter } from "../element-adapter.js";
 
 export const editPlugin: Plugin = {
   name: "edit",
