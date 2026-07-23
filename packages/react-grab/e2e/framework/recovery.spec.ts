@@ -68,6 +68,7 @@ test.describe("framework recovery boundaries", () => {
     );
 
     await reactGrab.page.goto("/fixture-error", { waitUntil: "domcontentloaded" });
+    await waitForReactGrabReady(reactGrab.page);
     await expect(reactGrab.page.getByTestId("fixture-error-fallback")).toBeVisible();
     await reactGrab.page.getByTestId("fixture-error-recovery-link").click();
     await expect(reactGrab.page.getByTestId("page-title")).toBeVisible();

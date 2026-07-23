@@ -3,6 +3,7 @@ import { FINDER_TIMEOUT_MS, SELECTOR_ATTR_VALUE_MAX_LENGTH_CHARS } from "../cons
 import { getWindowFrameElement } from "./get-window-frame-element.js";
 import { isShadowRoot } from "./is-shadow-root.js";
 import { isElementNode } from "./is-element-node.js";
+import { getElementAdapter } from "../core/element-adapter.js";
 
 const getFinderRoot = (element: Element): Element =>
   element.ownerDocument.body ?? element.ownerDocument.documentElement;
@@ -122,6 +123,8 @@ const createLocalElementSelector = (element: Element): string => {
 };
 
 export const createElementSelector = (element: Element): string => {
+  const adapter = getElementAdapter(element);
+  if (adapter) return adapter.getSelector();
   const localSelector = createLocalElementSelector(element);
   const rootNode = element.getRootNode();
   if (isShadowRoot(rootNode)) {

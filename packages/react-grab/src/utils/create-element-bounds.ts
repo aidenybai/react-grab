@@ -3,6 +3,7 @@ import { BOUNDS_CACHE_TTL_MS, BORDER_RADIUS_CACHE_TTL_MS } from "../constants.js
 import { convertClientPositionToTopWindow } from "./convert-client-position-to-top-window.js";
 import { getElementComputedStyle } from "./get-element-computed-style.js";
 import { scaleBorderRadius } from "./scale-border-radius.js";
+import { getElementAdapter } from "../core/element-adapter.js";
 
 interface CachedBounds {
   bounds: OverlayBounds;
@@ -44,6 +45,13 @@ export const createElementBounds = (element: Element): OverlayBounds => {
 
   if (cached && now - cached.timestamp < BOUNDS_CACHE_TTL_MS) {
     return cached.bounds;
+  }
+
+  const adapter = getElementAdapter(element);
+  if (adapter) {
+    const bounds = adapter.getBounds();
+    boundsCache.set(element, { bounds, timestamp: now });
+    return bounds;
   }
 
   const rect = element.getBoundingClientRect();

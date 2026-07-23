@@ -2,7 +2,6 @@ import { getOwnerStack, getSource, type StackFrame } from "bippy/source";
 import {
   isInstrumentationActive,
   getDisplayName,
-  getFiberFromHostInstance,
   isCompositeFiber,
   traverseFiber,
   type Fiber,
@@ -30,6 +29,7 @@ import {
   isUsefulComponentName,
 } from "../utils/is-useful-component-name.js";
 import type { SourceLocation } from "../types.js";
+import { getReactFiberForElement } from "./element-adapter.js";
 
 const isSourceComponentName = (name: string): boolean => {
   if (name.length <= 1) return false;
@@ -48,7 +48,7 @@ const findNearestFiberElement = (element: Element): Element => {
   if (!isInstrumentationActive()) return element;
   let current: Element | null = element;
   while (current?.ownerDocument === element.ownerDocument) {
-    if (getFiberFromHostInstance(current)) return current;
+    if (getReactFiberForElement(current)) return current;
     if (current.parentElement) {
       current = current.parentElement;
       continue;
@@ -93,7 +93,7 @@ const findNearestListItemKey = (startingFiber: Fiber | null): string | null => {
 
 const getNearestListItemKey = (element: Element): string | null => {
   if (!isInstrumentationActive()) return null;
-  return findNearestListItemKey(getFiberFromHostInstance(findNearestFiberElement(element)));
+  return findNearestListItemKey(getReactFiberForElement(findNearestFiberElement(element)));
 };
 
 const stackCache = new WeakMap<Element, Promise<StackFrame[] | null>>();
@@ -115,7 +115,7 @@ const createSourceFetch =
 const fetchStackForElement = (element: Element): Promise<StackFrame[] | null> =>
   runQueuedSourceFetch(async (signal) => {
     try {
-      const fiber = getFiberFromHostInstance(element);
+      const fiber = getReactFiberForElement(element);
       if (!fiber) return null;
 
       const frames = await getOwnerStack(fiber, true, createSourceFetch(signal));
@@ -183,7 +183,7 @@ const getSourceComponentName = (fiber: Fiber | undefined): string | null => {
 // both compete for the same connection pool and neither has its own timeout.
 const getFiberSource = (element: Element): Promise<ResolvedSource | null> =>
   runQueuedSourceFetch(async (signal) => {
-    const fiber = getFiberFromHostInstance(findNearestFiberElement(element));
+    const fiber = getReactFiberForElement(findNearestFiberElement(element));
     if (!fiber) return null;
 
     try {
@@ -296,7 +296,7 @@ const getComponentNamesFromFiber = (
   shouldIncludeName: (componentName: string) => boolean = () => true,
 ): string[] => {
   if (!isInstrumentationActive()) return [];
-  const fiber = getFiberFromHostInstance(element);
+  const fiber = getReactFiberForElement(element);
   if (!fiber) return [];
 
   const componentNames: string[] = [];

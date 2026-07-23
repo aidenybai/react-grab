@@ -5,6 +5,8 @@ import { IframeFixture } from "./iframe-fixture";
 import { OwnerStackCases } from "./owner-stack-cases";
 import { PierreDiffFixture, PierreDiffPreview } from "./pierre-diff-fixture";
 import { ShadowDomEdgeFixture } from "./shadow-dom-edge-fixture";
+import { ThreeFiberFixture } from "./three-fiber-fixture";
+import { ThreeJsFixture } from "./three-js-fixture";
 
 declare global {
   interface Window {
@@ -879,6 +881,10 @@ export default function App() {
       <PierreDiffFixture />
 
       <ShadowDomEdgeFixture />
+
+      <ThreeFiberFixture />
+
+      <ThreeJsFixture />
 
       <IframeFixture />
 

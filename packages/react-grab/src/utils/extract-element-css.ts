@@ -1,4 +1,5 @@
 import { RELEVANT_CSS_PROPERTIES } from "../constants.js";
+import { getElementAdapter } from "../core/element-adapter.js";
 
 const BORDER_FILTER_SIDE_MAP = new Map(
   (["top", "right", "bottom", "left"] as const).flatMap((side) => [
@@ -58,6 +59,7 @@ const isBorderPropertyWithoutWidth = (
 };
 
 export const extractElementCss = (element: Element): string => {
+  if (getElementAdapter(element)?.supportsDomEditing === false) return "";
   const tagName = element.tagName.toLowerCase();
   const defaultStyles = getDefaultStylesForTag(tagName);
   const computedStyle = getComputedStyle(element);
