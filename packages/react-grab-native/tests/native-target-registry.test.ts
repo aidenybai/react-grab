@@ -84,21 +84,21 @@ describe("native target registry", () => {
 
   it("invalidates a target only when its current registration unmounts", async () => {
     const registry = createNativeTargetRegistry();
-    const unregisterFirst = registry.register({
+    const firstRegistration = registry.register({
       id: "fixture",
       handle: createHandle(PARENT_BOUNDS),
       description: TARGET_DESCRIPTION,
     });
     const target = registry.getTarget("fixture");
-    const unregisterCurrent = registry.register({
+    const currentRegistration = registry.register({
       id: "fixture",
       handle: createHandle(CHILD_BOUNDS),
       description: TARGET_DESCRIPTION,
     });
 
-    unregisterFirst();
+    firstRegistration.unregister();
     await expect(target?.capabilities.resolve()).resolves.toBe(target);
-    unregisterCurrent();
+    currentRegistration.unregister();
     await expect(target?.capabilities.resolve()).resolves.toBeNull();
   });
 
@@ -114,7 +114,7 @@ describe("native target registry", () => {
       ...TARGET_DESCRIPTION,
       label: "current",
     };
-    const unregisterCurrent = registry.register({
+    const currentRegistration = registry.register({
       id: "fixture",
       handle: createHandle(CHILD_BOUNDS),
       description: currentDescription,
@@ -126,7 +126,7 @@ describe("native target registry", () => {
       registry.adapter.getTargetAtPoint({ x: PARENT_X_PX, y: PARENT_Y_PX }),
     ).resolves.toBeNull();
 
-    unregisterCurrent();
+    currentRegistration.unregister();
 
     await expect(target?.capabilities.resolve()).resolves.toBe(target);
     await expect(target?.capabilities.measure()).resolves.toEqual(PARENT_BOUNDS);
@@ -134,5 +134,49 @@ describe("native target registry", () => {
     await expect(
       registry.adapter.getTargetAtPoint({ x: PARENT_X_PX, y: PARENT_Y_PX }),
     ).resolves.toBe(target);
+  });
+
+  it("keeps overlap order stable when registration metadata changes", async () => {
+    const registry = createNativeTargetRegistry();
+    const firstRegistration = registry.register({
+      id: "first",
+      handle: createHandle(PARENT_BOUNDS),
+      description: TARGET_DESCRIPTION,
+    });
+    registry.register({
+      id: "second",
+      handle: createHandle(PARENT_BOUNDS),
+      description: TARGET_DESCRIPTION,
+    });
+
+    firstRegistration.update({
+      description: {
+        ...TARGET_DESCRIPTION,
+        label: "updated",
+      },
+    });
+
+    await expect(
+      registry.adapter.getTargetAtPoint({ x: HIT_X_PX, y: HIT_Y_PX }),
+    ).resolves.toMatchObject({ id: "second" });
+  });
+
+  it("prefers native stacking priority over registration order", async () => {
+    const registry = createNativeTargetRegistry();
+    registry.register({
+      id: "front",
+      handle: createHandle(PARENT_BOUNDS),
+      description: TARGET_DESCRIPTION,
+      priority: 1,
+    });
+    registry.register({
+      id: "back",
+      handle: createHandle(PARENT_BOUNDS),
+      description: TARGET_DESCRIPTION,
+    });
+
+    await expect(
+      registry.adapter.getTargetAtPoint({ x: HIT_X_PX, y: HIT_Y_PX }),
+    ).resolves.toMatchObject({ id: "front" });
   });
 });

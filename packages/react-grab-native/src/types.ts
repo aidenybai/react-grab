@@ -21,8 +21,19 @@ export interface NativeTargetRegistration {
   priority?: number;
 }
 
+export interface NativeTargetMetadata {
+  description: HostTargetDescription;
+  parentId?: string;
+  priority?: number;
+}
+
 export interface NativeTargetEntry extends NativeTargetRegistration {
   registrationOrder: number;
+}
+
+export interface NativeTargetRegistrationHandle {
+  unregister: () => void;
+  update: (metadata: NativeTargetMetadata) => void;
 }
 
 export interface MeasuredNativeTarget {
@@ -34,7 +45,7 @@ export interface MeasuredNativeTarget {
 
 export interface NativeTargetRegistry {
   readonly adapter: HostTargetAdapter;
-  register: (registration: NativeTargetRegistration) => () => void;
+  register: (registration: NativeTargetRegistration) => NativeTargetRegistrationHandle;
   getTarget: (targetId: string) => HostTarget | null;
 }
 

@@ -119,15 +119,22 @@ export const createNativeTargetRegistry = (): NativeTargetRegistry => {
       if (entries) entries.push(entry);
       else entryStacks.set(registration.id, [entry]);
 
-      return () => {
-        const currentEntries = entryStacks.get(registration.id);
-        if (!currentEntries) return;
-        const entryIndex = currentEntries.indexOf(entry);
-        if (entryIndex < 0) return;
-        currentEntries.splice(entryIndex, 1);
-        if (currentEntries.length > 0) return;
-        entryStacks.delete(registration.id);
-        targets.delete(registration.id);
+      return {
+        unregister: () => {
+          const currentEntries = entryStacks.get(registration.id);
+          if (!currentEntries) return;
+          const entryIndex = currentEntries.indexOf(entry);
+          if (entryIndex < 0) return;
+          currentEntries.splice(entryIndex, 1);
+          if (currentEntries.length > 0) return;
+          entryStacks.delete(registration.id);
+          targets.delete(registration.id);
+        },
+        update: (metadata) => {
+          entry.description = metadata.description;
+          entry.parentId = metadata.parentId;
+          entry.priority = metadata.priority;
+        },
       };
     },
     getTarget,

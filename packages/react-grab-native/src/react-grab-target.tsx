@@ -1,26 +1,40 @@
-import { useCallback, useRef } from "react";
-import { View } from "react-native";
-import type { NativeHostHandle, ReactGrabTargetProps } from "./types";
-
-const EMPTY_CLEANUP = () => undefined;
+import { useCallback, useLayoutEffect, useRef } from "react";
+import { StyleSheet, View } from "react-native";
+import type {
+  NativeHostHandle,
+  NativeTargetMetadata,
+  NativeTargetRegistrationHandle,
+  ReactGrabTargetProps,
+} from "./types";
 
 export const ReactGrabTarget = (props: ReactGrabTargetProps) => {
-  const cleanupRegistration = useRef<() => void>(EMPTY_CLEANUP);
+  const priority = props.priority ?? StyleSheet.flatten(props.viewProps?.style)?.zIndex;
+  const metadataRef = useRef<NativeTargetMetadata>({
+    description: props.description,
+    parentId: props.parentId,
+    priority,
+  });
+  const registrationRef = useRef<NativeTargetRegistrationHandle | null>(null);
+  metadataRef.current.description = props.description;
+  metadataRef.current.parentId = props.parentId;
+  metadataRef.current.priority = priority;
+
+  useLayoutEffect(() => {
+    registrationRef.current?.update(metadataRef.current);
+  });
 
   const setHostHandle = useCallback(
     (handle: NativeHostHandle | null) => {
-      cleanupRegistration.current();
-      cleanupRegistration.current = handle
+      registrationRef.current?.unregister();
+      registrationRef.current = handle
         ? props.registry.register({
             id: props.targetId,
             handle,
-            description: props.description,
-            parentId: props.parentId,
-            priority: props.priority,
+            ...metadataRef.current,
           })
-        : EMPTY_CLEANUP;
+        : null;
     },
-    [props.description, props.parentId, props.priority, props.registry, props.targetId],
+    [props.registry, props.targetId],
   );
 
   return (
