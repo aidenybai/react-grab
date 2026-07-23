@@ -139,6 +139,12 @@ jobs:
           cat /tmp/metro.log >&2
           exit 1
 
+      - name: Warm React Native bundle
+        if: matrix.runtime.name == 'react-native'
+        run: >
+          curl --fail --silent --show-error --max-time 600 --output /dev/null
+          "http://localhost:8081/index.bundle?platform=ios&dev=true&lazy=true&minify=false&inlineSourceMap=false&modulesOnly=false&runModule=true&excludeSource=true&sourcePaths=url-server&app=com.reactgrab.e2ereactnative"
+
       - name: Cache Detox framework
         id: detox-framework-cache
         uses: actions/cache@v4
