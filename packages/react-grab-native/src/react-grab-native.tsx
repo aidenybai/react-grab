@@ -19,6 +19,7 @@ import {
   NATIVE_SELECTION_LABEL_PADDING_PX,
 } from "./constants";
 import type { ReactGrabNativeProps } from "./types";
+import { getRelativeBounds } from "./utils/get-relative-bounds";
 import { measureNativeHandle } from "./utils/measure-native-handle";
 
 export const ReactGrabNative = (props: ReactGrabNativeProps) => {
@@ -66,15 +67,11 @@ export const ReactGrabNative = (props: ReactGrabNativeProps) => {
       measureNativeHandle(selectionLayerRef.current),
     ]);
     if (!isCurrentRequest()) return;
-    if (!bounds || !selectionLayerBounds) {
+    if (!bounds) {
       clearSelection();
       return;
     }
-    setSelectionBounds({
-      ...bounds,
-      x: bounds.x - selectionLayerBounds.x,
-      y: bounds.y - selectionLayerBounds.y,
-    });
+    setSelectionBounds(getRelativeBounds(bounds, selectionLayerBounds));
     setSelectionDescription(description);
   };
 
