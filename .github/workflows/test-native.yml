@@ -71,7 +71,7 @@ jobs:
               break
             fi
           done <<< "$available_devices"
-          device_pattern='^[[:space:]]*(iPhone.*)[[:space:]]\(([0-9A-Fa-f-]+)\)[[:space:]]\([^)]*\)$'
+          device_pattern='^[[:space:]]*(iPhone.*)[[:space:]]\(([0-9A-Fa-f-]+)\)'
           if [[ ! "$device_line" =~ $device_pattern ]]; then
             echo "Unable to find an available iPhone simulator" >&2
             exit 1
