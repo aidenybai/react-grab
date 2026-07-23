@@ -206,6 +206,36 @@ test.describe("Malformed Events", () => {
 
       expect(errors).toHaveLength(0);
     });
+
+    test("should not crash custom activation matchers on keydown or keyup", async ({
+      reactGrab,
+    }) => {
+      const errors = collectPageErrors(reactGrab.page);
+
+      await reactGrab.page.evaluate(() => {
+        window.__REACT_GRAB__?.setOptions({
+          activationKey: (event) => event.key.toLowerCase() === "c",
+        });
+      });
+
+      await dispatchMalformedEvent(
+        reactGrab.page,
+        "keydown",
+        "KeyboardEvent",
+        { ctrlKey: true },
+        { key: undefined },
+      );
+      await dispatchMalformedEvent(
+        reactGrab.page,
+        "keyup",
+        "KeyboardEvent",
+        { ctrlKey: true },
+        { key: undefined },
+      );
+      await reactGrab.page.waitForTimeout(50);
+
+      expect(errors).toHaveLength(0);
+    });
   });
 
   test.describe("Keyboard: while activated", () => {

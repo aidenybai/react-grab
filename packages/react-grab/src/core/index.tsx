@@ -2964,9 +2964,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
               (requiredModifiers.altKey && !event.altKey);
 
         const isReleasingActivationKey = pluginRegistry.store.options.activationKey
-          ? typeof pluginRegistry.store.options.activationKey === "function"
-            ? pluginRegistry.store.options.activationKey(event)
-            : parseActivationKey(pluginRegistry.store.options.activationKey)(event)
+          ? parseActivationKey(pluginRegistry.store.options.activationKey)(event)
           : isCLikeKey(event.key, event.code);
 
         if (didJustCopy() || isCopyFeedbackCooldownActive) {
