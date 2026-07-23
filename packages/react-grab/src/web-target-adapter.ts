@@ -15,12 +15,14 @@ export interface WebHostTargetAdapter extends HostTargetAdapter {
 export const createWebHostTargetAdapter = (): WebHostTargetAdapter => {
   const elementByTarget = new WeakMap<HostTarget, Element>();
   const targetByElement = new WeakMap<Element, HostTarget>();
+  const targetReferences = new Set<WeakRef<HostTarget>>();
   const ownedTargets = new WeakSet<HostTarget>();
 
-  const getElement = (target: HostTarget): Element | null => elementByTarget.get(target) ?? null;
+  const getCachedElement = (target: HostTarget): Element | null =>
+    elementByTarget.get(target) ?? null;
 
   const resolveElement = (target: HostTarget): Element | null => {
-    const currentElement = getElement(target);
+    const currentElement = getCachedElement(target);
     if (!currentElement) return null;
     const liveElement = resolveLiveElement(currentElement) ?? currentElement;
     if (!isElementConnected(liveElement)) return null;
@@ -30,8 +32,20 @@ export const createWebHostTargetAdapter = (): WebHostTargetAdapter => {
     return liveElement;
   };
 
+  const findTargetByLiveElement = (element: Element): HostTarget | null => {
+    for (const targetReference of targetReferences) {
+      const target = targetReference.deref();
+      if (!target) {
+        targetReferences.delete(targetReference);
+        continue;
+      }
+      if (resolveElement(target) === element) return target;
+    }
+    return null;
+  };
+
   const getTarget = (element: Element): HostTarget => {
-    const existingTarget = targetByElement.get(element);
+    const existingTarget = targetByElement.get(element) ?? findTargetByLiveElement(element);
     if (existingTarget) return existingTarget;
 
     let target: HostTarget;
@@ -75,6 +89,7 @@ export const createWebHostTargetAdapter = (): WebHostTargetAdapter => {
     };
 
     ownedTargets.add(target);
+    targetReferences.add(new WeakRef(target));
     elementByTarget.set(target, element);
     targetByElement.set(element, target);
     trackElementAnchor(element);
@@ -88,6 +103,6 @@ export const createWebHostTargetAdapter = (): WebHostTargetAdapter => {
       return element ? getTarget(element) : null;
     },
     getTarget,
-    getElement: (target: HostTarget) => (ownedTargets.has(target) ? getElement(target) : null),
+    getElement: (target: HostTarget) => (ownedTargets.has(target) ? resolveElement(target) : null),
   };
 };

@@ -55,13 +55,29 @@ describe("web host target adapter", () => {
       element === initialElement ? replacementElement : element,
     );
 
+    expect(adapter.getElement(target)).toBe(replacementElement);
     await expect(target.capabilities.measure()).resolves.not.toBeNull();
     await expect(target.capabilities.describe()).resolves.toMatchObject({
       name: "section",
       testId: "replacement",
     });
-    expect(adapter.getElement(target)).toBe(replacementElement);
     expect(adapter.getTarget(replacementElement)).toBe(target);
+  });
+
+  it("reuses a target when hit testing finds its live replacement", async () => {
+    const adapter = createWebHostTargetAdapter();
+    const initialElement = document.createElement("button");
+    document.body.appendChild(initialElement);
+    const target = adapter.getTarget(initialElement);
+    const replacementElement = document.createElement("button");
+
+    initialElement.replaceWith(replacementElement);
+    vi.mocked(resolveLiveElement).mockImplementation((element) =>
+      element === initialElement ? replacementElement : element,
+    );
+    vi.mocked(getElementAtPoint).mockReturnValue(replacementElement);
+
+    await expect(adapter.getTargetAtPoint({ x: 10, y: 20 })).resolves.toBe(target);
   });
 
   it("exposes hierarchy without leaking elements through the target contract", async () => {
@@ -118,6 +134,7 @@ describe("web host target adapter", () => {
     element.remove();
 
     await expect(target.capabilities.resolve()).resolves.toBeNull();
+    expect(adapter.getElement(target)).toBeNull();
     expect(target.capabilities.getReactMetadata).toBeUndefined();
   });
 });
