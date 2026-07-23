@@ -92,6 +92,9 @@ const renderersWithPatchedDispatcher = new WeakSet<ReactRenderer>();
 const typedFiberRoots = _fiberRoots as Set<FiberRootLike>;
 const pausedFiberRoots = new Set<FiberRootLike>();
 
+const isDomRenderer = (renderer: ReactRenderer): boolean =>
+  renderer.rendererPackageName.startsWith("react-dom");
+
 const getFiberRoot = (fiber: Fiber): FiberRootLike | null => {
   let current: Fiber | null = fiber;
   while (current.return) {
@@ -100,11 +103,22 @@ const getFiberRoot = (fiber: Fiber): FiberRootLike | null => {
   return (current.stateNode ?? null) as FiberRootLike | null;
 };
 
+const isDomFiberRoot = (fiberRoot: FiberRootLike): boolean => {
+  const stateNode = fiberRoot.current?.stateNode;
+  if (!stateNode || typeof stateNode !== "object") return false;
+  const containerInfo = Reflect.get(stateNode, "containerInfo");
+  return Boolean(
+    containerInfo &&
+    typeof containerInfo === "object" &&
+    typeof Reflect.get(containerInfo, "nodeType") === "number",
+  );
+};
+
 // Collects React fiber roots, preferring bippy's tracked set but falling back
 // to a DOM walk when the app mounted before bippy instrumented the renderers.
 const collectFiberRoots = (): Set<FiberRootLike> => {
   if (typedFiberRoots.size > 0) {
-    return typedFiberRoots;
+    return new Set(Array.from(typedFiberRoots).filter(isDomFiberRoot));
   }
 
   const collectedRoots = new Set<FiberRootLike>();
@@ -517,6 +531,7 @@ const scheduleReactUpdate = (fiberRoots: Set<FiberRootLike>): void => {
   queueMicrotask(() => {
     try {
       for (const renderer of getRDTHook().renderers.values()) {
+        if (!isDomRenderer(renderer)) continue;
         if (typeof renderer.scheduleUpdate !== "function") continue;
         for (const fiberRoot of fiberRoots) {
           if (fiberRoot.current) {
@@ -548,6 +563,7 @@ const invokeCallbacks = (callbacks: Array<() => void>): void => {
 
 const initializeFreezeSupport = (): void => {
   for (const renderer of getRDTHook().renderers.values()) {
+    if (!isDomRenderer(renderer)) continue;
     if (renderersWithPatchedDispatcher.has(renderer)) continue;
     installDispatcherPatching(renderer);
     renderersWithPatchedDispatcher.add(renderer);

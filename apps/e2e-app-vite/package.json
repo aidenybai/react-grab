@@ -11,18 +11,21 @@
   },
   "dependencies": {
     "@pierre/diffs": "^1.2.12",
+    "@react-three/fiber": "^9.6.1",
     "@tanstack/react-table": "^8.21.3",
     "@tanstack/react-virtual": "^3.14.5",
     "react": "19.2.6",
     "react-dom": "19.2.6",
     "react-grab": "workspace:*",
-    "recharts": "^3.9.2"
+    "recharts": "^3.9.2",
+    "three": "^0.185.1"
   },
   "devDependencies": {
     "@react-grab/e2e-development": "workspace:*",
     "@tailwindcss/vite": "^4.3.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "@types/three": "^0.185.1",
     "@vitejs/plugin-react": "^6.0.1",
     "tailwindcss": "^4.3.0",
     "typescript": "^6.0.3",

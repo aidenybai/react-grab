@@ -14,7 +14,7 @@ import {
   resolveSource,
 } from "./core/context.js";
 import { getHTMLPreview } from "./core/html-preview.js";
-import { Fiber, getFiberFromHostInstance } from "bippy";
+import type { Fiber } from "bippy";
 import type { StackFrame } from "bippy/source";
 export type { StackFrame };
 import { createElementSelector } from "./utils/create-element-selector.js";
@@ -26,6 +26,10 @@ import { createElementBounds } from "./utils/create-element-bounds.js";
 import { getUnfilteredElementsAtPoint } from "./utils/get-unfiltered-elements-at-point.js";
 import { matchesElementAtPointOptions } from "./utils/matches-element-at-point-options.js";
 import type { ElementAtPointOptions, ElementBounds } from "./types.js";
+import { getReactFiberForElement, resolveElementAtPoint } from "./utils/element-adapter.js";
+import "./utils/three-selection.js";
+
+export { registerThreeScene, type ThreeSceneRegistration } from "./utils/three-selection.js";
 
 export type { ElementAtPointOptions, ElementBounds } from "./types.js";
 
@@ -89,7 +93,7 @@ export const getElementContext = async (element: Element): Promise<ReactGrabElem
   const stackString = await getStackContext(element);
   const htmlPreview = getHTMLPreview(element);
   const componentName = getComponentDisplayName(element);
-  const fiber = getFiberFromHostInstance(element);
+  const fiber = getReactFiberForElement(element);
   const selector = getElementSelector(element);
   const styles = extractElementCss(element);
 
@@ -130,6 +134,10 @@ export const getElementAtPoint = (
 ): Element | null => {
   const elements = getUnfilteredElementsAtPoint(clientX, clientY);
   for (const element of elements) {
+    const adaptedElement = resolveElementAtPoint(element, clientX, clientY);
+    if (adaptedElement && matchesElementAtPointOptions(adaptedElement, options)) {
+      return adaptedElement;
+    }
     if (matchesElementAtPointOptions(element, options)) return element;
   }
   return null;
@@ -148,6 +156,11 @@ export const getElementsAtPoint = (
   const elements = getUnfilteredElementsAtPoint(clientX, clientY);
   const matchingElements: Element[] = [];
   for (const element of elements) {
+    const adaptedElement = resolveElementAtPoint(element, clientX, clientY);
+    if (adaptedElement && matchesElementAtPointOptions(adaptedElement, options)) {
+      matchingElements.push(adaptedElement);
+      continue;
+    }
     if (matchesElementAtPointOptions(element, options)) matchingElements.push(element);
   }
   return matchingElements;

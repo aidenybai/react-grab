@@ -11,6 +11,7 @@ import { isInternalAttribute } from "../utils/strip-internal-attributes.js";
 import { getPreviewTextContent } from "../utils/get-preview-text-content.js";
 import { isElementNode } from "../utils/is-element-node.js";
 import { isHtmlElement } from "../utils/is-html-element.js";
+import { getElementAdapter } from "../utils/element-adapter.js";
 
 const truncateAttrValue = (attributeValue: string): string =>
   truncateString(attributeValue, PREVIEW_ATTR_VALUE_MAX_LENGTH);
@@ -63,6 +64,8 @@ const formatChildElements = (elements: Array<Element>): string => {
 };
 
 export const getInlineHTMLPreview = (element: Element): string => {
+  const adapter = getElementAdapter(element);
+  if (adapter) return adapter.getPreview();
   const tagName = getTagName(element);
 
   if (!isHtmlElement(element)) {
@@ -80,6 +83,8 @@ export const getInlineHTMLPreview = (element: Element): string => {
 };
 
 export const getHTMLPreview = (element: Element): string => {
+  const adapter = getElementAdapter(element);
+  if (adapter) return adapter.getPreview();
   const tagName = getTagName(element);
   const attrsText = formatAttrsForPreview(element);
   const previewText = getPreviewTextContent(element, tagName);

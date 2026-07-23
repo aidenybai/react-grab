@@ -9,6 +9,7 @@ import { isRootElement } from "./is-root-element.js";
 import { getElementComputedStyle } from "./get-element-computed-style.js";
 import { isReactGrabElement } from "./is-react-grab-element.js";
 import { isUserIgnoredElement } from "./is-user-ignored-element.js";
+import { getElementAdapter } from "./element-adapter.js";
 
 // Dev tools like react-scan create full-viewport canvas overlays with
 // pointer-events:none that elementsFromPoint still returns. Without this
@@ -57,6 +58,8 @@ export const clearVisibilityCache = (): void => {
 };
 
 export const isValidGrabbableElement = (element: Element): boolean => {
+  const adapter = getElementAdapter(element);
+  if (adapter) return adapter.isConnected();
   if (isRootElement(element)) {
     return false;
   }

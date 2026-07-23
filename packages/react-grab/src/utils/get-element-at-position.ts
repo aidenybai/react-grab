@@ -14,6 +14,8 @@ import { isIframeElement } from "./is-iframe-element.js";
 import { isPointInsideRect } from "./is-point-inside-rect.js";
 import { isValidGrabbableElement } from "./is-valid-grabbable-element.js";
 import { resumePointerEventsFreeze, suspendPointerEventsFreeze } from "./pointer-events-freeze.js";
+import { resolveElementAtPoint } from "./element-adapter.js";
+import "./three-selection.js";
 
 interface PositionCache {
   clientX: number;
@@ -64,8 +66,17 @@ export const getElementsAtPoint = (clientX: number, clientY: number): Element[] 
   suspendPointerEventsFreeze();
   try {
     const elements = getDeepElementsAtPoint(clientX, clientY);
-    if (!getScopeContainer()) return elements;
-    return elements.filter(isWithinScope);
+    const scopedElements = getScopeContainer() ? elements.filter(isWithinScope) : elements;
+    const resolvedElements: Element[] = [];
+    for (const element of scopedElements) {
+      const adaptedElement = resolveElementAtPoint(element, clientX, clientY);
+      if (adaptedElement) {
+        resolvedElements.push(adaptedElement);
+        continue;
+      }
+      resolvedElements.push(element);
+    }
+    return resolvedElements;
   } finally {
     schedulePointerEventsResume();
   }
@@ -130,7 +141,10 @@ export const getElementAtPosition = (clientX: number, clientY: number): Element 
     // overlapping the scoped container) we fall back to elementsFromPoint, which
     // returns the full z-ordered stack, and take the first grabbable in-scope one.
     const topElement = getDeepElementAtPoint(clientX, clientY);
-    if (topElement && isValidGrabbableElement(topElement) && isWithinScope(topElement)) {
+    const adaptedElement = topElement ? resolveElementAtPoint(topElement, clientX, clientY) : null;
+    if (adaptedElement && topElement && isWithinScope(topElement)) {
+      result = adaptedElement;
+    } else if (topElement && isValidGrabbableElement(topElement) && isWithinScope(topElement)) {
       result = topElement;
     } else {
       result = getDeepFallbackElementAtPoint(clientX, clientY);

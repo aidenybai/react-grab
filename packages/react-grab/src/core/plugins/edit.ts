@@ -1,4 +1,5 @@
 import type { Plugin } from "../../types.js";
+import { getElementAdapter } from "../../utils/element-adapter.js";
 
 export const editPlugin: Plugin = {
   name: "edit",
@@ -9,6 +10,7 @@ export const editPlugin: Plugin = {
       shortcut: "S",
       shortcutModifier: false,
       showInToolbarMenu: true,
+      enabled: (context) => getElementAdapter(context.element)?.supportsDomEditing !== false,
       onAction: (context) => {
         context.enterEditMode?.();
       },
