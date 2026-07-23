@@ -87,9 +87,10 @@ export const ColorPicker: Component<ColorPickerProps> = (props) => {
     <div class="flex items-center gap-2 w-full px-2 h-[20px]">
       <Show when={props.label}>
         {(text) => (
-          <span class={`${EDIT_LABEL_CLASS} text-[var(--rg-text-primary)] truncate min-w-0`}>
-            {text()}
-          </span>
+          <span
+            class={`${EDIT_LABEL_CLASS} text-[var(--rg-text-primary)] truncate min-w-0`}
+            textContent={text()}
+          />
         )}
       </Show>
       <div class="flex items-center gap-1 ml-auto shrink-0">
@@ -105,9 +106,8 @@ export const ColorPicker: Component<ColorPickerProps> = (props) => {
                 event.stopPropagation();
                 setDraftText(displayValue());
               }}
-            >
-              {displayValue()}
-            </span>
+              textContent={displayValue()}
+            />
           }
         >
           <Input

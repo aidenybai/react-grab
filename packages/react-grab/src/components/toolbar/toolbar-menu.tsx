@@ -55,9 +55,8 @@ export const ToolbarMenu: Component<ToolbarMenuProps> = (props) => {
                           ? "text-[var(--rg-text-primary)]"
                           : "text-[var(--rg-text-secondary)]"
                       }
-                    >
-                      {action.label}
-                    </Menu.Label>
+                      textContent={action.label}
+                    />
                     <Show when={action.shortcut}>
                       {(shortcutKey) => (
                         <Menu.Shortcut

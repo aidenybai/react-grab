@@ -111,9 +111,10 @@ export const CompletionView: Component<CompletionViewProps> = (props) => {
     >
       <Show when={!didCopy() && props.onDismiss}>
         <div class="contain-layout shrink-0 flex items-center justify-between gap-2 pt-1.5 pb-1 px-2 w-full h-fit">
-          <span class="text-[var(--rg-text-primary)] text-[13px] leading-4 font-sans font-medium h-fit tabular-nums overflow-hidden text-ellipsis whitespace-nowrap min-w-0">
-            {displayStatusText()}
-          </span>
+          <span
+            class="text-[var(--rg-text-primary)] text-[13px] leading-4 font-sans font-medium h-fit tabular-nums overflow-hidden text-ellipsis whitespace-nowrap min-w-0"
+            textContent={displayStatusText()}
+          />
           <div class="contain-layout shrink-0 flex items-center gap-2 h-fit">
             <Show when={props.onShowContextMenu}>
               <MoreOptionsButton onClick={handleShowContextMenu} />
@@ -145,9 +146,10 @@ export const CompletionView: Component<CompletionViewProps> = (props) => {
             aria-hidden="true"
             class="text-[var(--rg-text-primary-85)] shrink-0"
           />
-          <span class="text-[var(--rg-text-primary)] text-[13px] leading-4 font-sans font-medium h-fit tabular-nums overflow-hidden text-ellipsis whitespace-nowrap min-w-0">
-            {displayStatusText()}
-          </span>
+          <span
+            class="text-[var(--rg-text-primary)] text-[13px] leading-4 font-sans font-medium h-fit tabular-nums overflow-hidden text-ellipsis whitespace-nowrap min-w-0"
+            textContent={displayStatusText()}
+          />
           <Show when={props.onShowContextMenu}>
             <MoreOptionsButton onClick={handleShowContextMenu} />
           </Show>

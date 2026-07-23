@@ -20,9 +20,10 @@ export const CycleControl: Component<CycleControlProps> = (props) => {
   return (
     <div class="flex items-center gap-2 w-full px-2 h-[20px]">
       <Show when={props.label}>
-        <span class={`${EDIT_LABEL_CLASS} text-[var(--rg-text-primary)] truncate min-w-0`}>
-          {props.label}
-        </span>
+        <span
+          class={`${EDIT_LABEL_CLASS} text-[var(--rg-text-primary)] truncate min-w-0`}
+          textContent={props.label}
+        />
       </Show>
       <div class="ml-auto shrink-0 flex items-center gap-1">
         <StepArrow
@@ -49,9 +50,8 @@ export const CycleControl: Component<CycleControlProps> = (props) => {
             event.stopPropagation();
             props.onStep(-1);
           }}
-        >
-          {currentLabel()}
-        </span>
+          textContent={currentLabel()}
+        />
         <StepArrow
           direction="right"
           active={props.activeKey === "right"}

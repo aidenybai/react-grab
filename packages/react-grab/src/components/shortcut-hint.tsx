@@ -23,10 +23,10 @@ export const ShortcutHint: Component<ShortcutHintProps> = (props) => {
         <IconReturn size={8} />
       </Show>
       <Show when={!isEnter()}>
-        <Show when={requiresModifier()} fallback={<span>{props.shortcut}</span>}>
-          <Show when={isMacPlatform} fallback={<span>Ctrl+{props.shortcut}</span>}>
+        <Show when={requiresModifier()} fallback={<span textContent={props.shortcut} />}>
+          <Show when={isMacPlatform} fallback={<span textContent={`Ctrl+${props.shortcut}`} />}>
             <IconCommand size={9} />
-            <span>{props.shortcut}</span>
+            <span textContent={props.shortcut} />
           </Show>
         </Show>
       </Show>

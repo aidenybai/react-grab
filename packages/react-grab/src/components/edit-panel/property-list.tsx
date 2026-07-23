@@ -191,15 +191,19 @@ export const PropertyList: Component<PropertyListProps> = (props) => {
                 when={isActive()}
                 fallback={
                   <div class="flex items-center justify-between w-full h-[24px] px-2 gap-2">
-                    <span class="text-[13px] leading-4 font-sans font-medium text-[var(--rg-text-primary)] truncate min-w-0">
-                      {property().label}
-                    </span>
+                    <span
+                      class="text-[13px] leading-4 font-sans font-medium text-[var(--rg-text-primary)] truncate min-w-0"
+                      textContent={property().label}
+                    />
                     <Switch>
                       <Match when={narrowNumeric(property())}>
                         {(numeric) => (
                           <span class="font-sans text-[var(--rg-text-secondary)] tabular-nums shrink-0">
-                            <span class="text-[11px]">{formatDisplayValue(numeric().value)}</span>
-                            <span class="text-[9px] ml-px">{numeric().unit}</span>
+                            <span
+                              class="text-[11px]"
+                              textContent={formatDisplayValue(numeric().value)}
+                            />
+                            <span class="text-[9px] ml-px" textContent={numeric().unit} />
                           </span>
                         )}
                       </Match>
@@ -214,9 +218,10 @@ export const PropertyList: Component<PropertyListProps> = (props) => {
                       </Match>
                       <Match when={narrowEnum(property())}>
                         {(enumProp) => (
-                          <span class="text-[11px] font-sans text-[var(--rg-text-secondary)] shrink-0">
-                            {getEnumDisplayValue(enumProp())}
-                          </span>
+                          <span
+                            class="text-[11px] font-sans text-[var(--rg-text-secondary)] shrink-0"
+                            textContent={getEnumDisplayValue(enumProp())}
+                          />
                         )}
                       </Match>
                     </Switch>

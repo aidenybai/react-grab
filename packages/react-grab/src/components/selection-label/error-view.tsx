@@ -44,9 +44,8 @@ export const ErrorView: Component<ErrorViewProps> = (props) => {
         <span
           class="text-[var(--rg-error-text)] text-[13px] leading-4 font-sans font-medium overflow-hidden line-clamp-5"
           title={props.error}
-        >
-          {props.error}
-        </span>
+          textContent={props.error}
+        />
       </div>
       <Show when={hasActions()}>
         <BottomSection>

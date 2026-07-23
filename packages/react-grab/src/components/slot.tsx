@@ -84,18 +84,16 @@ const DigitColumn: Component<DigitColumnProps> = (props) => {
         class="rg-slot-cell"
         data-dir={String(props.direction)}
         style={cellStyle()}
-      >
-        {props.digit}
-      </span>
+        textContent={props.digit}
+      />
       <Show when={exitingDigit()} keyed>
         {(exitState) => (
           <span
             class="rg-slot-cell rg-slot-exit"
             data-dir={String(exitState.direction)}
             style={cellStyle()}
-          >
-            {exitState.digit}
-          </span>
+            textContent={exitState.digit}
+          />
         )}
       </Show>
     </span>
@@ -135,9 +133,7 @@ export const Slot: Component<SlotProps> = (props) => {
     >
       <Index each={renderSegments().prefixLiterals}>
         {(character) => (
-          <span class="inline-block whitespace-pre" aria-hidden="true">
-            {character()}
-          </span>
+          <span class="inline-block whitespace-pre" aria-hidden="true" textContent={character()} />
         )}
       </Index>
       <span class="inline-flex" style={{ "flex-direction": "row-reverse" }}>
@@ -146,9 +142,11 @@ export const Slot: Component<SlotProps> = (props) => {
             <Show
               when={segment().kind === "digit"}
               fallback={
-                <span class="inline-block whitespace-pre" aria-hidden="true">
-                  {segment().value}
-                </span>
+                <span
+                  class="inline-block whitespace-pre"
+                  aria-hidden="true"
+                  textContent={segment().value}
+                />
               }
             >
               <DigitColumn
