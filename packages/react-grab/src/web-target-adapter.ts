@@ -99,6 +99,8 @@ export const createWebHostTargetAdapter = (): WebHostTargetAdapter => {
   return {
     platform: "web",
     getTargetAtPoint: async (point: HostPoint) => {
+      // The shared primitive starts in this adapter's root viewport and converts
+      // coordinates as it descends through same-origin frames.
       const element = getElementAtPoint(point.x, point.y);
       return element ? getTarget(element) : null;
     },

@@ -26,12 +26,26 @@ const isBetterHit = (
 };
 
 export const createNativeTargetRegistry = (): NativeTargetRegistry => {
-  const entries = new Map<string, NativeTargetEntry>();
+  const entryStacks = new Map<string, NativeTargetEntry[]>();
   const targets = new Map<string, HostTarget>();
   let registrationOrder = 0;
 
+  const getCurrentEntry = (targetId: string): NativeTargetEntry | null => {
+    const entries = entryStacks.get(targetId);
+    return entries?.[entries.length - 1] ?? null;
+  };
+
+  const getCurrentEntries = (): NativeTargetEntry[] => {
+    const currentEntries: NativeTargetEntry[] = [];
+    for (const entries of entryStacks.values()) {
+      const currentEntry = entries[entries.length - 1];
+      if (currentEntry) currentEntries.push(currentEntry);
+    }
+    return currentEntries;
+  };
+
   const getTarget = (targetId: string): HostTarget | null => {
-    if (!entries.has(targetId)) return null;
+    if (!getCurrentEntry(targetId)) return null;
     const existingTarget = targets.get(targetId);
     if (existingTarget) return existingTarget;
 
@@ -40,25 +54,25 @@ export const createNativeTargetRegistry = (): NativeTargetRegistry => {
       id: targetId,
       platform: "react-native",
       capabilities: {
-        resolve: async () => (entries.has(targetId) ? target : null),
+        resolve: async () => (getCurrentEntry(targetId) ? target : null),
         measure: async () => {
-          const entry = entries.get(targetId);
+          const entry = getCurrentEntry(targetId);
           return entry ? measureNativeHandle(entry.handle) : null;
         },
         describe: async () =>
-          entries.get(targetId)?.description ?? {
+          getCurrentEntry(targetId)?.description ?? {
             name: "unknown",
             role: null,
             label: null,
             testId: null,
           },
         getParent: async () => {
-          const parentId = entries.get(targetId)?.parentId;
+          const parentId = getCurrentEntry(targetId)?.parentId;
           return parentId ? getTarget(parentId) : null;
         },
         getChildren: async () => {
           const children: HostTarget[] = [];
-          for (const entry of entries.values()) {
+          for (const entry of getCurrentEntries()) {
             if (entry.parentId !== targetId) continue;
             const childTarget = getTarget(entry.id);
             if (childTarget) children.push(childTarget);
@@ -76,7 +90,7 @@ export const createNativeTargetRegistry = (): NativeTargetRegistry => {
       platform: "react-native",
       getTargetAtPoint: async (point) => {
         const measuredTargets = await Promise.all(
-          Array.from(entries.values(), async (entry): Promise<MeasuredNativeTarget | null> => {
+          getCurrentEntries().map(async (entry): Promise<MeasuredNativeTarget | null> => {
             const target = getTarget(entry.id);
             if (!target) return null;
             const bounds = await measureNativeHandle(entry.handle);
@@ -101,10 +115,18 @@ export const createNativeTargetRegistry = (): NativeTargetRegistry => {
         ...registration,
         registrationOrder: registrationOrder++,
       };
-      entries.set(registration.id, entry);
+      const entries = entryStacks.get(registration.id);
+      if (entries) entries.push(entry);
+      else entryStacks.set(registration.id, [entry]);
+
       return () => {
-        if (entries.get(registration.id) !== entry) return;
-        entries.delete(registration.id);
+        const currentEntries = entryStacks.get(registration.id);
+        if (!currentEntries) return;
+        const entryIndex = currentEntries.indexOf(entry);
+        if (entryIndex < 0) return;
+        currentEntries.splice(entryIndex, 1);
+        if (currentEntries.length > 0) return;
+        entryStacks.delete(registration.id);
         targets.delete(registration.id);
       };
     },

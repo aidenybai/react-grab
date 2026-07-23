@@ -101,4 +101,38 @@ describe("native target registry", () => {
     unregisterCurrent();
     await expect(target?.capabilities.resolve()).resolves.toBeNull();
   });
+
+  it("restores the previous registration when a duplicate unmounts", async () => {
+    const registry = createNativeTargetRegistry();
+    registry.register({
+      id: "fixture",
+      handle: createHandle(PARENT_BOUNDS),
+      description: TARGET_DESCRIPTION,
+    });
+    const target = registry.getTarget("fixture");
+    const currentDescription: HostTargetDescription = {
+      ...TARGET_DESCRIPTION,
+      label: "current",
+    };
+    const unregisterCurrent = registry.register({
+      id: "fixture",
+      handle: createHandle(CHILD_BOUNDS),
+      description: currentDescription,
+    });
+
+    await expect(target?.capabilities.measure()).resolves.toEqual(CHILD_BOUNDS);
+    await expect(target?.capabilities.describe()).resolves.toBe(currentDescription);
+    await expect(
+      registry.adapter.getTargetAtPoint({ x: PARENT_X_PX, y: PARENT_Y_PX }),
+    ).resolves.toBeNull();
+
+    unregisterCurrent();
+
+    await expect(target?.capabilities.resolve()).resolves.toBe(target);
+    await expect(target?.capabilities.measure()).resolves.toEqual(PARENT_BOUNDS);
+    await expect(target?.capabilities.describe()).resolves.toBe(TARGET_DESCRIPTION);
+    await expect(
+      registry.adapter.getTargetAtPoint({ x: PARENT_X_PX, y: PARENT_Y_PX }),
+    ).resolves.toBe(target);
+  });
 });
