@@ -350,7 +350,7 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
                         props.onHide();
                       }}
                     >
-                      <Menu.Label class="text-[var(--rg-text-primary)]">{item.label}</Menu.Label>
+                      <Menu.Label class="text-[var(--rg-text-primary)]" textContent={item.label} />
                       <Show when={item.shortcut}>
                         {(shortcut) => (
                           <Menu.Shortcut shortcut={shortcut()} modifier={item.shortcutModifier} />

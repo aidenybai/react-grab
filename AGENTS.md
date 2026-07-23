@@ -102,6 +102,7 @@ Before writing `createEffect`, classify the work and pick the right primitive:
 - MUST: Call `onCleanup` inside directives for cleanup.
 - SHOULD: Use `on:click` for `stopPropagation`, capture, passive, or custom events.
 - SHOULD: Use `style={{ color: color(), "--css-var": value() }}` for inline styles.
+- SHOULD: Use the native `textContent` prop for dynamic content that is guaranteed to be text-only.
 - SHOULD: Type refs as `let el: HTMLElement | undefined` with guard.
 - SHOULD: Use `use:directiveName={accessor}` for reusable DOM behaviors.
 - NEVER: Mix reactive `class={x()}` with `classList`.

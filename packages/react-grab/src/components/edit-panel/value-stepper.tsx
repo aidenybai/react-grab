@@ -292,9 +292,10 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
         <div class="relative z-10 flex items-center justify-between w-full px-2 pointer-events-none">
           <Show when={props.label}>
             {(text) => (
-              <span class={`${EDIT_LABEL_CLASS} text-[var(--rg-text-primary)] truncate min-w-0`}>
-                {text()}
-              </span>
+              <span
+                class={`${EDIT_LABEL_CLASS} text-[var(--rg-text-primary)] truncate min-w-0`}
+                textContent={text()}
+              />
             )}
           </Show>
           <Show
@@ -314,9 +315,8 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
                       data-react-grab-tailwind-label
                       aria-hidden="true"
                       class="text-[10px] leading-4 text-[var(--rg-text-secondary)] tabular-nums"
-                    >
-                      {label()}
-                    </span>
+                      textContent={label()}
+                    />
                   )}
                 </Show>
                 <span
@@ -324,7 +324,10 @@ export const ValueStepper: Component<ValueStepperProps> = (props) => {
                   class={`${EDIT_VALUE_CLASS} text-[var(--rg-text-primary)]`}
                 >
                   <Slot>{formatDisplayValue(props.value)}</Slot>
-                  <span class="text-[9px] text-[var(--rg-text-secondary)] ml-px">{props.unit}</span>
+                  <span
+                    class="text-[9px] text-[var(--rg-text-secondary)] ml-px"
+                    textContent={props.unit}
+                  />
                 </span>
               </span>
             }

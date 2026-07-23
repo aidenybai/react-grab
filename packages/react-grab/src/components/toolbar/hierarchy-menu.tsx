@@ -55,9 +55,8 @@ export const HierarchyMenu: Component<HierarchyMenuProps> = (props) => {
                         aria-hidden="true"
                         class="shrink-0 font-mono text-[11px] leading-4 text-[var(--rg-text-secondary)] opacity-60 mr-1"
                         style={{ "padding-left": `${(item.depth - 1) * HIERARCHY_INDENT_PX}px` }}
-                      >
-                        {item.isLast ? "└─" : "├─"}
-                      </span>
+                        textContent={item.isLast ? "└─" : "├─"}
+                      />
                     </Show>
                     <span
                       class="text-[13px] leading-4 h-fit font-medium overflow-hidden text-ellipsis whitespace-nowrap min-w-0 transition-colors"
@@ -67,10 +66,10 @@ export const HierarchyMenu: Component<HierarchyMenuProps> = (props) => {
                       }}
                     >
                       <Show when={item.componentName}>
-                        {item.componentName}
+                        <span textContent={item.componentName} />
                         <span class="text-[var(--rg-text-secondary)]">.</span>
                       </Show>
-                      {item.tagName}
+                      <span textContent={item.tagName} />
                     </span>
                   </span>
                 </Menu.Item>

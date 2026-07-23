@@ -47,9 +47,10 @@ export const DiscardPrompt: Component<DiscardPromptProps> = (props) => {
       onClick={claimFocus}
     >
       <div class="contain-layout shrink-0 flex items-center gap-1 pt-1.5 pb-1 px-2 w-full h-fit">
-        <span class="text-[var(--rg-text-primary)] text-[13px] leading-4 shrink-0 font-sans font-medium w-fit h-fit">
-          {props.label ?? "Discard?"}
-        </span>
+        <span
+          class="text-[var(--rg-text-primary)] text-[13px] leading-4 shrink-0 font-sans font-medium w-fit h-fit"
+          textContent={props.label ?? "Discard?"}
+        />
       </div>
       <BottomSection>
         <div class="contain-layout shrink-0 flex items-center justify-end gap-[5px] w-full h-fit">
