@@ -1,11 +1,9 @@
 import {
-  _fiberRoots,
   getFiberFromHostInstance,
   getLatestFiber,
   instrument,
-  isFiber,
-  traverseFiber,
   type Fiber,
+  type FiberRoot,
 } from "bippy";
 import type { OverlayBounds } from "../types.js";
 import { THREE_SELECTION_FALLBACK_BOUNDS_PX } from "../constants.js";
@@ -104,7 +102,7 @@ export interface ThreeSceneRegistration {
 }
 
 interface ThreeRoot {
-  fiberRoot: Fiber | null;
+  isReactRenderer: boolean;
   state: ThreeRootState;
 }
 
@@ -127,9 +125,7 @@ interface CanvasBounds {
 
 const selectionByElement = new WeakMap<Element, ThreeSelection>();
 const elementsByObject = new WeakMap<ThreeObjectLike, Map<number | null, Element>>();
-const registeredRootByCanvas = new WeakMap<HTMLCanvasElement, ThreeRootState>();
-
-instrument({ name: "react-grab-three-selection" });
+const rootByCanvas = new WeakMap<HTMLCanvasElement, ThreeRoot>();
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
@@ -204,8 +200,7 @@ const isThreeRootState = (value: unknown): value is ThreeRootState =>
 const getThreeInstance = (object: ThreeObjectLike): ThreeInstanceLike | null =>
   isThreeInstance(object.__r3f) ? object.__r3f : null;
 
-const getRootState = (root: unknown): ThreeRootState | null => {
-  if (!isRecord(root) || !isFiber(root.current)) return null;
+const getRootState = (root: FiberRoot): ThreeRootState | null => {
   const stateNode = root.current.stateNode;
   if (!isRecord(stateNode) || !isObjectOrFunction(stateNode.containerInfo)) return null;
   const getState = Reflect.get(stateNode.containerInfo, "getState");
@@ -229,27 +224,14 @@ const getCanvasBounds = (canvas: HTMLCanvasElement): CanvasBounds => {
   };
 };
 
-const findRootForCanvas = (canvas: HTMLCanvasElement): ThreeRoot | null => {
-  const registeredRoot = registeredRootByCanvas.get(canvas);
-  if (registeredRoot) return { fiberRoot: null, state: registeredRoot };
-  for (const root of _fiberRoots) {
+instrument({
+  name: "react-grab-three-selection",
+  onCommitFiberRoot: (_rendererId, root) => {
     const state = getRootState(root);
-    if (state?.gl.domElement === canvas && isRecord(root) && isFiber(root.current)) {
-      return { fiberRoot: root.current, state };
-    }
-  }
-  return null;
-};
-
-const findFiberForObject = (fiberRoot: Fiber, object: ThreeObjectLike): Fiber | null => {
-  const instance = getThreeInstance(object);
-  const rendererFiber = instance ? getFiberFromHostInstance(instance) : null;
-  if (rendererFiber) return getLatestFiber(rendererFiber);
-  return traverseFiber(fiberRoot, (fiber) => {
-    const stateNode = fiber.stateNode;
-    return stateNode === instance || (isRecord(stateNode) && stateNode.object === object);
-  });
-};
+    if (!state) return;
+    rootByCanvas.set(state.gl.domElement, { isReactRenderer: true, state });
+  },
+});
 
 const findManagedHitObject = (object: ThreeObjectLike): ThreeObjectLike | null => {
   let currentObject: ThreeObjectLike | null = object;
@@ -271,7 +253,6 @@ const isObjectInScene = (object: ThreeObjectLike, scene: ThreeSceneLike): boolea
 
 const getOrCreateSelectionElement = (
   rootState: ThreeRootState,
-  fiberRoot: Fiber | null,
   object: ThreeObjectLike,
   intersection: ThreeIntersectionLike,
 ): Element | null => {
@@ -287,12 +268,9 @@ const getOrCreateSelectionElement = (
 
   let element = elementsByInstance.get(instanceId);
   if (!element) {
-    const existingElement = elementsByInstance.values().next().value;
-    const existingFiber = existingElement ? selectionByElement.get(existingElement)?.fiber : null;
-    const fiber = existingFiber ?? (fiberRoot ? findFiberForObject(fiberRoot, object) : null);
-    if (fiberRoot && !fiber) return null;
-
     const instance = getThreeInstance(object);
+    const fiber = instance ? getFiberFromHostInstance(instance) : null;
+    if (instance && !fiber) return null;
     const tagName = instance?.type || object.type || "object-3d";
     const createdElement = rootState.gl.domElement.ownerDocument.createElement(
       tagName.toLowerCase(),
@@ -334,7 +312,7 @@ const getOrCreateSelectionElement = (
   const selection = selectionByElement.get(element);
   if (!selection) {
     elementsByInstance.delete(instanceId);
-    return getOrCreateSelectionElement(rootState, fiberRoot, object, intersection);
+    return getOrCreateSelectionElement(rootState, object, intersection);
   }
   selection.canvas = rootState.gl.domElement;
   selection.intersectionPoint = isThreeVector(intersection.point) ? intersection.point : null;
@@ -349,7 +327,7 @@ const getThreeElementAtPoint = (
   clientY: number,
 ): Element | null => {
   if (!isCanvasElement(candidateElement)) return null;
-  const root = findRootForCanvas(candidateElement);
+  const root = rootByCanvas.get(candidateElement);
   if (!root) return null;
 
   const bounds = getCanvasBounds(candidateElement);
@@ -363,11 +341,11 @@ const getThreeElementAtPoint = (
     root.state.raycaster.setFromCamera(root.state.pointer, root.state.camera);
     const intersections = root.state.raycaster.intersectObjects(root.state.scene.children, true);
     for (const intersection of intersections) {
-      const object = root.fiberRoot
+      const object = root.isReactRenderer
         ? findManagedHitObject(intersection.object)
         : intersection.object;
       if (!object || object.visible === false) continue;
-      const element = getOrCreateSelectionElement(root.state, root.fiberRoot, object, intersection);
+      const element = getOrCreateSelectionElement(root.state, object, intersection);
       if (element) return element;
     }
   } catch {}
@@ -388,11 +366,10 @@ export const registerThreeScene = (registration: ThreeSceneRegistration): (() =>
     throw new TypeError("Invalid Three.js scene registration");
   }
   const canvas = rootStateCandidate.gl.domElement;
-  registeredRootByCanvas.set(canvas, rootStateCandidate);
+  const root = { isReactRenderer: false, state: rootStateCandidate };
+  rootByCanvas.set(canvas, root);
   return () => {
-    if (registeredRootByCanvas.get(canvas) === rootStateCandidate) {
-      registeredRootByCanvas.delete(canvas);
-    }
+    if (rootByCanvas.get(canvas) === root) rootByCanvas.delete(canvas);
   };
 };
 
