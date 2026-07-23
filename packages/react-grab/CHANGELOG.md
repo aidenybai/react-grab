@@ -1,5 +1,12 @@
 # react-grab
 
+## 0.1.50
+
+### Patch Changes
+
+- 575dc58: Prioritize interactive React Three Fiber objects during canvas selection so passive particles and helper geometry do not steal hits, while preserving passive-object fallback behavior.
+  - @react-grab/cli@0.1.50
+
 ## 0.1.49
 
 ### Patch Changes
