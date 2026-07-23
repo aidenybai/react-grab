@@ -80,13 +80,11 @@ test.describe("Element Selection", () => {
           };
         }
       ).__REACT_GRAB__;
-      api?.unregisterPlugin("slow-copy-hook");
+      api?.unregisterPlugin("pending-copy-hook");
       api?.registerPlugin({
-        name: "slow-copy-hook",
+        name: "pending-copy-hook",
         hooks: {
-          onBeforeCopy: async () => {
-            await new Promise((resolve) => setTimeout(resolve, 600));
-          },
+          onBeforeCopy: () => new Promise<void>(() => {}),
         },
       });
     });
