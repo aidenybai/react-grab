@@ -7,6 +7,7 @@ import {
   CHILD_WIDTH_PX,
   CHILD_X_PX,
   CHILD_Y_PX,
+  FRONT_PRIORITY,
   HIT_X_PX,
   HIT_Y_PX,
   PARENT_HEIGHT_PX,
@@ -167,7 +168,7 @@ describe("native target registry", () => {
       id: "front",
       handle: createHandle(PARENT_BOUNDS),
       description: TARGET_DESCRIPTION,
-      priority: 1,
+      priority: FRONT_PRIORITY,
     });
     registry.register({
       id: "back",
@@ -178,5 +179,36 @@ describe("native target registry", () => {
     await expect(
       registry.adapter.getTargetAtPoint({ x: HIT_X_PX, y: HIT_Y_PX }),
     ).resolves.toMatchObject({ id: "front" });
+  });
+
+  it("prefers the front native branch over a later branch", async () => {
+    const registry = createNativeTargetRegistry();
+    registry.register({
+      id: "front-parent",
+      handle: createHandle(PARENT_BOUNDS),
+      description: TARGET_DESCRIPTION,
+      priority: FRONT_PRIORITY,
+    });
+    registry.register({
+      id: "front-child",
+      handle: createHandle(CHILD_BOUNDS),
+      description: TARGET_DESCRIPTION,
+      parentId: "front-parent",
+    });
+    registry.register({
+      id: "back-parent",
+      handle: createHandle(PARENT_BOUNDS),
+      description: TARGET_DESCRIPTION,
+    });
+    registry.register({
+      id: "back-child",
+      handle: createHandle(CHILD_BOUNDS),
+      description: TARGET_DESCRIPTION,
+      parentId: "back-parent",
+    });
+
+    await expect(
+      registry.adapter.getTargetAtPoint({ x: HIT_X_PX, y: HIT_Y_PX }),
+    ).resolves.toMatchObject({ id: "front-child" });
   });
 });

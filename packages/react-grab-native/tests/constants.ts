@@ -8,3 +8,4 @@ export const CHILD_WIDTH_PX = 60;
 export const CHILD_HEIGHT_PX = 70;
 export const HIT_X_PX = 50;
 export const HIT_Y_PX = 60;
+export const FRONT_PRIORITY = 1;

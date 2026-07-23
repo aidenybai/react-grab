@@ -18,11 +18,17 @@ const isBetterHit = (
   current: MeasuredNativeTarget | null,
 ): boolean => {
   if (!current) return true;
-  if (candidate.priority !== current.priority) return candidate.priority > current.priority;
-  const candidateArea = candidate.bounds.width * candidate.bounds.height;
-  const currentArea = current.bounds.width * current.bounds.height;
-  if (candidateArea !== currentArea) return candidateArea < currentArea;
-  return candidate.registrationOrder > current.registrationOrder;
+  const sharedDepth = Math.min(candidate.stackingOrder.length, current.stackingOrder.length);
+  for (let depth = 0; depth < sharedDepth; depth++) {
+    const candidateLevel = candidate.stackingOrder[depth];
+    const currentLevel = current.stackingOrder[depth];
+    if (!candidateLevel || !currentLevel) continue;
+    if (candidateLevel.priority !== currentLevel.priority)
+      return candidateLevel.priority > currentLevel.priority;
+    if (candidateLevel.registrationOrder !== currentLevel.registrationOrder)
+      return candidateLevel.registrationOrder > currentLevel.registrationOrder;
+  }
+  return candidate.stackingOrder.length > current.stackingOrder.length;
 };
 
 export const createNativeTargetRegistry = (): NativeTargetRegistry => {
@@ -42,6 +48,21 @@ export const createNativeTargetRegistry = (): NativeTargetRegistry => {
       if (currentEntry) currentEntries.push(currentEntry);
     }
     return currentEntries;
+  };
+
+  const getStackingOrder = (entry: NativeTargetEntry) => {
+    const stackingOrder = [];
+    const visitedTargetIds = new Set<string>();
+    let currentEntry: NativeTargetEntry | null = entry;
+    while (currentEntry && !visitedTargetIds.has(currentEntry.id)) {
+      visitedTargetIds.add(currentEntry.id);
+      stackingOrder.unshift({
+        priority: currentEntry.priority ?? 0,
+        registrationOrder: currentEntry.registrationOrder,
+      });
+      currentEntry = currentEntry.parentId ? getCurrentEntry(currentEntry.parentId) : null;
+    }
+    return stackingOrder;
   };
 
   const getTarget = (targetId: string): HostTarget | null => {
@@ -97,9 +118,7 @@ export const createNativeTargetRegistry = (): NativeTargetRegistry => {
             if (!bounds || !containsPoint(bounds, point)) return null;
             return {
               target,
-              bounds,
-              priority: entry.priority ?? 0,
-              registrationOrder: entry.registrationOrder,
+              stackingOrder: getStackingOrder(entry),
             };
           }),
         );

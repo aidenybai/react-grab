@@ -1,11 +1,6 @@
 import type { ReactNode } from "react";
 import type { ViewProps } from "react-native";
-import type {
-  HostBounds,
-  HostTarget,
-  HostTargetAdapter,
-  HostTargetDescription,
-} from "react-grab/targets";
+import type { HostTarget, HostTargetAdapter, HostTargetDescription } from "react-grab/targets";
 
 export interface NativeHostHandle {
   measureInWindow: (
@@ -36,11 +31,14 @@ export interface NativeTargetRegistrationHandle {
   update: (metadata: NativeTargetMetadata) => void;
 }
 
-export interface MeasuredNativeTarget {
-  target: HostTarget;
-  bounds: HostBounds;
+export interface NativeStackingLevel {
   priority: number;
   registrationOrder: number;
+}
+
+export interface MeasuredNativeTarget {
+  target: HostTarget;
+  stackingOrder: NativeStackingLevel[];
 }
 
 export interface NativeTargetRegistry {
