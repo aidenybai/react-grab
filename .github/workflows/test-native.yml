@@ -63,10 +63,24 @@ jobs:
 
       - name: Pre-boot simulator
         run: |
-          device_name=$(xcrun simctl list devices available | grep -oE 'iPhone [A-Za-z0-9 ]+' | head -1 | xargs)
+          available_devices=$(xcrun simctl list devices available)
+          device_line=""
+          while IFS= read -r candidate_device_line; do
+            if [[ "$candidate_device_line" =~ ^[[:space:]]*iPhone[[:space:]] ]]; then
+              device_line="$candidate_device_line"
+              break
+            fi
+          done <<< "$available_devices"
+          device_pattern='^[[:space:]]*(iPhone.*)[[:space:]]\(([0-9A-Fa-f-]+)\)[[:space:]]\([^)]*\)$'
+          if [[ ! "$device_line" =~ $device_pattern ]]; then
+            echo "Unable to find an available iPhone simulator" >&2
+            exit 1
+          fi
+          device_name="${BASH_REMATCH[1]}"
+          device_udid="${BASH_REMATCH[2]}"
           echo "Pre-booting simulator: $device_name"
           echo "DETOX_DEVICE_NAME=$device_name" >> "$GITHUB_ENV"
-          xcrun simctl boot "$device_name" || true
+          xcrun simctl boot "$device_udid" || true
 
       - name: Cache node_modules
         uses: actions/cache@v4
