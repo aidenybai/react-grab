@@ -138,6 +138,57 @@ export const getPickerTarget = (
 
 Add `data-react-grab-ignore` to your picker interface so hit testing skips its subtree.
 
+## Agent Integration
+
+React Grab connects to coding agents through a layered architecture. Each layer builds on the previous — use whichever fits your workflow.
+
+### Layer 0 — Paste (zero setup)
+
+Grab an element, then **⌘V** / **Ctrl+V** into any agent chat. The clipboard already carries the source location, component stack, and HTML snippet. Works with every agent, no configuration needed.
+
+### Layer 1 — Context File (zero-config auto-discovery)
+
+When `grab watch` is running, React Grab maintains a living context file at `.react-grab/context.md` with the latest grab formatted as markdown. Agents that auto-index project files (Cursor, Claude Code, Copilot, etc.) discover it automatically — no skill or tool call required.
+
+```bash
+# Start the background watcher (polls clipboard → writes to .react-grab/)
+npx grab@latest watch
+```
+
+The `.react-grab/` directory also keeps a grab journal (`.react-grab/grabs/`) so past selections survive clipboard overwrites and can be referenced later via `grab history`.
+
+### Layer 2 — CLI Primitives
+
+Composable one-shot commands that skills and scripts can call:
+
+```bash
+grab latest              # latest grab as JSON (reads .react-grab/ or falls back to clipboard)
+grab context             # latest grab as formatted markdown
+grab log                 # stream grabs as NDJSON (runs until killed)
+grab history             # list past grabs from .react-grab/grabs/
+```
+
+### Layer 3 — Hooks
+
+Git-hook-style executables that fire on each grab:
+
+```bash
+.react-grab/hooks/
+└── on-grab              # receives JSON via stdin + env vars
+```
+
+Hooks are completely agent-agnostic — any executable that reads stdin works.
+
+### Per-Agent Setup
+
+`grab add` detects your agent and installs the right integration format:
+
+```bash
+grab add                 # interactive: pick agents
+grab add cursor          # Cursor-specific integration
+grab add claude          # Claude Code-specific integration
+```
+
 ## Resources & Contributing Back
 
 Want to try it out? Check out [our demo](https://react-grab.com).
