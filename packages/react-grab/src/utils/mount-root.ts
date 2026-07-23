@@ -47,7 +47,16 @@ const scheduleHostRecheck = (host: HTMLElement): (() => void) => {
   const recheckTimeoutId = window.setTimeout(() => {
     attachHostToBody(host);
   }, MOUNT_ROOT_RECHECK_DELAY_MS);
-  return () => window.clearTimeout(recheckTimeoutId);
+  const bodyObserver = new MutationObserver(() => {
+    if (host.parentNode !== document.body) {
+      attachHostToBody(host);
+    }
+  });
+  bodyObserver.observe(document.documentElement, { childList: true });
+  return () => {
+    window.clearTimeout(recheckTimeoutId);
+    bodyObserver.disconnect();
+  };
 };
 
 interface MountRootResult {
