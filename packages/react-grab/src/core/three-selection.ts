@@ -46,6 +46,7 @@ interface ReactThreeFiberInstanceLike {
   type: string;
   props: Record<string, unknown>;
   object: ThreeObjectLike;
+  eventCount?: number;
 }
 
 interface ThreeObjectLike {
@@ -236,6 +237,18 @@ const findReactThreeFiberObject = (object: ThreeObjectLike): ThreeObjectLike | n
   return null;
 };
 
+const hasReactThreeFiberInteractionIntent = (object: ThreeObjectLike): boolean => {
+  let currentObject: ThreeObjectLike | null = object;
+  while (currentObject) {
+    const instance = getReactThreeFiberInstance(currentObject);
+    if (instance && typeof instance.eventCount === "number" && instance.eventCount > 0) {
+      return true;
+    }
+    currentObject = currentObject.parent;
+  }
+  return false;
+};
+
 const isThreeObjectInScene = (object: ThreeObjectLike, scene: ThreeSceneLike): boolean => {
   let currentObject: ThreeObjectLike | null = object;
   while (currentObject) {
@@ -331,6 +344,15 @@ export const resolveThreeElementAtPoint = (
     root.state.pointer.set(pointerX, pointerY);
     root.state.raycaster.setFromCamera(root.state.pointer, root.state.camera);
     const intersections = root.state.raycaster.intersectObjects(root.state.scene.children, true);
+    if (root.isReactThreeFiber) {
+      for (const intersection of intersections) {
+        if (!hasReactThreeFiberInteractionIntent(intersection.object)) continue;
+        const object = findReactThreeFiberObject(intersection.object);
+        if (!object || object.visible === false) continue;
+        const element = getOrCreateSelectionElement(root.state, object, intersection);
+        if (element) return element;
+      }
+    }
     for (const intersection of intersections) {
       const object = root.isReactThreeFiber
         ? findReactThreeFiberObject(intersection.object)

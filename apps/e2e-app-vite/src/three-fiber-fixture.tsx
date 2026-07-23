@@ -1,4 +1,5 @@
 import { Canvas } from "@react-three/fiber";
+import { useMemo } from "react";
 import {
   THREE_AMBIENT_LIGHT_INTENSITY,
   THREE_BOX_SIZE_UNITS,
@@ -18,11 +19,27 @@ interface ThreeGrabBoxProps {
 }
 
 const ThreeGrabBox = (props: ThreeGrabBoxProps): React.JSX.Element => (
-  <mesh name={props.name} position={props.position}>
+  <mesh name={props.name} position={props.position} onClick={() => undefined}>
     <boxGeometry args={[THREE_BOX_SIZE_UNITS, THREE_BOX_SIZE_UNITS, THREE_BOX_SIZE_UNITS]} />
     <meshStandardMaterial color={props.color} />
   </mesh>
 );
+
+const DecorativePoints = (): React.JSX.Element => {
+  const positions = useMemo(
+    () => new Float32Array([...THREE_LEFT_BOX_POSITION, ...THREE_RIGHT_BOX_POSITION]),
+    [],
+  );
+
+  return (
+    <points name="decorative-points" position={[0, 0, 1]}>
+      <bufferGeometry>
+        <bufferAttribute attach="attributes-position" args={[positions, 3]} />
+      </bufferGeometry>
+      <pointsMaterial color="#ffffff" size={0.08} />
+    </points>
+  );
+};
 
 export const ThreeFiberFixture = (): React.JSX.Element => (
   <section className="border rounded-lg p-4" data-testid="three-fiber-section">
@@ -38,6 +55,7 @@ export const ThreeFiberFixture = (): React.JSX.Element => (
           position={THREE_DIRECTIONAL_LIGHT_POSITION}
           intensity={THREE_DIRECTIONAL_LIGHT_INTENSITY}
         />
+        <DecorativePoints />
         <ThreeGrabBox color="#38bdf8" name="left-cube" position={THREE_LEFT_BOX_POSITION} />
         <ThreeGrabBox color="#f472b6" name="right-cube" position={THREE_RIGHT_BOX_POSITION} />
       </Canvas>
