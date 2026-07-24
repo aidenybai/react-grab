@@ -27,30 +27,30 @@ export const FloatingDodecahedron = () => {
     mesh.rotation.x -= frameDelta * THREE_DODECAHEDRON_ROTATION_SPEED;
     mesh.rotation.y += frameDelta * THREE_DODECAHEDRON_ROTATION_SPEED;
     mesh.position.y =
-      THREE_DODECAHEDRON_POSITION[1] -
-      Math.sin(frameState.clock.elapsedTime * THREE_FLOAT_SPEED) * THREE_FLOAT_AMPLITUDE_UNITS;
+      -Math.sin(frameState.clock.elapsedTime * THREE_FLOAT_SPEED) * THREE_FLOAT_AMPLITUDE_UNITS;
   });
 
   return (
-    <mesh
-      ref={meshRef}
-      name="floating-dodecahedron"
-      position={THREE_DODECAHEDRON_POSITION}
-      scale={isActive ? THREE_DODECAHEDRON_ACTIVE_SCALE : THREE_DODECAHEDRON_INACTIVE_SCALE}
-      onClick={(event) => {
-        event.stopPropagation();
-        setIsActive((wasActive) => !wasActive);
-      }}
-    >
-      <dodecahedronGeometry args={[THREE_DODECAHEDRON_RADIUS_UNITS, THREE_DODECAHEDRON_DETAIL]} />
-      <meshStandardMaterial
-        color={isActive ? "#f5f1e8" : "#d8d2c5"}
-        metalness={
-          isActive ? THREE_DODECAHEDRON_ACTIVE_METALNESS : THREE_DODECAHEDRON_INACTIVE_METALNESS
-        }
-        roughness={THREE_SHAPE_ROUGHNESS}
-      />
-    </mesh>
+    <group position={THREE_DODECAHEDRON_POSITION}>
+      <mesh
+        ref={meshRef}
+        name="floating-dodecahedron"
+        scale={isActive ? THREE_DODECAHEDRON_ACTIVE_SCALE : THREE_DODECAHEDRON_INACTIVE_SCALE}
+        onClick={(event) => {
+          event.stopPropagation();
+          setIsActive((wasActive) => !wasActive);
+        }}
+      >
+        <dodecahedronGeometry args={[THREE_DODECAHEDRON_RADIUS_UNITS, THREE_DODECAHEDRON_DETAIL]} />
+        <meshStandardMaterial
+          color={isActive ? "#f5f1e8" : "#d8d2c5"}
+          metalness={
+            isActive ? THREE_DODECAHEDRON_ACTIVE_METALNESS : THREE_DODECAHEDRON_INACTIVE_METALNESS
+          }
+          roughness={THREE_SHAPE_ROUGHNESS}
+        />
+      </mesh>
+    </group>
   );
 };
 

@@ -27,29 +27,28 @@ export const FloatingCube = () => {
     mesh.rotation.x += frameDelta * THREE_CUBE_ROTATION_SPEED;
     mesh.rotation.z -= frameDelta * THREE_CUBE_ROTATION_SPEED;
     mesh.position.y =
-      THREE_CUBE_POSITION[1] +
       Math.cos(frameState.clock.elapsedTime * THREE_FLOAT_SPEED) * THREE_FLOAT_AMPLITUDE_UNITS;
   });
 
   return (
-    <mesh
-      ref={meshRef}
-      name="floating-cube"
-      position={THREE_CUBE_POSITION}
-      rotation={THREE_CUBE_ROTATION}
-      scale={isActive ? THREE_CUBE_ACTIVE_SCALE : THREE_CUBE_INACTIVE_SCALE}
-      onClick={(event) => {
-        event.stopPropagation();
-        setIsActive((wasActive) => !wasActive);
-      }}
-    >
-      <boxGeometry args={[THREE_CUBE_SIZE_UNITS, THREE_CUBE_SIZE_UNITS, THREE_CUBE_SIZE_UNITS]} />
-      <meshStandardMaterial
-        color={isActive ? "#6c85ff" : "#465dd8"}
-        metalness={isActive ? THREE_CUBE_ACTIVE_METALNESS : THREE_CUBE_INACTIVE_METALNESS}
-        roughness={THREE_SHAPE_ROUGHNESS}
-      />
-    </mesh>
+    <group position={THREE_CUBE_POSITION} rotation={THREE_CUBE_ROTATION}>
+      <mesh
+        ref={meshRef}
+        name="floating-cube"
+        scale={isActive ? THREE_CUBE_ACTIVE_SCALE : THREE_CUBE_INACTIVE_SCALE}
+        onClick={(event) => {
+          event.stopPropagation();
+          setIsActive((wasActive) => !wasActive);
+        }}
+      >
+        <boxGeometry args={[THREE_CUBE_SIZE_UNITS, THREE_CUBE_SIZE_UNITS, THREE_CUBE_SIZE_UNITS]} />
+        <meshStandardMaterial
+          color={isActive ? "#6c85ff" : "#465dd8"}
+          metalness={isActive ? THREE_CUBE_ACTIVE_METALNESS : THREE_CUBE_INACTIVE_METALNESS}
+          roughness={THREE_SHAPE_ROUGHNESS}
+        />
+      </mesh>
+    </group>
   );
 };
 
