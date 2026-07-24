@@ -14,6 +14,7 @@ import {
 
 declare global {
   interface Window {
+    __REACT_GRAB_THREE_ELAPSED_TIME__?: number;
     __REACT_GRAB_THREE_FRAME_COUNT__?: number;
   }
 }
@@ -48,7 +49,8 @@ const DecorativePoints = (): React.JSX.Element => {
 };
 
 const FrameCounter = (): null => {
-  useFrame(() => {
+  useFrame(({ clock }) => {
+    window.__REACT_GRAB_THREE_ELAPSED_TIME__ = clock.elapsedTime;
     window.__REACT_GRAB_THREE_FRAME_COUNT__ = (window.__REACT_GRAB_THREE_FRAME_COUNT__ ?? 0) + 1;
   });
   return null;

@@ -152,8 +152,11 @@ export const getStack = (element: Element): Promise<StackFrame[] | null> => {
 
 export const getNearestComponentName = async (element: Element): Promise<string | null> => {
   if (!isInstrumentationActive()) return null;
-  const adaptedComponentName = getElementAdapter(element) ? getComponentDisplayName(element) : null;
-  if (adaptedComponentName) return adaptedComponentName;
+  const elementAdapter = getElementAdapter(element);
+  const adaptedComponentName = elementAdapter ? getComponentDisplayName(element) : null;
+  if (elementAdapter && adaptedComponentName === null) return null;
+  const adaptedSourceComponentName = toSourceComponentName(adaptedComponentName);
+  if (adaptedSourceComponentName) return adaptedSourceComponentName;
 
   const stack = await getStack(element);
   if (!stack) return null;
