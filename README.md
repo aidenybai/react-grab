@@ -33,6 +33,29 @@ The copied context includes the selected element and its component stack with so
 
 ## Manual Installation
 
+### shadcn Registry
+
+Install the React Grab component from this GitHub registry:
+
+```bash
+npx shadcn@latest add aidenybai/react-grab/react-grab
+```
+
+Render it once near the root of your app:
+
+```tsx
+import { ReactGrab } from "@/components/react-grab";
+
+export default function Layout({ children }: { children: React.ReactNode }) {
+  return (
+    <>
+      {children}
+      {process.env.NODE_ENV === "development" && <ReactGrab />}
+    </>
+  );
+}
+```
+
 If you cannot use the CLI, install React Grab manually for your framework:
 
 #### Next.js (App router)
