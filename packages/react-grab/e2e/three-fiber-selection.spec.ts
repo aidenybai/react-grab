@@ -1,12 +1,33 @@
 import { expect, test } from "./fixtures.js";
 import { moveToThreeObject } from "./move-to-three-object.js";
 import {
+  THREE_FRAME_COUNT_WINDOW_PROPERTY,
   THREE_LEFT_OBJECT_HORIZONTAL_RATIO,
+  THREE_RENDER_FREEZE_OBSERVATION_MS,
+  THREE_RENDER_FREEZE_SETTLE_MS,
   THREE_RIGHT_OBJECT_HORIZONTAL_RATIO,
   THREE_SELECTION_MAX_CANVAS_WIDTH_RATIO,
 } from "./constants.js";
 
 test.describe("React Three Fiber selection", () => {
+  test("pauses and resumes the render loop with React Grab", async ({ reactGrab, page }) => {
+    const readFrameCount = () =>
+      page.evaluate((propertyName) => {
+        const frameCount = Reflect.get(window, propertyName);
+        return typeof frameCount === "number" ? frameCount : 0;
+      }, THREE_FRAME_COUNT_WINDOW_PROPERTY);
+
+    await expect.poll(readFrameCount).toBeGreaterThan(0);
+    await reactGrab.activate();
+    await page.waitForTimeout(THREE_RENDER_FREEZE_SETTLE_MS);
+    const frozenFrameCount = await readFrameCount();
+    await page.waitForTimeout(THREE_RENDER_FREEZE_OBSERVATION_MS);
+    expect(await readFrameCount()).toBe(frozenFrameCount);
+
+    await reactGrab.deactivate();
+    await expect.poll(readFrameCount).toBeGreaterThan(frozenFrameCount);
+  });
+
   test("grabs an individual mesh with projected bounds and source context", async ({
     reactGrab,
     page,

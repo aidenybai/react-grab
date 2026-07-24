@@ -11,6 +11,7 @@ import {
   THREE_SELECTION_FALLBACK_BOUNDS_PX,
 } from "../constants.js";
 import { createElementBounds } from "../utils/create-element-bounds.js";
+import { registerRendererFreeze } from "../utils/freeze-renderers.js";
 import { registerElementAdapter } from "./element-adapter.js";
 
 interface ThreeVectorLike {
@@ -95,6 +96,8 @@ interface ThreeRootState {
   camera: ThreeCameraLike;
   raycaster: ThreeRaycasterLike;
   pointer: ThreePointerLike;
+  frameloop?: unknown;
+  setFrameloop?: unknown;
 }
 
 export interface ThreeSceneRegistration {
@@ -102,11 +105,19 @@ export interface ThreeSceneRegistration {
   pointer: object;
   raycaster: object;
   renderer: object;
+  rendering?: ThreeSceneRenderingControls;
   scene: object;
 }
 
+export interface ThreeSceneRenderingControls {
+  freeze: () => void;
+  unfreeze: () => void;
+}
+
 interface ThreeRoot {
+  freezeRendering: (() => void) | null;
   isReactThreeFiber: boolean;
+  unfreezeRendering: (() => void) | null;
   state: ThreeRootState;
 }
 
@@ -124,6 +135,7 @@ interface ThreeSelection {
 
 const selectionsByObject = new WeakMap<ThreeObjectLike, Map<number | null, ThreeSelection>>();
 const threeRootByCanvas = new WeakMap<HTMLCanvasElement, ThreeRoot>();
+const rendererFreezeCleanupByCanvas = new WeakMap<HTMLCanvasElement, () => void>();
 const THREE_PREVIEW_PROP_NAMES = [
   "name",
   "position",
@@ -204,6 +216,51 @@ const isThreeRootState = (value: unknown): value is ThreeRootState =>
   isThreeRaycaster(value.raycaster) &&
   isThreePointer(value.pointer);
 
+const isThreeFrameloop = (value: unknown): value is "always" | "demand" | "never" =>
+  value === "always" || value === "demand" || value === "never";
+
+const registerThreeRendererFreeze = (canvas: HTMLCanvasElement): void => {
+  if (rendererFreezeCleanupByCanvas.has(canvas)) return;
+  let restoreRendering: (() => void) | null = null;
+
+  const unregisterRendererFreeze = registerRendererFreeze({
+    freeze: () => {
+      const root = threeRootByCanvas.get(canvas);
+      if (!root) return;
+
+      if (
+        root.isReactThreeFiber &&
+        isThreeFrameloop(root.state.frameloop) &&
+        typeof root.state.setFrameloop === "function"
+      ) {
+        const previousFrameloop = root.state.frameloop;
+        const setFrameloop = root.state.setFrameloop;
+        setFrameloop("never");
+        restoreRendering = () => setFrameloop(previousFrameloop);
+        return;
+      }
+
+      if (root.freezeRendering && root.unfreezeRendering) {
+        root.freezeRendering();
+        restoreRendering = root.unfreezeRendering;
+      }
+    },
+    isConnected: () => canvas.isConnected,
+    unfreeze: () => {
+      restoreRendering?.();
+      restoreRendering = null;
+    },
+  });
+  rendererFreezeCleanupByCanvas.set(canvas, unregisterRendererFreeze);
+};
+
+const unregisterThreeRendererFreeze = (canvas: HTMLCanvasElement): void => {
+  const cleanup = rendererFreezeCleanupByCanvas.get(canvas);
+  if (!cleanup) return;
+  cleanup();
+  rendererFreezeCleanupByCanvas.delete(canvas);
+};
+
 const getReactThreeFiberInstance = (object: ThreeObjectLike): ReactThreeFiberInstanceLike | null =>
   isReactThreeFiberInstance(object.__r3f) ? object.__r3f : null;
 
@@ -221,10 +278,19 @@ instrument({
   onCommitFiberRoot: (_rendererId, root) => {
     const rootState = getThreeRootState(root);
     if (!rootState) return;
-    threeRootByCanvas.set(rootState.gl.domElement, {
+    const canvas = rootState.gl.domElement;
+    if (!canvas.isConnected || !root.current.child) {
+      threeRootByCanvas.delete(canvas);
+      unregisterThreeRendererFreeze(canvas);
+      return;
+    }
+    threeRootByCanvas.set(canvas, {
+      freezeRendering: null,
       isReactThreeFiber: true,
+      unfreezeRendering: null,
       state: rootState,
     });
+    registerThreeRendererFreeze(canvas);
   },
 });
 
@@ -377,10 +443,18 @@ export const registerThreeScene = (registration: ThreeSceneRegistration): (() =>
     throw new TypeError("Invalid Three.js scene registration");
   }
   const canvas = rootState.gl.domElement;
-  const rootRegistration = { isReactThreeFiber: false, state: rootState };
+  const rootRegistration = {
+    freezeRendering: registration.rendering?.freeze ?? null,
+    isReactThreeFiber: false,
+    unfreezeRendering: registration.rendering?.unfreeze ?? null,
+    state: rootState,
+  };
   threeRootByCanvas.set(canvas, rootRegistration);
+  registerThreeRendererFreeze(canvas);
   return () => {
-    if (threeRootByCanvas.get(canvas) === rootRegistration) threeRootByCanvas.delete(canvas);
+    if (threeRootByCanvas.get(canvas) !== rootRegistration) return;
+    threeRootByCanvas.delete(canvas);
+    unregisterThreeRendererFreeze(canvas);
   };
 };
 

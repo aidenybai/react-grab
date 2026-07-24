@@ -1,4 +1,4 @@
-import { Canvas } from "@react-three/fiber";
+import { Canvas, useFrame } from "@react-three/fiber";
 import { useMemo } from "react";
 import {
   THREE_AMBIENT_LIGHT_INTENSITY,
@@ -11,6 +11,12 @@ import {
   THREE_LEFT_BOX_POSITION,
   THREE_RIGHT_BOX_POSITION,
 } from "./three-fixture-constants";
+
+declare global {
+  interface Window {
+    __REACT_GRAB_THREE_FRAME_COUNT__?: number;
+  }
+}
 
 interface ThreeGrabBoxProps {
   color: string;
@@ -41,6 +47,13 @@ const DecorativePoints = (): React.JSX.Element => {
   );
 };
 
+const FrameCounter = (): null => {
+  useFrame(() => {
+    window.__REACT_GRAB_THREE_FRAME_COUNT__ = (window.__REACT_GRAB_THREE_FRAME_COUNT__ ?? 0) + 1;
+  });
+  return null;
+};
+
 export const ThreeFiberFixture = (): React.JSX.Element => (
   <section className="border rounded-lg p-4" data-testid="three-fiber-section">
     <h2 className="text-lg font-bold mb-4">React Three Fiber Scene</h2>
@@ -50,6 +63,7 @@ export const ThreeFiberFixture = (): React.JSX.Element => (
         data-testid="three-fiber-canvas"
         dpr={THREE_DEVICE_PIXEL_RATIO}
       >
+        <FrameCounter />
         <ambientLight intensity={THREE_AMBIENT_LIGHT_INTENSITY} />
         <directionalLight
           position={THREE_DIRECTIONAL_LIGHT_POSITION}
