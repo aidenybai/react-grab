@@ -29,7 +29,7 @@ import {
   isUsefulComponentName,
 } from "../utils/is-useful-component-name.js";
 import type { SourceLocation } from "../types.js";
-import { getReactFiberForElement } from "./element-adapter.js";
+import { getElementAdapter, getReactFiberForElement } from "./element-adapter.js";
 
 const isSourceComponentName = (name: string): boolean => {
   if (name.length <= 1) return false;
@@ -152,6 +152,12 @@ export const getStack = (element: Element): Promise<StackFrame[] | null> => {
 
 export const getNearestComponentName = async (element: Element): Promise<string | null> => {
   if (!isInstrumentationActive()) return null;
+  const elementAdapter = getElementAdapter(element);
+  const adaptedComponentName = elementAdapter ? getComponentDisplayName(element) : null;
+  if (elementAdapter && adaptedComponentName === null) return null;
+  const adaptedSourceComponentName = toSourceComponentName(adaptedComponentName);
+  if (adaptedSourceComponentName) return adaptedSourceComponentName;
+
   const stack = await getStack(element);
   if (!stack) return null;
 

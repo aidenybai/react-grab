@@ -29,7 +29,11 @@ import type { ElementAtPointOptions, ElementBounds } from "./types.js";
 import { getReactFiberForElement } from "./core/element-adapter.js";
 import { resolveThreeElementAtPoint } from "./core/three-selection.js";
 
-export { registerThreeScene, type ThreeSceneRegistration } from "./core/three-selection.js";
+export {
+  registerThreeScene,
+  type ThreeSceneRegistration,
+  type ThreeSceneRenderingControls,
+} from "./core/three-selection.js";
 
 export type { ElementAtPointOptions, ElementBounds } from "./types.js";
 
