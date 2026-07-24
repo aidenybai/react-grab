@@ -1,0 +1,14 @@
+{
+  "expo": {
+    "name": "react-grab-e2e-expo",
+    "slug": "react-grab-e2e-expo",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "dev.reactgrab.e2e"
+    }
+  }
+}

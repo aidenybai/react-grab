@@ -1,0 +1,35 @@
+{
+  "name": "@react-grab/e2e-app-react-native",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "start": "react-native start",
+    "android": "react-native run-android",
+    "ios": "react-native run-ios",
+    "bundle:ios": "react-native bundle --platform ios --dev true --entry-file index.js --bundle-output dist/main.jsbundle --assets-dest dist",
+    "build:ios": "cd ios && pod install && cd .. && xcodebuild -workspace ios/ReactGrabE2EReactNative.xcworkspace -scheme ReactGrabE2EReactNative -configuration Debug -sdk iphonesimulator -derivedDataPath ios/build -quiet",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@react-grab/native": "workspace:*",
+    "react": "19.2.6",
+    "react-native": "0.81.5"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.25.2",
+    "@babel/preset-env": "^7.25.3",
+    "@babel/runtime": "^7.25.0",
+    "@react-native-community/cli": "20.0.0",
+    "@react-native-community/cli-platform-android": "20.0.0",
+    "@react-native-community/cli-platform-ios": "20.0.0",
+    "@react-native/babel-preset": "0.81.5",
+    "@react-native/eslint-config": "0.81.5",
+    "@react-native/metro-config": "0.81.5",
+    "@react-native/typescript-config": "0.81.5",
+    "@types/react": "~19.1.17",
+    "typescript": "^5.8.3"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

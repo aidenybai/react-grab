@@ -42,6 +42,7 @@
   "pnpm": {
     "onlyBuiltDependencies": [
       "@parcel/watcher",
+      "detox",
       "esbuild",
       "sharp",
       "spawn-sync",

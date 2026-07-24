@@ -11,7 +11,6 @@
 ### Patch Changes
 
 - 9a1c4f0: Ship the accumulated selection, copy, customization, and reliability improvements since 0.1.48:
-
   - Grab elements inside open Shadow DOM roots and same-origin iframes, including nested and transformed frames, while preserving source context, overlays, drag selection, editor navigation, and cleanup behavior.
   - Select Three.js and React Three Fiber objects directly from canvas renderers, with component metadata, source context, bounds, CSS extraction, and editing support.
   - Add public element-picker primitives for filtered or container-scoped hit testing, safe bounds snapshots, transactional page freezing, and editor navigation. The `grab` alias now exposes its documented `primitives` and stylesheet subpaths too.

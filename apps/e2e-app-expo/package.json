@@ -1,0 +1,24 @@
+{
+  "name": "@react-grab/e2e-app-expo",
+  "version": "0.0.0",
+  "private": true,
+  "main": "src/index.ts",
+  "scripts": {
+    "start": "expo start",
+    "ios": "expo start --ios",
+    "android": "expo start --android",
+    "bundle:ios": "expo export --platform ios --output-dir dist",
+    "build:ios": "expo prebuild --platform ios --clean && xcodebuild -workspace ios/reactgrabe2eexpo.xcworkspace -scheme reactgrabe2eexpo -configuration Debug -sdk iphonesimulator -derivedDataPath ios/build -quiet",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@react-grab/native": "workspace:*",
+    "expo": "~54.0.36",
+    "react": "19.2.6",
+    "react-native": "0.81.5"
+  },
+  "devDependencies": {
+    "@types/react": "~19.1.17",
+    "typescript": "~5.9.3"
+  }
+}

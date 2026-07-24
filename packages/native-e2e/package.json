@@ -1,0 +1,24 @@
+{
+  "name": "@react-grab/native-e2e",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "build:ios:expo": "detox build --configuration ios.expo.debug",
+    "build:ios:react-native": "detox build --configuration ios.react-native.debug",
+    "test:ios:expo": "detox test --configuration ios.expo.debug",
+    "test:ios:react-native": "detox test --configuration ios.react-native.debug",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@jest/environment": "29.7.0",
+    "@jest/globals": "29.7.0",
+    "@jest/types": "29.6.3",
+    "@types/jest": "29.5.14",
+    "detox": "^20.51.4",
+    "expect": "29.7.0",
+    "jest": "29.7.0",
+    "jest-environment-node": "29.7.0",
+    "ts-jest": "^29.4.11",
+    "typescript": "^5.9.3"
+  }
+}

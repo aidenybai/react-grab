@@ -1,0 +1,11 @@
+export const PARENT_X_PX = 10;
+export const PARENT_Y_PX = 20;
+export const PARENT_WIDTH_PX = 200;
+export const PARENT_HEIGHT_PX = 200;
+export const CHILD_X_PX = 40;
+export const CHILD_Y_PX = 50;
+export const CHILD_WIDTH_PX = 60;
+export const CHILD_HEIGHT_PX = 70;
+export const HIT_X_PX = 50;
+export const HIT_Y_PX = 60;
+export const FRONT_PRIORITY = 1;
