@@ -89,7 +89,6 @@
         "default": "./dist/web-target-adapter.cjs"
       }
     },
-    "./src/*": "./src/*",
     "./styles.css": "./dist/styles.css",
     "./dist/styles.css": "./dist/styles.css",
     "./dist/*": "./dist/*.js",
