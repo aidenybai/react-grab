@@ -12,6 +12,7 @@ import { MotionGallery } from "@/components/demo/motion-gallery";
 import { MusicPlayerCard } from "@/components/demo/music-player-card";
 import { OverlayControls } from "@/components/demo/overlay-controls";
 import { StatCounters } from "@/components/demo/stat-counters";
+import { ThreeDimensionalScene } from "@/components/demo/three-dimensional-scene";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -139,6 +140,16 @@ const DemoPage = () => {
 
       <DemoSection label="Motion">
         <MotionGallery />
+      </DemoSection>
+
+      <hr className="border-line" />
+
+      <DemoSection label="3D scene">
+        <p>
+          React Grab sees through the canvas to the React Three Fiber scene. Hover a shape to grab
+          the mesh and its source component, just like any DOM element.
+        </p>
+        <ThreeDimensionalScene />
       </DemoSection>
 
       <hr className="border-line" />
