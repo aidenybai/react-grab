@@ -53,4 +53,39 @@ describe("renderer freezing", () => {
 
     expect(calls).toEqual([]);
   });
+
+  it("can freeze again after a renderer fails to unfreeze", () => {
+    const calls: string[] = [];
+    const unfreezeError = new Error("unfreeze failed");
+    let shouldFailUnfreeze = true;
+    const unregister = registerRendererFreeze({
+      freeze: () => calls.push("freeze failing"),
+      isConnected: () => true,
+      unfreeze: () => {
+        calls.push("unfreeze failing");
+        if (shouldFailUnfreeze) {
+          shouldFailUnfreeze = false;
+          throw unfreezeError;
+        }
+      },
+    });
+    unregisterCallbacks.push(unregister);
+    registerTestRenderer(calls, "stable");
+
+    freezeRegisteredRenderers();
+    expect(() => unfreezeRegisteredRenderers()).toThrow(unfreezeError);
+    freezeRegisteredRenderers();
+    unfreezeRegisteredRenderers();
+
+    expect(calls).toEqual([
+      "freeze failing",
+      "freeze stable",
+      "unfreeze stable",
+      "unfreeze failing",
+      "freeze failing",
+      "freeze stable",
+      "unfreeze stable",
+      "unfreeze failing",
+    ]);
+  });
 });

@@ -18,9 +18,10 @@ const unfreezeRegistration = (
   if (!frozenRegistrations.has(registration)) return;
   try {
     registration.unfreeze();
-    frozenRegistrations.delete(registration);
   } catch (error) {
     cleanupErrors.push(error);
+  } finally {
+    frozenRegistrations.delete(registration);
   }
 };
 
@@ -39,7 +40,7 @@ export const registerRendererFreeze = (registration: RendererFreezeRegistration)
   return () => {
     const cleanupErrors: unknown[] = [];
     unfreezeRegistration(registration, cleanupErrors);
-    if (cleanupErrors.length === 0) registrations.delete(registration);
+    registrations.delete(registration);
     throwCollectedErrors(cleanupErrors, "Unregistering renderer freeze failed");
   };
 };
@@ -55,11 +56,11 @@ export const freezeRegisteredRenderers = (): void => {
       frozenRegistrations.add(registration);
     }
   } catch (error) {
+    isRendererFreezeActive = false;
     const cleanupErrors: unknown[] = [];
     for (const frozenRegistration of [...frozenRegistrations].reverse()) {
       unfreezeRegistration(frozenRegistration, cleanupErrors);
     }
-    if (frozenRegistrations.size === 0) isRendererFreezeActive = false;
     if (cleanupErrors.length === 0) throw error;
     throw new AggregateError([error, ...cleanupErrors], "Rolling back renderer freeze failed");
   }
@@ -67,10 +68,10 @@ export const freezeRegisteredRenderers = (): void => {
 
 export const unfreezeRegisteredRenderers = (): void => {
   if (!isRendererFreezeActive) return;
+  isRendererFreezeActive = false;
   const cleanupErrors: unknown[] = [];
   for (const registration of [...frozenRegistrations].reverse()) {
     unfreezeRegistration(registration, cleanupErrors);
   }
-  if (frozenRegistrations.size === 0) isRendererFreezeActive = false;
   throwCollectedErrors(cleanupErrors, "Unfreezing renderers failed");
 };
