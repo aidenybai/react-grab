@@ -349,6 +349,35 @@ test.describe("Element Selection", () => {
       .toMatch(/^div/);
   });
 
+  test("should clear a text target when shift-dragging a multi-selection", async ({
+    reactGrab,
+  }) => {
+    const target = await createMixedTextTarget(reactGrab);
+
+    await reactGrab.activate();
+    await reactGrab.page.mouse.move(target.position.x, target.position.y);
+    await expect
+      .poll(async () => (await reactGrab.getSelectionLabelInfo()).tagName)
+      .toContain("Grab this text");
+
+    await reactGrab.page.keyboard.down("Shift");
+    await reactGrab.dragSelect(
+      "[data-testid='todo-list'] li:first-child",
+      "[data-testid='todo-list'] li:nth-child(2)",
+    );
+
+    const labelTexts = await reactGrab.page.evaluate(() => {
+      const host = document.querySelector("[data-react-grab]");
+      const labels = host?.shadowRoot?.querySelectorAll("[data-react-grab-selection-label]");
+      return Array.from(labels ?? []).map((label) => label.textContent?.trim() ?? "");
+    });
+
+    expect(labelTexts.length).toBeGreaterThanOrEqual(2);
+    expect(labelTexts.join(" ")).not.toContain("Grab this text");
+
+    await reactGrab.page.keyboard.up("Shift");
+  });
+
   test("should use element bounds when a click misses its direct text", async ({ reactGrab }) => {
     const target = await createMixedTextTarget(reactGrab);
 

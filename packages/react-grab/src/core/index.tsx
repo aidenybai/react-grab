@@ -2352,6 +2352,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       if (isShiftAccumulating) {
         const lastElement = selectedElements[selectedElements.length - 1];
+        setFrozenTextNode(null);
         setIsShiftMultiSelecting(true);
         clearElementPositionCache();
         actions.setPointer(getBoundsCenter(createElementBounds(lastElement)));
