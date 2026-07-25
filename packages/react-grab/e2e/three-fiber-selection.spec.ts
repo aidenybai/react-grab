@@ -4,6 +4,7 @@ import {
   THREE_LEFT_OBJECT_HORIZONTAL_RATIO,
   THREE_RIGHT_OBJECT_HORIZONTAL_RATIO,
   THREE_SELECTION_MAX_CANVAS_WIDTH_RATIO,
+  THREE_CANVAS_VERTICAL_CENTER_RATIO,
 } from "./constants.js";
 
 test.describe("React Three Fiber selection", () => {
@@ -58,5 +59,27 @@ test.describe("React Three Fiber selection", () => {
     await expect.poll(() => reactGrab.getClipboardContent()).toContain('<mesh name="right-cube"');
     const clipboardContent = await reactGrab.getClipboardContent();
     expect(clipboardContent).not.toContain('<mesh name="left-cube"');
+  });
+
+  test("includes shader material context and source for points", async ({ reactGrab, page }) => {
+    await reactGrab.activate();
+    const pointerPosition = await moveToThreeObject(
+      page,
+      "three-fiber-canvas",
+      THREE_CANVAS_VERTICAL_CENTER_RATIO,
+      "points",
+    );
+    await reactGrab.waitForSelectionSource();
+    await page.mouse.click(pointerPosition.x, pointerPosition.y);
+
+    await expect
+      .poll(() => reactGrab.getClipboardContent())
+      .toContain('<points name="three-fiber-shader-point">');
+    const clipboardContent = await reactGrab.getClipboardContent();
+    expect(clipboardContent).toContain('<shaderMaterial uniforms={["uColor","uPointSize"]}');
+    expect(clipboardContent).toContain('defines={["USE_TINT"]}');
+    expect(clipboardContent).toContain("uniform float uPointSize;");
+    expect(clipboardContent).toContain("uniform vec3 uColor;");
+    expect(clipboardContent).toContain("ShaderPoint");
   });
 });

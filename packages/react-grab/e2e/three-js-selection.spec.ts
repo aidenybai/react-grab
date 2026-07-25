@@ -4,6 +4,7 @@ import {
   THREE_LEFT_OBJECT_HORIZONTAL_RATIO,
   THREE_RIGHT_OBJECT_HORIZONTAL_RATIO,
   THREE_SELECTION_MAX_CANVAS_WIDTH_RATIO,
+  THREE_CANVAS_VERTICAL_CENTER_RATIO,
 } from "./constants.js";
 
 test.describe("Three.js selection", () => {
@@ -56,5 +57,25 @@ test.describe("Three.js selection", () => {
       .toContain('<mesh name="three-js-right-cube"');
     const clipboardContent = await reactGrab.getClipboardContent();
     expect(clipboardContent).not.toContain('<mesh name="three-js-left-cube"');
+  });
+
+  test("includes shader material context for points", async ({ reactGrab, page }) => {
+    await reactGrab.activate();
+    const pointerPosition = await moveToThreeObject(
+      page,
+      "three-js-canvas",
+      THREE_CANVAS_VERTICAL_CENTER_RATIO,
+      "points",
+    );
+    await page.mouse.click(pointerPosition.x, pointerPosition.y);
+
+    await expect
+      .poll(() => reactGrab.getClipboardContent())
+      .toContain('<points name="three-js-shader-point">');
+    const clipboardContent = await reactGrab.getClipboardContent();
+    expect(clipboardContent).toContain('<shaderMaterial uniforms={["uColor","uPointSize"]}');
+    expect(clipboardContent).toContain('defines={["USE_TINT"]}');
+    expect(clipboardContent).toContain("uniform float uPointSize;");
+    expect(clipboardContent).toContain("uniform vec3 uColor;");
   });
 });

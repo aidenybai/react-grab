@@ -38,6 +38,17 @@ interface ThreeGeometryLike {
   computeBoundingBox: () => void;
 }
 
+interface ThreeShaderMaterialLike {
+  isMaterial: boolean;
+  isShaderMaterial: boolean;
+  name: string;
+  type: string;
+  defines?: Record<string, unknown>;
+  fragmentShader: string;
+  uniforms: Record<string, unknown>;
+  vertexShader: string;
+}
+
 interface ThreeCameraLike {
   isCamera: boolean;
 }
@@ -58,6 +69,7 @@ interface ThreeObjectLike {
   visible: boolean;
   parent: ThreeObjectLike | null;
   geometry?: ThreeGeometryLike;
+  material?: unknown;
   matrixWorld: ThreeMatrixLike;
   updateWorldMatrix: (updateParents: boolean, updateChildren: boolean) => void;
   getMatrixAt?: (instanceId: number, matrix: ThreeMatrixLike) => void;
@@ -158,6 +170,16 @@ const isThreeMatrix = (value: unknown): value is ThreeMatrixLike =>
 
 const isThreeGeometry = (value: unknown): value is ThreeGeometryLike =>
   isRecord(value) && "boundingBox" in value && hasFunction(value, "computeBoundingBox");
+
+const isThreeShaderMaterial = (value: unknown): value is ThreeShaderMaterialLike =>
+  isRecord(value) &&
+  value.isMaterial === true &&
+  value.isShaderMaterial === true &&
+  typeof value.name === "string" &&
+  typeof value.type === "string" &&
+  isRecord(value.uniforms) &&
+  typeof value.vertexShader === "string" &&
+  typeof value.fragmentShader === "string";
 
 const isReactThreeFiberInstance = (value: unknown): value is ReactThreeFiberInstanceLike =>
   isRecord(value) &&
@@ -410,7 +432,37 @@ const getThreeSelectionPreview = (selection: ThreeSelection): string => {
     if (formattedValue) attributes.push(`${propName}=${formattedValue}`);
   }
   if (selection.instanceId !== null) attributes.push(`instanceId={${selection.instanceId}}`);
-  return `<${selection.tagName}${attributes.length > 0 ? ` ${attributes.join(" ")}` : ""} />`;
+  const openingTag = `<${selection.tagName}${attributes.length > 0 ? ` ${attributes.join(" ")}` : ""}`;
+  const shaderMaterials = (
+    Array.isArray(selection.object.material)
+      ? selection.object.material
+      : [selection.object.material]
+  ).filter(isThreeShaderMaterial);
+  if (shaderMaterials.length === 0) return `${openingTag} />`;
+
+  const shaderPreviews = shaderMaterials.map((shaderMaterial, materialIndex) => {
+    const materialAttributes: string[] = [];
+    if (shaderMaterial.name) materialAttributes.push(`name=${JSON.stringify(shaderMaterial.name)}`);
+    if (shaderMaterials.length > 1) materialAttributes.push(`materialIndex={${materialIndex}}`);
+    const uniformNames = Object.keys(shaderMaterial.uniforms).sort();
+    if (uniformNames.length > 0) {
+      materialAttributes.push(`uniforms={${JSON.stringify(uniformNames)}}`);
+    }
+    const defineNames = isRecord(shaderMaterial.defines)
+      ? Object.keys(shaderMaterial.defines).sort()
+      : [];
+    if (defineNames.length > 0) {
+      materialAttributes.push(`defines={${JSON.stringify(defineNames)}}`);
+    }
+    materialAttributes.push(`vertexShader={${JSON.stringify(shaderMaterial.vertexShader)}}`);
+    materialAttributes.push(`fragmentShader={${JSON.stringify(shaderMaterial.fragmentShader)}}`);
+    const materialTagName =
+      shaderMaterial.type.length > 0
+        ? `${shaderMaterial.type[0].toLowerCase()}${shaderMaterial.type.slice(1)}`
+        : "shaderMaterial";
+    return `  <${materialTagName} ${materialAttributes.join(" ")} />`;
+  });
+  return `${openingTag}>\n${shaderPreviews.join("\n")}\n</${selection.tagName}>`;
 };
 
 const createThreeSelectionSelector = (selection: ThreeSelection): string => {

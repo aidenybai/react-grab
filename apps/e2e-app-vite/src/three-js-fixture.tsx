@@ -2,14 +2,18 @@ import { useEffect, useRef } from "react";
 import * as ReactGrabPrimitives from "react-grab/primitives";
 import {
   AmbientLight,
+  BufferAttribute,
+  BufferGeometry,
   BoxGeometry,
   Color,
   DirectionalLight,
   Mesh,
   MeshStandardMaterial,
   PerspectiveCamera,
+  Points,
   Raycaster,
   Scene,
+  ShaderMaterial,
   Vector2,
   WebGLRenderer,
 } from "three";
@@ -22,7 +26,26 @@ import {
   THREE_DIRECTIONAL_LIGHT_POSITION,
   THREE_LEFT_BOX_POSITION,
   THREE_RIGHT_BOX_POSITION,
+  THREE_SHADER_POINT_POSITION,
+  THREE_SHADER_POINT_SIZE_PX,
 } from "./three-fixture-constants";
+
+const SHADER_POINT_VERTEX_SHADER = `
+uniform float uPointSize;
+
+void main() {
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  gl_PointSize = uPointSize;
+}
+`;
+
+const SHADER_POINT_FRAGMENT_SHADER = `
+uniform vec3 uColor;
+
+void main() {
+  gl_FragColor = vec4(uColor, 1.0);
+}
+`;
 
 const createTestBox = (
   name: string,
@@ -68,6 +91,22 @@ export const ThreeJsFixture = (): React.JSX.Element => {
       new Color("#fb923c"),
       THREE_RIGHT_BOX_POSITION,
     );
+    const shaderPointGeometry = new BufferGeometry();
+    shaderPointGeometry.setAttribute(
+      "position",
+      new BufferAttribute(new Float32Array(THREE_SHADER_POINT_POSITION), 3),
+    );
+    const shaderPointMaterial = new ShaderMaterial({
+      defines: { USE_TINT: true },
+      fragmentShader: SHADER_POINT_FRAGMENT_SHADER,
+      uniforms: {
+        uColor: { value: new Color("#c084fc") },
+        uPointSize: { value: THREE_SHADER_POINT_SIZE_PX },
+      },
+      vertexShader: SHADER_POINT_VERTEX_SHADER,
+    });
+    const shaderPoint = new Points(shaderPointGeometry, shaderPointMaterial);
+    shaderPoint.name = "three-js-shader-point";
     const directionalLight = new DirectionalLight("#ffffff", THREE_DIRECTIONAL_LIGHT_INTENSITY);
     directionalLight.position.set(...THREE_DIRECTIONAL_LIGHT_POSITION);
     scene.add(
@@ -75,6 +114,7 @@ export const ThreeJsFixture = (): React.JSX.Element => {
       directionalLight,
       leftBox,
       rightBox,
+      shaderPoint,
     );
 
     const renderScene = (): void => {
@@ -104,6 +144,8 @@ export const ThreeJsFixture = (): React.JSX.Element => {
       leftBox.material.dispose();
       rightBox.geometry.dispose();
       rightBox.material.dispose();
+      shaderPoint.geometry.dispose();
+      shaderPoint.material.dispose();
       renderer.dispose();
     };
   }, []);

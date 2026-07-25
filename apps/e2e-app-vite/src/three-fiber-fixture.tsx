@@ -1,5 +1,6 @@
 import { Canvas } from "@react-three/fiber";
 import { useMemo } from "react";
+import { Color } from "three";
 import {
   THREE_AMBIENT_LIGHT_INTENSITY,
   THREE_BOX_SIZE_UNITS,
@@ -10,7 +11,26 @@ import {
   THREE_DIRECTIONAL_LIGHT_POSITION,
   THREE_LEFT_BOX_POSITION,
   THREE_RIGHT_BOX_POSITION,
+  THREE_SHADER_POINT_POSITION,
+  THREE_SHADER_POINT_SIZE_PX,
 } from "./three-fixture-constants";
+
+const SHADER_POINT_VERTEX_SHADER = `
+uniform float uPointSize;
+
+void main() {
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  gl_PointSize = uPointSize;
+}
+`;
+
+const SHADER_POINT_FRAGMENT_SHADER = `
+uniform vec3 uColor;
+
+void main() {
+  gl_FragColor = vec4(uColor, 1.0);
+}
+`;
 
 interface ThreeGrabBoxProps {
   color: string;
@@ -41,6 +61,31 @@ const DecorativePoints = (): React.JSX.Element => {
   );
 };
 
+const ShaderPoint = (): React.JSX.Element => {
+  const positions = useMemo(() => new Float32Array(THREE_SHADER_POINT_POSITION), []);
+  const uniforms = useMemo(
+    () => ({
+      uColor: { value: new Color("#c084fc") },
+      uPointSize: { value: THREE_SHADER_POINT_SIZE_PX },
+    }),
+    [],
+  );
+
+  return (
+    <points name="three-fiber-shader-point" onClick={() => undefined}>
+      <bufferGeometry>
+        <bufferAttribute attach="attributes-position" args={[positions, 3]} />
+      </bufferGeometry>
+      <shaderMaterial
+        defines={{ USE_TINT: true }}
+        fragmentShader={SHADER_POINT_FRAGMENT_SHADER}
+        uniforms={uniforms}
+        vertexShader={SHADER_POINT_VERTEX_SHADER}
+      />
+    </points>
+  );
+};
+
 export const ThreeFiberFixture = (): React.JSX.Element => (
   <section className="border rounded-lg p-4" data-testid="three-fiber-section">
     <h2 className="text-lg font-bold mb-4">React Three Fiber Scene</h2>
@@ -56,6 +101,7 @@ export const ThreeFiberFixture = (): React.JSX.Element => (
           intensity={THREE_DIRECTIONAL_LIGHT_INTENSITY}
         />
         <DecorativePoints />
+        <ShaderPoint />
         <ThreeGrabBox color="#38bdf8" name="left-cube" position={THREE_LEFT_BOX_POSITION} />
         <ThreeGrabBox color="#f472b6" name="right-cube" position={THREE_RIGHT_BOX_POSITION} />
       </Canvas>

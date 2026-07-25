@@ -7,3 +7,5 @@ export const THREE_DIRECTIONAL_LIGHT_INTENSITY = 2;
 export const THREE_DIRECTIONAL_LIGHT_POSITION = [3, 4, 5] satisfies [number, number, number];
 export const THREE_LEFT_BOX_POSITION = [-1.1, 0, 0] satisfies [number, number, number];
 export const THREE_RIGHT_BOX_POSITION = [1.1, 0, 0] satisfies [number, number, number];
+export const THREE_SHADER_POINT_POSITION = [0, 0, 0] satisfies [number, number, number];
+export const THREE_SHADER_POINT_SIZE_PX = 40;

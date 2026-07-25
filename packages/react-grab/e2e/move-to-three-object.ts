@@ -10,6 +10,7 @@ export const moveToThreeObject = async (
   page: Page,
   canvasTestId: string,
   horizontalRatio: number,
+  expectedTagName = "mesh",
 ): Promise<CanvasPointerPosition> => {
   const canvas = page.getByTestId(canvasTestId);
   await canvas.scrollIntoViewIfNeeded();
@@ -27,6 +28,6 @@ export const moveToThreeObject = async (
         () => window.__REACT_GRAB__?.getState().targetElement?.tagName.toLowerCase() ?? null,
       );
     })
-    .toBe("mesh");
+    .toBe(expectedTagName);
   return pointerPosition;
 };
