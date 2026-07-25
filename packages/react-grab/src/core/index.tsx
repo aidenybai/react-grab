@@ -1112,7 +1112,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       // style since the box was last measured. Falls back to a fresh measure when
       // copying an element that isn't the current selection (e.g. context menu).
       const reusableSelectionBounds =
-        !isMultiSelect && element === selectionElement() ? selectionBounds() : undefined;
+        !isMultiSelect && element === selectionElement() && (selectedTextNode || !activeTextNode())
+          ? selectionBounds()
+          : undefined;
       const labelBounds = selectedTextNode
         ? createTextNodeBounds(selectedTextNode)
         : dragRect && isMultiSelect

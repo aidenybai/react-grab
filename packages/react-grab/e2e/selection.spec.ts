@@ -2,6 +2,10 @@ import { test, expect, type ReactGrabPageObject } from "./fixtures.js";
 import { ATTRIBUTE_NAME } from "./constants.js";
 
 interface MixedTextTarget {
+  paddingPosition: {
+    x: number;
+    y: number;
+  };
   position: {
     x: number;
     y: number;
@@ -20,6 +24,8 @@ interface WrappedTextTarget {
     x: number;
     y: number;
   };
+  rectCount: number;
+  rectIndex: number;
   textBounds: {
     height: number;
     width: number;
@@ -51,6 +57,10 @@ const createMixedTextTarget = async (reactGrab: ReactGrabPageObject): Promise<Mi
     const containerBounds = container.getBoundingClientRect();
 
     return {
+      paddingPosition: {
+        x: containerBounds.right - 4,
+        y: containerBounds.top + containerBounds.height / 2,
+      },
       position: {
         x: textBounds.left + textBounds.width / 2,
         y: textBounds.top + textBounds.height / 2,
@@ -95,6 +105,8 @@ const createWrappedTextTarget = async (
         x: textBounds.left + textBounds.width / 2,
         y: textBounds.top + textBounds.height / 2,
       },
+      rectCount: rects.length,
+      rectIndex: 1,
       textBounds: {
         height: textBounds.height,
         width: textBounds.width,
@@ -103,6 +115,46 @@ const createWrappedTextTarget = async (
       },
     };
   });
+};
+
+const reflowWrappedTextTarget = async (
+  reactGrab: ReactGrabPageObject,
+  target: WrappedTextTarget,
+): Promise<WrappedTextTarget["textBounds"]> => {
+  return reactGrab.page.evaluate(
+    ({ previousRectCount, previousRectIndex }) => {
+      const container = document.querySelector("#wrapped-text-target");
+      const textNode = container?.firstChild;
+      if (!(container instanceof HTMLElement) || !(textNode instanceof Text)) {
+        throw new Error("Missing wrapped text target");
+      }
+
+      container.style.width = "110px";
+      const range = document.createRange();
+      range.selectNodeContents(textNode);
+      const rects = Array.from(range.getClientRects());
+      const previousMaximumIndex = Math.max(0, previousRectCount - 1);
+      const currentMaximumIndex = rects.length - 1;
+      const normalizedRectIndex =
+        previousMaximumIndex === 0 ? 0 : previousRectIndex / previousMaximumIndex;
+      const currentRectIndex = Math.round(normalizedRectIndex * currentMaximumIndex);
+      const bounds = rects[currentRectIndex];
+      if (!bounds || rects.length === previousRectCount) {
+        throw new Error("Text did not reflow");
+      }
+
+      return {
+        height: bounds.height,
+        width: bounds.width,
+        x: bounds.x,
+        y: bounds.y,
+      };
+    },
+    {
+      previousRectCount: target.rectCount,
+      previousRectIndex: target.rectIndex,
+    },
+  );
 };
 
 const replaceMixedTextNode = async (
@@ -229,6 +281,31 @@ test.describe("Element Selection", () => {
       .toBeCloseTo(initialGrabbedBoxY - scrollDeltaY, 0);
   });
 
+  test("should use element bounds when a click misses its direct text", async ({ reactGrab }) => {
+    const target = await createMixedTextTarget(reactGrab);
+
+    await reactGrab.setupCallbackTracking();
+    await reactGrab.activate();
+    await reactGrab.page.mouse.move(target.position.x, target.position.y);
+    await expect
+      .poll(async () => (await reactGrab.getSelectionLabelInfo()).tagName)
+      .toContain("Grab this text");
+
+    await reactGrab.page.mouse.click(target.paddingPosition.x, target.paddingPosition.y);
+    await expect
+      .poll(async () => {
+        const callbackHistory = await reactGrab.getCallbackHistory();
+        const copySuccessCall = callbackHistory.findLast(
+          (callback) => callback.name === "onCopySuccess",
+        );
+        return copySuccessCall?.args[1];
+      })
+      .toContain("selector: #mixed-text-target");
+    await expect
+      .poll(async () => (await reactGrab.getGrabbedBoxInfo()).boxes[0]?.bounds.width)
+      .toBeCloseTo(target.containerWidth, 0);
+  });
+
   test("should select only the hovered line of wrapped direct text", async ({ reactGrab }) => {
     const target = await createWrappedTextTarget(reactGrab);
 
@@ -245,6 +322,34 @@ test.describe("Element Selection", () => {
         return selectionBoxCall?.args[1];
       })
       .toEqual(expect.objectContaining(target.textBounds));
+  });
+
+  test("should keep the hovered wrapped line targeted after reflow", async ({ reactGrab }) => {
+    const target = await createWrappedTextTarget(reactGrab);
+
+    await reactGrab.setupCallbackTracking();
+    await reactGrab.activate();
+    await reactGrab.page.mouse.move(target.position.x, target.position.y);
+    await expect
+      .poll(async () => {
+        const callbackHistory = await reactGrab.getCallbackHistory();
+        const selectionBoxCall = callbackHistory.findLast(
+          (callback) => callback.name === "onSelectionBox" && callback.args[0] === true,
+        );
+        return selectionBoxCall?.args[1];
+      })
+      .toEqual(expect.objectContaining(target.textBounds));
+
+    const reflowedBounds = await reflowWrappedTextTarget(reactGrab, target);
+    await expect
+      .poll(async () => {
+        const callbackHistory = await reactGrab.getCallbackHistory();
+        const selectionBoxCall = callbackHistory.findLast(
+          (callback) => callback.name === "onSelectionBox" && callback.args[0] === true,
+        );
+        return selectionBoxCall?.args[1];
+      })
+      .toEqual(expect.objectContaining(reflowedBounds));
   });
 
   test("should keep prompt cursor aligned with grabbed text", async ({ reactGrab }) => {

@@ -7,15 +7,24 @@ interface CachedTextNodeBounds {
   timestamp: number;
 }
 
+interface TextNodeBoundsAnchor {
+  rectCount: number;
+  rectIndex: number;
+}
+
 let textNodeBoundsCache = new WeakMap<Text, CachedTextNodeBounds>();
-const boundsRectIndexByTextNode = new WeakMap<Text, number>();
+const boundsAnchorByTextNode = new WeakMap<Text, TextNodeBoundsAnchor>();
 
 export const invalidateTextNodeBoundsCache = () => {
   textNodeBoundsCache = new WeakMap<Text, CachedTextNodeBounds>();
 };
 
-export const setTextNodeBoundsRectIndex = (textNode: Text, rectIndex: number): void => {
-  boundsRectIndexByTextNode.set(textNode, rectIndex);
+export const setTextNodeBoundsRectIndex = (
+  textNode: Text,
+  rectIndex: number,
+  rectCount: number,
+): void => {
+  boundsAnchorByTextNode.set(textNode, { rectCount, rectIndex });
   textNodeBoundsCache.delete(textNode);
 };
 
@@ -23,9 +32,10 @@ export const transferTextNodeBoundsRectIndex = (
   previousTextNode: Text,
   nextTextNode: Text,
 ): void => {
-  const rectIndex = boundsRectIndexByTextNode.get(previousTextNode);
-  if (rectIndex !== undefined) {
-    setTextNodeBoundsRectIndex(nextTextNode, rectIndex);
+  const boundsAnchor = boundsAnchorByTextNode.get(previousTextNode);
+  if (boundsAnchor) {
+    boundsAnchorByTextNode.set(nextTextNode, boundsAnchor);
+    textNodeBoundsCache.delete(nextTextNode);
   }
 };
 
@@ -38,10 +48,20 @@ export const createTextNodeBounds = (textNode: Text): OverlayBounds => {
 
   const range = textNode.ownerDocument.createRange();
   range.selectNodeContents(textNode);
-  const rectIndex = boundsRectIndexByTextNode.get(textNode);
-  const rect =
-    (rectIndex === undefined ? undefined : range.getClientRects()[rectIndex]) ??
-    range.getBoundingClientRect();
+  const rects = range.getClientRects();
+  const boundsAnchor = boundsAnchorByTextNode.get(textNode);
+  let rect: DOMRect | undefined;
+  if (boundsAnchor && rects.length > 0) {
+    const previousMaximumIndex = Math.max(0, boundsAnchor.rectCount - 1);
+    const currentMaximumIndex = rects.length - 1;
+    const normalizedRectIndex =
+      previousMaximumIndex === 0 ? 0 : boundsAnchor.rectIndex / previousMaximumIndex;
+    const currentRectIndex = Math.round(normalizedRectIndex * currentMaximumIndex);
+    rect = rects[currentRectIndex];
+    boundsAnchor.rectCount = rects.length;
+    boundsAnchor.rectIndex = currentRectIndex;
+  }
+  rect ??= range.getBoundingClientRect();
   const topWindowPosition = convertClientPositionToTopWindow(
     textNode.ownerDocument.defaultView,
     rect.left,

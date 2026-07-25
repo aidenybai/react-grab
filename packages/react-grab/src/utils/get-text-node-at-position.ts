@@ -31,7 +31,7 @@ export const getTextNodeAtPosition = (
         bottom: topWindowPosition.y + rect.height * topWindowPosition.scaleY,
       };
       if (isPointInsideRect(clientX, clientY, topWindowRect)) {
-        setTextNodeBoundsRectIndex(childNode, rectIndex);
+        setTextNodeBoundsRectIndex(childNode, rectIndex, rects.length);
         return childNode;
       }
     }
