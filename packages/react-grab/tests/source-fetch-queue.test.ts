@@ -137,6 +137,75 @@ describe("runQueuedSourceFetch", () => {
     expect(capturedSignal?.aborted).toBe(false);
   });
 
+  it("aborts superseded in-flight work and releases its slot", async () => {
+    const controllers = Array.from({ length: 3 }, () => new AbortController());
+    const taskSignals: AbortSignal[] = [];
+    const results = controllers.map((controller) =>
+      runQueuedSourceFetch(
+        (signal) => {
+          taskSignals.push(signal);
+          return new Promise<string>(() => {});
+        },
+        "superseded",
+        TEST_TIMEOUT_MS * 10,
+        controller.signal,
+      ),
+    );
+
+    let laterStarted = false;
+    const laterResult = runQueuedSourceFetch(
+      () => {
+        laterStarted = true;
+        return Promise.resolve("later");
+      },
+      "fallback",
+      TEST_TIMEOUT_MS,
+    );
+
+    await flushMicrotasks();
+    expect(laterStarted).toBe(false);
+
+    controllers[0].abort();
+
+    expect(await results[0]).toBe("superseded");
+    expect(taskSignals[0].aborted).toBe(true);
+    expect(await laterResult).toBe("later");
+    expect(laterStarted).toBe(true);
+
+    controllers[1].abort();
+    controllers[2].abort();
+    await Promise.all(results);
+  });
+
+  it("removes superseded work while it is waiting for a slot", async () => {
+    const activeDeferreds = Array.from({ length: 3 }, () => createDeferred<string>());
+    const activeResults = activeDeferreds.map((deferred) =>
+      runQueuedSourceFetch(() => deferred.promise, "fallback", TEST_TIMEOUT_MS),
+    );
+    const controller = new AbortController();
+    let canceledTaskStarted = false;
+    const canceledResult = runQueuedSourceFetch(
+      () => {
+        canceledTaskStarted = true;
+        return Promise.resolve("unexpected");
+      },
+      "superseded",
+      TEST_TIMEOUT_MS,
+      controller.signal,
+    );
+
+    await flushMicrotasks();
+    controller.abort();
+    expect(await canceledResult).toBe("superseded");
+
+    activeDeferreds[0].resolve("done");
+    await flushMicrotasks();
+    expect(canceledTaskStarted).toBe(false);
+
+    for (const deferred of activeDeferreds) deferred.resolve("done");
+    await Promise.all(activeResults);
+  });
+
   it("admits queued tasks in FIFO order as slots free", async () => {
     const deferreds = Array.from({ length: 5 }, () => createDeferred<string>());
     const startOrder: number[] = [];

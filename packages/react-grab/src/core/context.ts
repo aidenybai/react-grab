@@ -108,6 +108,7 @@ const getNearestListItemKey = (element: Element): string | null => {
 };
 
 interface FiberContextCacheEntry<Result> {
+  controller: AbortController;
   promise: Promise<Result>;
   revision: FiberRevision;
 }
@@ -128,24 +129,32 @@ const createSourceFetch =
 // symbolication POST adds another request. Both go through the source-fetch
 // queue so a hover storm (drag-select) or a multi-element copy never fans out
 // more concurrent requests than the connection pool can serve.
-const fetchStackForElement = (element: Element): Promise<StackFrame[] | null> =>
-  runQueuedSourceFetch(async (signal) => {
-    try {
-      const fiber = getReactFiberForElement(element);
-      if (!fiber) return null;
-      const currentFiber = getLatestFiber(fiber);
-      const frames = await getOwnerStack(currentFiber, true, createSourceFetch(signal));
+const fetchStackForElement = (
+  element: Element,
+  abortSignal: AbortSignal,
+): Promise<StackFrame[] | null> =>
+  runQueuedSourceFetch(
+    async (signal) => {
+      try {
+        const fiber = getReactFiberForElement(element);
+        if (!fiber) return null;
+        const currentFiber = getLatestFiber(fiber);
+        const frames = await getOwnerStack(currentFiber, true, createSourceFetch(signal));
 
-      if (isNextProjectRuntime()) {
-        const enrichedFrames = enrichServerFrameLocations(currentFiber, frames);
-        return await symbolicateServerFrames(enrichedFrames, signal);
+        if (isNextProjectRuntime()) {
+          const enrichedFrames = enrichServerFrameLocations(currentFiber, frames);
+          return await symbolicateServerFrames(enrichedFrames, signal);
+        }
+
+        return frames;
+      } catch {
+        return null;
       }
-
-      return frames;
-    } catch {
-      return null;
-    }
-  }, null);
+    },
+    null,
+    undefined,
+    abortSignal,
+  );
 
 export const getStack = (element: Element): Promise<StackFrame[] | null> => {
   if (!isInstrumentationActive()) return Promise.resolve([]);
@@ -156,13 +165,16 @@ export const getStack = (element: Element): Promise<StackFrame[] | null> => {
   const currentFiber = getLatestFiber(fiber);
   const cachedStack = stackCache.get(nearestFiberElement);
   if (cachedStack?.revision.matches(currentFiber)) return cachedStack.promise;
+  cachedStack?.controller.abort();
 
   // Evict failed or timed-out resolutions (null) so a later grab can retry once
   // the page's own fetches free a connection, while still deduping concurrent
   // in-flight lookups. A resolved empty array is a real "no frames" answer and
   // stays cached. Mirrors getCachedFiberSource.
-  const stackPromise = fetchStackForElement(nearestFiberElement);
+  const controller = new AbortController();
+  const stackPromise = fetchStackForElement(nearestFiberElement, controller.signal);
   const cacheEntry: FiberContextCacheEntry<StackFrame[] | null> = {
+    controller,
     promise: stackPromise,
     revision: createFiberRevision(currentFiber),
   };
@@ -209,29 +221,37 @@ const getSourceComponentName = (
 // instrumentation, but it fetches the element's bundle/source map to map the
 // location, so it runs through the source-fetch queue alongside getOwnerStack:
 // both compete for the same connection pool and neither has its own timeout.
-const getFiberSourceForElement = (element: Element): Promise<ResolvedSource | null> =>
-  runQueuedSourceFetch(async (signal) => {
-    try {
-      const fiber = getReactFiberForElement(element);
-      if (!fiber) return null;
-      const currentFiber = getLatestFiber(fiber);
-      const source = await getSource(currentFiber, true, createSourceFetch(signal));
-      if (!source?.fileName) return null;
-      const isNextProject = isNextProjectRuntime();
+const getFiberSourceForElement = (
+  element: Element,
+  abortSignal: AbortSignal,
+): Promise<ResolvedSource | null> =>
+  runQueuedSourceFetch(
+    async (signal) => {
+      try {
+        const fiber = getReactFiberForElement(element);
+        if (!fiber) return null;
+        const currentFiber = getLatestFiber(fiber);
+        const source = await getSource(currentFiber, true, createSourceFetch(signal));
+        if (!source?.fileName) return null;
+        const isNextProject = isNextProjectRuntime();
 
-      return {
-        filePath: normalizeFilePath(source.fileName),
-        lineNumber: source.lineNumber ?? null,
-        columnNumber: source.columnNumber ?? null,
-        componentName:
-          toSourceComponentName(source.functionName, isNextProject) ??
-          getSourceComponentName(currentFiber._debugOwner, isNextProject),
-        origin: classifySourcePath(source.fileName).origin,
-      };
-    } catch {
-      return null;
-    }
-  }, null);
+        return {
+          filePath: normalizeFilePath(source.fileName),
+          lineNumber: source.lineNumber ?? null,
+          columnNumber: source.columnNumber ?? null,
+          componentName:
+            toSourceComponentName(source.functionName, isNextProject) ??
+            getSourceComponentName(currentFiber._debugOwner, isNextProject),
+          origin: classifySourcePath(source.fileName).origin,
+        };
+      } catch {
+        return null;
+      }
+    },
+    null,
+    undefined,
+    abortSignal,
+  );
 
 const getCachedFiberSource = (element: Element): Promise<ResolvedSource | null> => {
   const nearestFiberElement = findNearestFiberElement(element);
@@ -240,11 +260,14 @@ const getCachedFiberSource = (element: Element): Promise<ResolvedSource | null> 
   const currentFiber = getLatestFiber(fiber);
   const cachedFiberSource = fiberSourceCache.get(nearestFiberElement);
   if (cachedFiberSource?.revision.matches(currentFiber)) return cachedFiberSource.promise;
+  cachedFiberSource?.controller.abort();
 
   // Evict null resolutions so a later grab can retry once the fiber's source
   // metadata is attached, while still deduping concurrent in-flight lookups.
-  const fiberSourcePromise = getFiberSourceForElement(nearestFiberElement);
+  const controller = new AbortController();
+  const fiberSourcePromise = getFiberSourceForElement(nearestFiberElement, controller.signal);
   const cacheEntry: FiberContextCacheEntry<ResolvedSource | null> = {
+    controller,
     promise: fiberSourcePromise,
     revision: createFiberRevision(currentFiber),
   };

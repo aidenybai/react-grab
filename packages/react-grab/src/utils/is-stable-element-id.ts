@@ -1,7 +1,7 @@
 import { SELECTOR_ATTR_VALUE_MAX_LENGTH_CHARS } from "../constants.js";
 
 const UUID_ELEMENT_ID_PATTERN = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
-const REACT_UNDERSCORE_ELEMENT_ID_PATTERN = /(?:^|-)_r_[a-z0-9]+_(?:$|-)/i;
+const REACT_UNDERSCORE_ELEMENT_ID_PATTERN = /_r_[a-z0-9]+_(?:$|-)/i;
 const REACT_GUILLEMET_ELEMENT_ID_PATTERN = /«r[a-z0-9]+»/i;
 const GENERATED_FRAMEWORK_ELEMENT_ID_PATTERN =
   /^(?:downshift|headlessui|mui|radix|react-aria|react-select)(?:[-_]|$)/i;

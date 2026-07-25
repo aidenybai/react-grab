@@ -14,6 +14,8 @@ describe("isStableElementId", () => {
     expect(isStableElementId("radix-:r1:")).toBe(false);
     expect(isStableElementId("_r_0_")).toBe(false);
     expect(isStableElementId("menu-_r_12_")).toBe(false);
+    expect(isStableElementId("checkout_r_0_")).toBe(false);
+    expect(isStableElementId("react-grab_r_12_")).toBe(false);
     expect(isStableElementId("«r0»")).toBe(false);
     expect(isStableElementId("radix-«r12»")).toBe(false);
   });

@@ -28,6 +28,18 @@ describe("createFiberRevision", () => {
     expect(revision.matches(fiber)).toBe(false);
   });
 
+  it("invalidates when React changes the debug owner on a preserved fiber", () => {
+    const fiber: FiberRevisionSource = {
+      _debugOwner: { type: "OriginalOwner" },
+      actualStartTime: 1,
+    };
+    const revision = createFiberRevision(fiber);
+
+    fiber._debugOwner = { type: "UpdatedOwner" };
+
+    expect(revision.matches(fiber)).toBe(false);
+  });
+
   it("invalidates when the current fiber identity or render time changes", () => {
     const fiber: FiberRevisionSource = { actualStartTime: 1 };
     const revision = createFiberRevision(fiber);

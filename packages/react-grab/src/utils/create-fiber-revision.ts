@@ -1,4 +1,5 @@
 export interface FiberRevisionSource {
+  _debugOwner?: unknown;
   _debugSource?: unknown;
   _debugStack?: unknown;
   actualStartTime?: number;
@@ -9,6 +10,7 @@ export interface FiberRevision {
 }
 
 export const createFiberRevision = (fiber: FiberRevisionSource): FiberRevision => {
+  const debugOwner = fiber._debugOwner;
   const debugSource = fiber._debugSource;
   const debugStack = fiber._debugStack;
   const actualStartTime = fiber.actualStartTime;
@@ -16,6 +18,7 @@ export const createFiberRevision = (fiber: FiberRevisionSource): FiberRevision =
   return {
     matches: (currentFiber) =>
       currentFiber === fiber &&
+      currentFiber._debugOwner === debugOwner &&
       currentFiber._debugSource === debugSource &&
       currentFiber._debugStack === debugStack &&
       currentFiber.actualStartTime === actualStartTime,
