@@ -162,8 +162,10 @@ test.describe("Element Context Fallback", () => {
       await reactGrab.page.evaluate(() => {
         const svgElement = document.createElementNS("http://www.w3.org/2000/svg", "svg");
         const textElement = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        const textSpanElement = document.createElementNS("http://www.w3.org/2000/svg", "tspan");
         textElement.id = "svg-visible-label";
-        textElement.textContent = "Quarterly revenue";
+        textSpanElement.textContent = "Quarterly revenue";
+        textElement.appendChild(textSpanElement);
         svgElement.appendChild(textElement);
         document.body.appendChild(svgElement);
       });

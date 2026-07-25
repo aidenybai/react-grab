@@ -166,6 +166,7 @@ export const PREVIEW_DESCENDANT_TEXT_TAGS = new Set([
   "option",
   "pre",
   "summary",
+  "text",
 ]);
 export const PREVIEW_SKIPPED_TEXT_TAGS = new Set(["script", "style", "template", "noscript"]);
 

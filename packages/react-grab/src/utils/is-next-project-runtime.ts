@@ -6,6 +6,9 @@ export const isNextProjectRuntime = (shouldRevalidate?: boolean): boolean => {
   }
   cachedIsNextProject ??=
     typeof document !== "undefined" &&
-    Boolean(document.getElementById("__NEXT_DATA__") || document.querySelector("nextjs-portal"));
+    Boolean(
+      document.getElementById("__NEXT_DATA__") ||
+      document.querySelector('nextjs-portal, script[src*="/_next/"]'),
+    );
   return cachedIsNextProject;
 };
