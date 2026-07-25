@@ -882,9 +882,19 @@ export default function App() {
 
       <ShadowDomEdgeFixture />
 
-      <ThreeFiberFixture />
+      <section className="space-y-6" id="three-shader-fixtures">
+        <div className="rounded-lg border border-purple-200 bg-purple-50 p-4">
+          <h2 className="text-lg font-bold text-purple-950">Shader material selection</h2>
+          <p className="mt-1 text-sm text-purple-800">
+            Activate React Grab and select the purple point in the center of either canvas to
+            inspect its uniforms, defines, vertex shader, and fragment shader.
+          </p>
+        </div>
 
-      <ThreeJsFixture />
+        <ThreeFiberFixture />
+
+        <ThreeJsFixture />
+      </section>
 
       <IframeFixture />
 

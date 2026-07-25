@@ -114,31 +114,6 @@ if (process.env.NODE_ENV === "development") {
 }
 ```
 
-### Three.js and React Three Fiber
-
-React Three Fiber canvases are detected automatically. Selectable `mesh`, `points`, and `line`
-objects keep their component source context.
-
-Register vanilla Three.js scenes explicitly:
-
-```typescript
-import { registerThreeScene } from "grab/primitives";
-import { Raycaster, Vector2 } from "three";
-
-const unregisterScene = registerThreeScene({
-  camera,
-  pointer: new Vector2(),
-  raycaster: new Raycaster(),
-  renderer,
-  scene,
-});
-```
-
-Selections backed by `ShaderMaterial` or `RawShaderMaterial` include their uniform and define names,
-vertex shader, and fragment shader in the copied preview. Raycasting still uses the object's CPU-side
-geometry. For geometry displaced only in a vertex shader, provide a custom Three.js `raycast`
-implementation or selectable proxy geometry that matches the rendered shape.
-
 ## Build your own React Grab
 
 Build a custom interface with the selection engine from `grab/primitives`. Use its APIs for hit testing, source context, page freezing, clipboard access, and editor navigation.

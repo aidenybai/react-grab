@@ -11,26 +11,12 @@ import {
   THREE_DIRECTIONAL_LIGHT_POSITION,
   THREE_LEFT_BOX_POSITION,
   THREE_RIGHT_BOX_POSITION,
+  THREE_SHADER_POINT_COLOR,
+  THREE_SHADER_POINT_FRAGMENT_SHADER,
   THREE_SHADER_POINT_POSITION,
   THREE_SHADER_POINT_SIZE_PX,
+  THREE_SHADER_POINT_VERTEX_SHADER,
 } from "./three-fixture-constants";
-
-const SHADER_POINT_VERTEX_SHADER = `
-uniform float uPointSize;
-
-void main() {
-  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-  gl_PointSize = uPointSize;
-}
-`;
-
-const SHADER_POINT_FRAGMENT_SHADER = `
-uniform vec3 uColor;
-
-void main() {
-  gl_FragColor = vec4(uColor, 1.0);
-}
-`;
 
 interface ThreeGrabBoxProps {
   color: string;
@@ -65,7 +51,7 @@ const ShaderPoint = (): React.JSX.Element => {
   const positions = useMemo(() => new Float32Array(THREE_SHADER_POINT_POSITION), []);
   const uniforms = useMemo(
     () => ({
-      uColor: { value: new Color("#c084fc") },
+      uColor: { value: new Color(THREE_SHADER_POINT_COLOR) },
       uPointSize: { value: THREE_SHADER_POINT_SIZE_PX },
     }),
     [],
@@ -78,9 +64,9 @@ const ShaderPoint = (): React.JSX.Element => {
       </bufferGeometry>
       <shaderMaterial
         defines={{ USE_TINT: true }}
-        fragmentShader={SHADER_POINT_FRAGMENT_SHADER}
+        fragmentShader={THREE_SHADER_POINT_FRAGMENT_SHADER}
         uniforms={uniforms}
-        vertexShader={SHADER_POINT_VERTEX_SHADER}
+        vertexShader={THREE_SHADER_POINT_VERTEX_SHADER}
       />
     </points>
   );
