@@ -59,6 +59,7 @@ import { getElementAnchorRatio } from "../utils/get-element-anchor-ratio.js";
 import { createElementBounds } from "../utils/create-element-bounds.js";
 import { createTextNodeBounds } from "../utils/create-text-node-bounds.js";
 import { createGrabbedBoxBounds } from "../utils/create-grabbed-box-bounds.js";
+import { createLabelInstanceBoundsList } from "../utils/create-label-instance-bounds-list.js";
 import { getTextNodeAtPosition } from "../utils/get-text-node-at-position.js";
 import { formatTextNodeLabel } from "../utils/format-text-node-label.js";
 import { resolveLiveTextNode, trackTextNodeAnchor } from "./text-node-anchors.js";
@@ -642,8 +643,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const previousDetectedTextNode = detectedTextNode();
       const previousFrozenTextNode = frozenTextNode();
       actions.relinkLiveElements();
-      setDetectedTextNode(resolveLiveTextNode(previousDetectedTextNode, store.detectedElement));
-      setFrozenTextNode(resolveLiveTextNode(previousFrozenTextNode, store.frozenElement));
+      setDetectedTextNode(
+        resolveLiveTextNode(previousDetectedTextNode, store.detectedElement) ??
+          previousDetectedTextNode,
+      );
+      setFrozenTextNode(
+        resolveLiveTextNode(previousFrozenTextNode, store.frozenElement) ?? previousFrozenTextNode,
+      );
     };
     const toolbarActiveActionId = createMemo(() => {
       if (editMode.isOpen()) return EDIT_ACTION_ID;
@@ -3715,18 +3721,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const labelInstanceCache = new Map<string, SelectionLabelInstance>();
 
     const recomputeLabelInstance = (instance: SelectionLabelInstance): SelectionLabelInstance => {
-      const liveElements = instance.elements?.filter(isElementConnected) ?? [];
-      const instanceElement = instance.element;
-      const instanceTextNode = instance.textNode;
-
-      let liveBoundsList: OverlayBounds[] | null = null;
-      if (instanceTextNode?.isConnected) {
-        liveBoundsList = [createTextNodeBounds(instanceTextNode)];
-      } else if (liveElements.length > 0) {
-        liveBoundsList = liveElements.map(createElementBounds);
-      } else if (instanceElement && isElementConnected(instanceElement)) {
-        liveBoundsList = [createElementBounds(instanceElement)];
-      }
+      const liveBoundsList = createLabelInstanceBoundsList(instance);
 
       let newBounds = instance.bounds;
       let newBoundsMultiple = instance.boundsMultiple;

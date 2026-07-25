@@ -385,7 +385,9 @@ test.describe("Element Selection", () => {
       })
       .toEqual(expect.objectContaining(target.textBounds));
 
-    await reactGrab.page.mouse.move(firstLineTarget.position.x, firstLineTarget.position.y);
+    await reactGrab.page.mouse.move(firstLineTarget.position.x, firstLineTarget.position.y, {
+      steps: 5,
+    });
     await expect
       .poll(async () => {
         const callbackHistory = await reactGrab.getCallbackHistory();
