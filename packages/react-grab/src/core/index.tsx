@@ -399,6 +399,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         stopEditPanelTracking = trackDropdownPosition(computeEditPanelAnchor, setEditPanelPosition);
       },
       onClose: () => {
+        setFrozenTextNode(null);
         stopEditPanelTracking?.();
         stopEditPanelTracking = null;
         setEditPanelPosition(null);
@@ -491,6 +492,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     createEffect(() => {
       if (current().state !== "justCopied") return;
       const timerId = setTimeout(() => {
+        setFrozenTextNode(null);
         actions.finishJustCopied();
       }, FEEDBACK_DURATION_MS);
       onCleanup(() => clearTimeout(timerId));
@@ -639,6 +641,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const setFrozenTextNode = (textNode: Text | null): void => {
       if (textNode) trackTextNodeAnchor(textNode);
       setFrozenTextNodeSignal(textNode);
+    };
+    const unfreezeSelection = (): void => {
+      setFrozenTextNode(null);
+      actions.unfreeze();
     };
     const relinkLiveTargets = (): void => {
       const previousDetectedTextNode = detectedTextNode();
@@ -901,7 +907,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         // no-op outside the active state, and staying in copying strands the
         // overlay (progress cursor, dead hover, swallowed activation keys).
         actions.activate();
-        actions.unfreeze();
+        unfreezeSelection();
       }
       return true;
     };
@@ -1087,7 +1093,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
               deactivateRenderer();
             } else {
               actions.activate();
-              actions.unfreeze();
+              unfreezeSelection();
             }
           }
         })
@@ -1209,21 +1215,17 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const activeTextNode = createMemo(() => {
       const frozenNode = frozenTextNode();
-      if (frozenNode?.parentElement === store.frozenElement) return frozenNode;
+      if (
+        frozenNode &&
+        (frozenNode.isConnected === false || frozenNode.parentElement === store.frozenElement)
+      ) {
+        return frozenNode;
+      }
       if (isFrozenPhase()) return null;
 
       const detectedNode = detectedTextNode();
       return detectedNode?.parentElement === targetElement() ? detectedNode : null;
     });
-
-    createEffect(
-      on(
-        () => store.frozenElement,
-        (element) => {
-          if (!element) setFrozenTextNode(null);
-        },
-      ),
-    );
 
     // The hierarchy dropdown appears while keyboard-navigating a frozen
     // selection (arrow keys / Tab), and — for on-demand inspection — for the
@@ -2224,7 +2226,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
 
       const shouldPreserveKeyboardSelection = keyboardSelection.selectedElement() !== null;
-      actions.startDrag({ x: clientX, y: clientY }, isShiftHeld || shouldPreserveKeyboardSelection);
+      const shouldPreserveFrozenElements = isShiftHeld || shouldPreserveKeyboardSelection;
+      if (!shouldPreserveFrozenElements) {
+        setFrozenTextNode(null);
+      }
+      actions.startDrag({ x: clientX, y: clientY }, shouldPreserveFrozenElements);
       actions.setPointer({ x: clientX, y: clientY });
       setHostBodyStyle("userSelect", "none");
 
@@ -2260,7 +2266,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       if (store.frozenElements.length === 0) {
         stopShiftMultiSelecting();
-        actions.unfreeze();
+        unfreezeSelection();
         return;
       }
 
@@ -2300,7 +2306,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       stopShiftMultiSelecting();
 
       if (accumulatedElements.length === 0) {
-        actions.unfreeze();
+        unfreezeSelection();
         return;
       }
 
@@ -2647,7 +2653,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const discardKeyboardSelection = () => {
       keyboardSelection.clear();
-      actions.unfreeze();
+      unfreezeSelection();
       clearKeyboardNavigation();
     };
 
@@ -3252,7 +3258,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             showKeyboardSelectionDismissPrompt();
             return;
           }
-          actions.unfreeze();
+          unfreezeSelection();
           clearKeyboardNavigation();
         }
         handlePointerMove(event.clientX, event.clientY, event.shiftKey);
@@ -3927,8 +3933,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           const fallbackSelectionBounds = options?.fallbackSelectionBounds ?? [];
           const position = options?.position ?? store.contextMenuPosition ?? pointer();
           const frozenBounds = frozenElementsBounds();
-          const singleElementBounds = contextMenuBounds() ?? fallbackBounds;
           const hasMultipleElements = elements.length > 1;
+          const feedbackTextNode = hasMultipleElements ? null : getTextNodeForElement(element);
+          const singleElementBounds = feedbackTextNode
+            ? createTextNodeBounds(feedbackTextNode)
+            : (contextMenuBounds() ?? fallbackBounds);
 
           const labelBounds = hasMultipleElements
             ? createFlatOverlayBounds(combineBounds(frozenBounds))
@@ -3961,6 +3970,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 mouseX: labelCursorX,
                 elements: hasMultipleElements ? elements : undefined,
                 boundsMultiple: selectionBoundsForLabel,
+                textNode: feedbackTextNode ?? undefined,
               },
             );
 
@@ -3990,7 +4000,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           if (shouldDeactivateAfter) {
             deactivateRenderer();
           } else {
-            actions.unfreeze();
+            unfreezeSelection();
           }
         });
       };
@@ -4096,7 +4106,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           if (store.wasActivatedByToggle) {
             deactivateRenderer();
           } else {
-            actions.unfreeze();
+            unfreezeSelection();
           }
         },
       };

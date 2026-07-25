@@ -44,7 +44,7 @@ export const transferTextNodeBoundsRectIndex = (
 export const createTextNodeBounds = (textNode: Text): OverlayBounds => {
   const now = performance.now();
   const cached = textNodeBoundsCache.get(textNode);
-  if (cached && now - cached.timestamp < BOUNDS_CACHE_TTL_MS) {
+  if (cached && (textNode.isConnected === false || now - cached.timestamp < BOUNDS_CACHE_TTL_MS)) {
     return cached.bounds;
   }
 
