@@ -276,8 +276,8 @@ const registerThreeRendererFreeze = (canvas: HTMLCanvasElement): void => {
 const unregisterThreeRendererFreeze = (canvas: HTMLCanvasElement): void => {
   const cleanup = rendererFreezeCleanupByCanvas.get(canvas);
   if (!cleanup) return;
-  cleanup();
   rendererFreezeCleanupByCanvas.delete(canvas);
+  cleanup();
 };
 
 const getReactThreeFiberInstance = (object: ThreeObjectLike): ReactThreeFiberInstanceLike | null =>

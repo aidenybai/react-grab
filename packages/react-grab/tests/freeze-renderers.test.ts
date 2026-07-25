@@ -4,6 +4,7 @@ import {
   registerRendererFreeze,
   unfreezeRegisteredRenderers,
 } from "../src/utils/freeze-renderers.js";
+import { registerThreeScene } from "../src/core/three-selection.js";
 
 const unregisterCallbacks: Array<() => void> = [];
 
@@ -16,6 +17,43 @@ const registerTestRenderer = (calls: string[], name: string, isConnected = true)
   unregisterCallbacks.push(unregister);
   return unregister;
 };
+
+const registerTestThreeScene = (
+  canvas: object,
+  calls: string[],
+  name: string,
+  unfreezeError?: Error,
+): (() => void) =>
+  registerThreeScene({
+    camera: { isCamera: true },
+    pointer: { set: () => undefined },
+    raycaster: {
+      intersectObjects: () => [],
+      setFromCamera: () => undefined,
+    },
+    renderer: { domElement: canvas },
+    rendering: {
+      freeze: () => calls.push(`freeze ${name}`),
+      unfreeze: () => {
+        calls.push(`unfreeze ${name}`);
+        if (unfreezeError) throw unfreezeError;
+      },
+    },
+    scene: {
+      children: [],
+      isObject3D: true,
+      isScene: true,
+      matrixWorld: {
+        clone: () => ({}),
+        premultiply: () => ({}),
+      },
+      name: "",
+      type: "Scene",
+      updateWorldMatrix: () => undefined,
+      uuid: `scene-${name}`,
+      visible: true,
+    },
+  });
 
 afterEach(() => {
   unfreezeRegisteredRenderers();
@@ -86,6 +124,31 @@ describe("renderer freezing", () => {
       "freeze stable",
       "unfreeze stable",
       "unfreeze failing",
+    ]);
+  });
+
+  it("allows a Three.js canvas to re-register after unregistering fails", () => {
+    const calls: string[] = [];
+    const canvas = {
+      getContext: () => null,
+      isConnected: true,
+      tagName: "CANVAS",
+    };
+    const unfreezeError = new Error("unfreeze failed");
+    const unregisterFailingScene = registerTestThreeScene(canvas, calls, "failing", unfreezeError);
+
+    freezeRegisteredRenderers();
+    expect(() => unregisterFailingScene()).toThrow(unfreezeError);
+
+    const unregisterStableScene = registerTestThreeScene(canvas, calls, "stable");
+    unregisterStableScene();
+    unfreezeRegisteredRenderers();
+
+    expect(calls).toEqual([
+      "freeze failing",
+      "unfreeze failing",
+      "freeze stable",
+      "unfreeze stable",
     ]);
   });
 });
