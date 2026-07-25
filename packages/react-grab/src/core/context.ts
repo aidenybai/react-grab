@@ -14,7 +14,10 @@ import {
   classifySourcePath,
   type SourcePathClassification,
 } from "../utils/classify-source-path.js";
-import { createElementSelectorDetails } from "../utils/create-element-selector.js";
+import {
+  createElementSelectorDetails,
+  createSemanticElementSelectorDetails,
+} from "../utils/create-element-selector.js";
 import { findSelectorTarget } from "../utils/find-selector-target.js";
 import { isGeneratedBundleSourcePath } from "../utils/is-generated-bundle-source-path.js";
 import { isSharedUiSourcePath } from "../utils/is-shared-ui-source-path.js";
@@ -32,6 +35,7 @@ import {
 import { shouldIncludeElementSelector } from "../utils/should-include-element-selector.js";
 import { createFiberRevision, type FiberRevision } from "../utils/create-fiber-revision.js";
 import { formatListItemKey } from "../utils/format-list-item-key.js";
+import { deleteCacheEntryIfCurrent } from "../utils/delete-cache-entry-if-current.js";
 import type { SourceLocation } from "../types.js";
 import { getElementAdapter, getReactFiberForElement } from "./element-adapter.js";
 
@@ -154,15 +158,14 @@ export const getStack = (element: Element): Promise<StackFrame[] | null> => {
   // the page's own fetches free a connection, while still deduping concurrent
   // in-flight lookups. A resolved empty array is a real "no frames" answer and
   // stays cached. Mirrors getCachedFiberSource.
-  const stackPromise = fetchStackForFiber(currentFiber).then((stack) => {
-    if (stack === null && stackCache.get(nearestFiberElement)?.revision.matches(currentFiber)) {
-      stackCache.delete(nearestFiberElement);
-    }
-    return stack;
-  });
-  stackCache.set(nearestFiberElement, {
+  const stackPromise = fetchStackForFiber(currentFiber);
+  const cacheEntry: FiberContextCacheEntry<StackFrame[] | null> = {
     promise: stackPromise,
     revision: createFiberRevision(currentFiber),
+  };
+  stackCache.set(nearestFiberElement, cacheEntry);
+  void stackPromise.then((stack) => {
+    if (stack === null) deleteCacheEntryIfCurrent(stackCache, nearestFiberElement, cacheEntry);
   });
   return stackPromise;
 };
@@ -234,15 +237,14 @@ const getCachedFiberSource = (element: Element): Promise<ResolvedSource | null> 
 
   // Evict null resolutions so a later grab can retry once the fiber's source
   // metadata is attached, while still deduping concurrent in-flight lookups.
-  const fiberSourcePromise = getFiberSource(currentFiber).then((source) => {
-    if (!source && fiberSourceCache.get(nearestFiberElement)?.revision.matches(currentFiber)) {
-      fiberSourceCache.delete(nearestFiberElement);
-    }
-    return source;
-  });
-  fiberSourceCache.set(nearestFiberElement, {
+  const fiberSourcePromise = getFiberSource(currentFiber);
+  const cacheEntry: FiberContextCacheEntry<ResolvedSource | null> = {
     promise: fiberSourcePromise,
     revision: createFiberRevision(currentFiber),
+  };
+  fiberSourceCache.set(nearestFiberElement, cacheEntry);
+  void fiberSourcePromise.then((source) => {
+    if (!source) deleteCacheEntryIfCurrent(fiberSourceCache, nearestFiberElement, cacheEntry);
   });
   return fiberSourcePromise;
 };
@@ -621,13 +623,15 @@ export const getStackContext = async (
 const composeElementContext = (element: Element, traceContext: TraceContextResult): string => {
   const listItemKey = getNearestListItemKey(element);
   const keyHint = listItemKey !== null ? `\n  key: ${formatListItemKey(listItemKey)}` : "";
-  const selectorDetails = createElementSelectorDetails(findSelectorTarget(element));
-  const selectorHint = shouldIncludeElementSelector(
-    traceContext.shouldAppendSelectorHint,
-    selectorDetails,
-  )
-    ? `\n  selector: ${selectorDetails.selector}`
-    : "";
+  const selectorTarget = findSelectorTarget(element);
+  const selectorDetails = traceContext.shouldAppendSelectorHint
+    ? createElementSelectorDetails(selectorTarget)
+    : createSemanticElementSelectorDetails(selectorTarget);
+  const selectorHint =
+    selectorDetails &&
+    shouldIncludeElementSelector(traceContext.shouldAppendSelectorHint, selectorDetails)
+      ? `\n  selector: ${selectorDetails.selector}`
+      : "";
   return `${traceContext.text}${keyHint}${selectorHint}`;
 };
 

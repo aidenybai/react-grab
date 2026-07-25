@@ -100,6 +100,21 @@ const DuplicateContextOwner = () => (
   </div>
 );
 
+const GeneratedIdOwner = () => (
+  <>
+    <button className="generated-id-only-target" id=":r0:" type="button">
+      Generated ID target
+    </button>
+    <button
+      data-testid="generated-id-semantic-target"
+      id="550e8400-e29b-41d4-a716-446655440000"
+      type="button"
+    >
+      Generated ID with semantic attribute
+    </button>
+  </>
+);
+
 const ProductionIconLink = () => (
   <a
     aria-label="Production GitHub link"
@@ -126,6 +141,7 @@ export const OwnerStackCases = () => (
       <FragmentOwner />
       <SuspenseOwner />
       <DuplicateContextOwner />
+      <GeneratedIdOwner />
       <ProductionIconLink />
       {[
         <button data-testid="single-key-target" key="only" type="button">

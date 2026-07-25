@@ -4,6 +4,7 @@ import { getWindowFrameElement } from "./get-window-frame-element.js";
 import { isShadowRoot } from "./is-shadow-root.js";
 import { isElementNode } from "./is-element-node.js";
 import { getElementAdapter } from "../core/element-adapter.js";
+import { isStableElementId } from "./is-stable-element-id.js";
 
 export interface ElementSelectorDetails {
   selector: string;
@@ -44,13 +45,12 @@ const isSelectorUniqueForElement = (element: Element, selector: string): boolean
 
 const createFastElementSelector = (element: Element): ElementSelectorDetails | null => {
   const elementId = element.getAttribute("id");
+  let fallbackIdSelector: string | null = null;
   if (elementId) {
     const idSelector = `#${CSS.escape(elementId)}`;
     if (isSelectorUniqueForElement(element, idSelector)) {
-      return {
-        selector: idSelector,
-        isSemantic: isPreferredAttributeValueSafe(elementId),
-      };
+      if (isStableElementId(elementId)) return { selector: idSelector, isSemantic: true };
+      fallbackIdSelector = idSelector;
     }
   }
 
@@ -72,7 +72,7 @@ const createFastElementSelector = (element: Element): ElementSelectorDetails | n
     }
   }
 
-  return null;
+  return fallbackIdSelector ? { selector: fallbackIdSelector, isSemantic: false } : null;
 };
 
 const createNthChildSelector = (element: Element): string => {
@@ -130,6 +130,36 @@ const createLocalElementSelector = (element: Element): ElementSelectorDetails =>
   } catch {}
 
   return { selector: createNthChildSelector(element), isSemantic: false };
+};
+
+export const createSemanticElementSelectorDetails = (
+  element: Element,
+): ElementSelectorDetails | null => {
+  const adapter = getElementAdapter(element);
+  if (adapter) return { selector: adapter.getSelector(), isSemantic: true };
+
+  const localSelector = createFastElementSelector(element);
+  if (!localSelector?.isSemantic) return null;
+
+  const rootNode = element.getRootNode();
+  if (isShadowRoot(rootNode)) {
+    const hostSelector = createSemanticElementSelectorDetails(rootNode.host);
+    if (!hostSelector) return null;
+    return {
+      selector: `${hostSelector.selector} >>> ${localSelector.selector}`,
+      isSemantic: true,
+    };
+  }
+
+  const frameElement = getWindowFrameElement(element.ownerDocument.defaultView);
+  if (!frameElement) return localSelector;
+
+  const frameSelector = createSemanticElementSelectorDetails(frameElement);
+  if (!frameSelector) return null;
+  return {
+    selector: `${frameSelector.selector} >>iframe>> ${localSelector.selector}`,
+    isSemantic: true,
+  };
 };
 
 export const createElementSelectorDetails = (element: Element): ElementSelectorDetails => {

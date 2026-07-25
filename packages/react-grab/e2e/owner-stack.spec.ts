@@ -65,6 +65,23 @@ test.describe("React owner stack semantics", () => {
     expect(context).not.toContain("selector:");
   });
 
+  test("omits a generated ID when owner source is available", async ({ reactGrab }) => {
+    const context = await copyElementContext(reactGrab, ".generated-id-only-target");
+
+    expect(context).toContain("owner-stack-cases.tsx");
+    expect(context).not.toContain("selector:");
+  });
+
+  test("prefers a semantic attribute over a generated ID", async ({ reactGrab }) => {
+    const context = await copyElementContext(
+      reactGrab,
+      "[data-testid='generated-id-semantic-target']",
+    );
+
+    expect(context).toContain('selector: [data-testid="generated-id-semantic-target"]');
+    expect(context).not.toContain("selector: #");
+  });
+
   test("keeps nested control text in the inline preview", async ({ reactGrab }) => {
     const context = await copyElementContext(reactGrab, ".duplicate-context-target");
 
