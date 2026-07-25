@@ -71,3 +71,56 @@ test("extension hydration does not overwrite its valid default with stale page s
   );
   expect(savedDefaultActions).not.toContain("copy");
 });
+
+test("extension hydration never saves a removed page default action", async ({ reactGrab }) => {
+  await reactGrab.page.evaluate(() => {
+    const targetWindow = window as ExtensionTestWindow;
+    targetWindow.__REACT_GRAB__?.dispose();
+    targetWindow.savedToolbarStates = [];
+    localStorage.setItem(
+      "react-grab-toolbar-state",
+      JSON.stringify({
+        edge: "bottom",
+        ratio: 0.5,
+        collapsed: false,
+        enabled: true,
+        defaultAction: "edit",
+      }),
+    );
+
+    window.addEventListener("message", (event) => {
+      if (event.source !== window) return;
+      if (event.data?.type === "__REACT_GRAB_QUERY_STATE__") {
+        window.postMessage(
+          {
+            type: "__REACT_GRAB_STATE_RESPONSE__",
+            enabled: true,
+            toolbarState: null,
+          },
+          "*",
+        );
+      }
+      if (event.data?.type === "__REACT_GRAB_TOOLBAR_STATE_SAVE__") {
+        targetWindow.savedToolbarStates?.push(event.data.state);
+      }
+    });
+  });
+
+  await reactGrab.page.addScriptTag({ type: "module", url: EXTENSION_CONTENT_SCRIPT_URL });
+
+  await expect
+    .poll(() =>
+      reactGrab.page.evaluate(
+        () => (window as ExtensionTestWindow).__REACT_GRAB__?.getToolbarState()?.defaultAction,
+      ),
+    )
+    .toBe("copy");
+
+  await expect
+    .poll(() =>
+      reactGrab.page.evaluate(() =>
+        (window as ExtensionTestWindow).savedToolbarStates?.map((state) => state.defaultAction),
+      ),
+    )
+    .toEqual(["copy"]);
+});

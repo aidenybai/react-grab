@@ -208,6 +208,8 @@ const startup = async (): Promise<void> => {
     }
   }
 
+  // Core normalizes persisted action IDs in a microtask after plugin registration.
+  await Promise.resolve();
   hasHydratedInitialState = true;
   handleToolbarStateFromApi(api?.getToolbarState() ?? null);
 };

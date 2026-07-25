@@ -90,10 +90,7 @@ test.describe("React Three Fiber selection", () => {
     expect(clipboardContent).toContain("ThreeGrabBox");
   });
 
-  test("distinguishes adjacent meshes and disables DOM-only style editing", async ({
-    reactGrab,
-    page,
-  }) => {
+  test("distinguishes adjacent meshes", async ({ reactGrab, page }) => {
     await reactGrab.activate();
     const pointerPosition = await moveToThreeObject(
       page,
@@ -105,7 +102,6 @@ test.describe("React Three Fiber selection", () => {
 
     const contextMenuInfo = await reactGrab.getContextMenuInfo();
     expect(contextMenuInfo.tagBadgeText).toBe("ThreeGrabBox.mesh");
-    expect(await reactGrab.isContextMenuItemEnabled("Style")).toBe(false);
 
     await reactGrab.clickContextMenuItem("Copy");
     await expect.poll(() => reactGrab.getClipboardContent()).toContain('<mesh name="right-cube"');

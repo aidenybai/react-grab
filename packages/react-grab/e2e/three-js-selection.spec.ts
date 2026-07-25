@@ -33,10 +33,7 @@ test.describe("Three.js selection", () => {
       .toContain('<mesh name="three-js-left-cube"');
   });
 
-  test("distinguishes adjacent meshes and disables DOM-only style editing", async ({
-    reactGrab,
-    page,
-  }) => {
+  test("distinguishes adjacent meshes", async ({ reactGrab, page }) => {
     await reactGrab.activate();
     const pointerPosition = await moveToThreeObject(
       page,
@@ -48,7 +45,6 @@ test.describe("Three.js selection", () => {
 
     const contextMenuInfo = await reactGrab.getContextMenuInfo();
     expect(contextMenuInfo.tagBadgeText).toBe("mesh");
-    expect(await reactGrab.isContextMenuItemEnabled("Style")).toBe(false);
 
     await reactGrab.clickContextMenuItem("Copy");
     await expect
