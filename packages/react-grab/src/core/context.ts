@@ -128,13 +128,16 @@ const createSourceFetch =
 // symbolication POST adds another request. Both go through the source-fetch
 // queue so a hover storm (drag-select) or a multi-element copy never fans out
 // more concurrent requests than the connection pool can serve.
-const fetchStackForFiber = (fiber: Fiber): Promise<StackFrame[] | null> =>
+const fetchStackForElement = (element: Element): Promise<StackFrame[] | null> =>
   runQueuedSourceFetch(async (signal) => {
     try {
-      const frames = await getOwnerStack(fiber, true, createSourceFetch(signal));
+      const fiber = getReactFiberForElement(element);
+      if (!fiber) return null;
+      const currentFiber = getLatestFiber(fiber);
+      const frames = await getOwnerStack(currentFiber, true, createSourceFetch(signal));
 
       if (isNextProjectRuntime()) {
-        const enrichedFrames = enrichServerFrameLocations(fiber, frames);
+        const enrichedFrames = enrichServerFrameLocations(currentFiber, frames);
         return await symbolicateServerFrames(enrichedFrames, signal);
       }
 
@@ -158,7 +161,7 @@ export const getStack = (element: Element): Promise<StackFrame[] | null> => {
   // the page's own fetches free a connection, while still deduping concurrent
   // in-flight lookups. A resolved empty array is a real "no frames" answer and
   // stays cached. Mirrors getCachedFiberSource.
-  const stackPromise = fetchStackForFiber(currentFiber);
+  const stackPromise = fetchStackForElement(nearestFiberElement);
   const cacheEntry: FiberContextCacheEntry<StackFrame[] | null> = {
     promise: stackPromise,
     revision: createFiberRevision(currentFiber),
@@ -206,10 +209,13 @@ const getSourceComponentName = (
 // instrumentation, but it fetches the element's bundle/source map to map the
 // location, so it runs through the source-fetch queue alongside getOwnerStack:
 // both compete for the same connection pool and neither has its own timeout.
-const getFiberSource = (fiber: Fiber): Promise<ResolvedSource | null> =>
+const getFiberSourceForElement = (element: Element): Promise<ResolvedSource | null> =>
   runQueuedSourceFetch(async (signal) => {
     try {
-      const source = await getSource(fiber, true, createSourceFetch(signal));
+      const fiber = getReactFiberForElement(element);
+      if (!fiber) return null;
+      const currentFiber = getLatestFiber(fiber);
+      const source = await getSource(currentFiber, true, createSourceFetch(signal));
       if (!source?.fileName) return null;
       const isNextProject = isNextProjectRuntime();
 
@@ -219,7 +225,7 @@ const getFiberSource = (fiber: Fiber): Promise<ResolvedSource | null> =>
         columnNumber: source.columnNumber ?? null,
         componentName:
           toSourceComponentName(source.functionName, isNextProject) ??
-          getSourceComponentName(fiber._debugOwner, isNextProject),
+          getSourceComponentName(currentFiber._debugOwner, isNextProject),
         origin: classifySourcePath(source.fileName).origin,
       };
     } catch {
@@ -237,7 +243,7 @@ const getCachedFiberSource = (element: Element): Promise<ResolvedSource | null> 
 
   // Evict null resolutions so a later grab can retry once the fiber's source
   // metadata is attached, while still deduping concurrent in-flight lookups.
-  const fiberSourcePromise = getFiberSource(currentFiber);
+  const fiberSourcePromise = getFiberSourceForElement(nearestFiberElement);
   const cacheEntry: FiberContextCacheEntry<ResolvedSource | null> = {
     promise: fiberSourcePromise,
     revision: createFiberRevision(currentFiber),
@@ -491,7 +497,7 @@ export const formatStackContext = (
     // lines (library frames and shared-UI/design-system app frames) are free:
     // they never consume the soft budget, only the hard cap, so wrapper noise
     // never crowds out the meaningful app source locations.
-    if (lines.length >= hardMaxLines) break;
+    if (!maxLines || lines.length >= hardMaxLines) break;
 
     const sourceClassification = classifySourcePath(frame.fileName);
 

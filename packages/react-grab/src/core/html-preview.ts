@@ -10,7 +10,7 @@ import {
 import { escapeHtmlAttribute } from "../utils/escape-html-attribute.js";
 import { escapeHtmlText } from "../utils/escape-html-text.js";
 import { getTagName } from "../utils/get-tag-name.js";
-import { truncateString } from "../utils/truncate-string.js";
+import { truncateEscapedHtml } from "../utils/truncate-escaped-html.js";
 import { isInternalAttribute } from "../utils/strip-internal-attributes.js";
 import { getPreviewTextContent } from "../utils/get-preview-text-content.js";
 import { isElementNode } from "../utils/is-element-node.js";
@@ -21,7 +21,8 @@ const formatAttribute = (
   attributeName: string,
   attributeValue: string,
   maxLength: number,
-): string => `${attributeName}="${escapeHtmlAttribute(truncateString(attributeValue, maxLength))}"`;
+): string =>
+  `${attributeName}="${truncateEscapedHtml(escapeHtmlAttribute(attributeValue), maxLength)}"`;
 
 const getFormattedPriorityAttrs = (element: Element): string[] => {
   const priorityAttrs: string[] = [];
@@ -96,21 +97,24 @@ export const getInlineHTMLPreview = (element: Element): string => {
 
   if (!isHtmlElement(element)) {
     const attrsText = formatPriorityAttrs(element);
-    const previewText = truncateString(
-      getPreviewTextContent(element, tagName),
+    const previewText = truncateEscapedHtml(
+      escapeHtmlText(getPreviewTextContent(element, tagName)),
       PREVIEW_TEXT_MAX_LENGTH,
     );
     return previewText
-      ? `<${tagName}${attrsText}>${escapeHtmlText(previewText)}</${tagName}>`
+      ? `<${tagName}${attrsText}>${previewText}</${tagName}>`
       : `<${tagName}${attrsText} />`;
   }
 
   const attrsText = formatAttrsForPreview(element);
   const previewText = getPreviewTextContent(element, tagName);
-  const truncatedText = truncateString(previewText, PREVIEW_TEXT_MAX_LENGTH);
+  const escapedPreviewText = truncateEscapedHtml(
+    escapeHtmlText(previewText),
+    PREVIEW_TEXT_MAX_LENGTH,
+  );
 
-  if (truncatedText) {
-    return `<${tagName}${attrsText}>${escapeHtmlText(truncatedText)}</${tagName}>`;
+  if (escapedPreviewText) {
+    return `<${tagName}${attrsText}>${escapedPreviewText}</${tagName}>`;
   }
   return `<${tagName}${attrsText} />`;
 };
@@ -148,7 +152,7 @@ export const getHTMLPreview = (element: Element): string => {
   const topElementsStr = formatChildElements(topElements);
   if (topElementsStr && !previewSubsumesChildren) content += `\n  ${topElementsStr}`;
   if (previewText) {
-    content += `\n  ${escapeHtmlText(truncateString(previewText, PREVIEW_TEXT_MAX_LENGTH))}`;
+    content += `\n  ${truncateEscapedHtml(escapeHtmlText(previewText), PREVIEW_TEXT_MAX_LENGTH)}`;
   }
   const bottomElementsStr = formatChildElements(bottomElements);
   if (bottomElementsStr && !previewSubsumesChildren) content += `\n  ${bottomElementsStr}`;

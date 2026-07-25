@@ -288,9 +288,9 @@ test.describe("Element Context Fallback", () => {
         });
         const longElement = document.createElement("div");
         longElement.id = "long-dom-element";
-        longElement.setAttribute("aria-label", "c".repeat(300));
+        longElement.setAttribute("aria-label", "&".repeat(300));
         longElement.className = "a".repeat(300);
-        longElement.textContent = "b".repeat(300);
+        longElement.textContent = "<".repeat(300);
         wrapper.appendChild(longElement);
         document.body.appendChild(wrapper);
       });

@@ -253,6 +253,14 @@ describe("formatStackContext", () => {
     expect(result.text).toContain("in Tabs (react-tabs)");
   });
 
+  it("keeps only the leading source when the line budget is zero", () => {
+    const result = formatStackContext([packageFrame, appFrame], { maxLines: 0 }, fiberSource);
+
+    expect(result.text).toContain("app/page.tsx");
+    expect(result.text).not.toContain("in Tabs (react-tabs)");
+    expect(result.text).not.toContain("app/widget.tsx");
+  });
+
   it("does not let shared-UI wrapper frames spend the compact line budget", () => {
     const result = formatStackContext(
       [
