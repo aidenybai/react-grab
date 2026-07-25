@@ -505,8 +505,18 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }),
     );
 
-    const getPromptSelectionBounds = (element: Element) => {
-      const textNode = activeTextNode();
+    const getTextNodeForElement = (element: Element, preferredTextNode?: Text | null) => {
+      if (preferredTextNode?.parentElement === element) return preferredTextNode;
+
+      const frozenNode = frozenTextNode();
+      if (frozenNode?.parentElement === element) return frozenNode;
+
+      const activeNode = activeTextNode();
+      return activeNode?.parentElement === element ? activeNode : null;
+    };
+
+    const getPromptSelectionBounds = (element: Element, preferredTextNode?: Text | null) => {
+      const textNode = getTextNodeForElement(element, preferredTextNode);
       return textNode?.parentElement === element
         ? createTextNodeBounds(textNode)
         : createElementBounds(element);
@@ -1468,6 +1478,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (pendingBounds) {
         return [...frozenElementsBounds(), pendingBounds];
       }
+
+      const frozenElements = store.frozenElements;
+      const frozenNode = frozenTextNode();
+      if (frozenElements.length === 1 && frozenNode?.parentElement === frozenElements[0]) {
+        return [createTextNodeBounds(frozenNode)];
+      }
+
       return frozenElementsBounds();
     });
 
@@ -2008,13 +2025,18 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       handleActivateAction(currentToolbarState()?.defaultAction ?? DEFAULT_ACTION_ID);
     };
 
-    const enterCommentModeForElement = (element: Element, positionX: number, positionY: number) => {
+    const enterCommentModeForElement = (
+      element: Element,
+      positionX: number,
+      positionY: number,
+      textNode?: Text | null,
+    ) => {
       clearPendingToolbarSelection();
       actions.clearInputText();
       actions.enterPromptMode(
         { x: positionX, y: positionY },
         element,
-        getPromptSelectionBounds(element),
+        getPromptSelectionBounds(element, textNode),
       );
     };
 
@@ -2418,7 +2440,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       if (store.pendingCommentMode) {
         setFrozenTextNode(selectedTextNode);
-        enterCommentModeForElement(selectedElement, positionX, positionY);
+        enterCommentModeForElement(selectedElement, positionX, positionY, selectedTextNode);
         keyboardSelection.clear();
         return;
       }
@@ -2786,12 +2808,17 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       event.preventDefault();
       event.stopPropagation();
 
-      const center = getBoundsCenter(createElementBounds(element));
+      const textNode = hasMultiFrozenSelection ? null : getTextNodeForElement(element);
+      const center = getBoundsCenter(
+        textNode ? createTextNodeBounds(textNode) : createElementBounds(element),
+      );
       if (hasMultiFrozenSelection) {
         freezeAllAnimations(existingFrozenElements);
+        setFrozenTextNode(null);
       } else {
         freezeAllAnimations([element]);
         actions.setFrozenElement(element);
+        setFrozenTextNode(textNode);
       }
       actions.setPointer(center);
       actions.freeze();
