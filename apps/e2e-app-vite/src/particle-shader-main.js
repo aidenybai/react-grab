@@ -1,4 +1,4 @@
-import { getGlobalApi, init } from "react-grab";
+import { init, setGlobalApi } from "react-grab";
 import { registerThreeScene } from "react-grab/primitives";
 import * as THREE from "three";
 
@@ -399,7 +399,8 @@ const raycastPointer = new THREE.Vector2();
 const raycaster = new THREE.Raycaster();
 raycaster.params.Points.threshold = PARTICLE_RAYCAST_THRESHOLD_UNITS;
 registerThreeScene({ camera, pointer: raycastPointer, raycaster, renderer, scene });
-const reactGrab = getGlobalApi() ?? init();
+const reactGrab = init();
+setGlobalApi(reactGrab);
 const reactGrabControls = document.querySelector("#react-grab-controls");
 const reactGrabActivateButton = document.querySelector("#react-grab-activate");
 const reactGrabStatus = document.querySelector("#react-grab-status");

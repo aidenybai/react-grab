@@ -97,4 +97,23 @@ test.describe("Three.js selection", () => {
     expect(clipboardContent).toContain("<shaderMaterial");
     expect(clipboardContent).toContain("uniform float uTime;");
   });
+
+  test("keeps the standalone particle scene isolated when embedded", async ({ page }) => {
+    await page.goto("/");
+    await page.evaluate(() => {
+      const iframe = document.createElement("iframe");
+      iframe.dataset.testid = "embedded-particle-shader";
+      iframe.src = "/particle-shader.html";
+      document.body.replaceChildren(iframe);
+    });
+
+    const particleFrame = page.frameLocator("[data-testid='embedded-particle-shader']");
+    await particleFrame.getByRole("button", { name: "Start React Grab" }).click();
+
+    await expect(particleFrame.getByRole("button", { name: "React Grab active" })).toBeVisible();
+    await expect(
+      particleFrame.getByRole("button", { name: "Stop selecting element" }),
+    ).toBeVisible();
+    expect(await page.evaluate(() => window.__REACT_GRAB__?.isActive() ?? false)).toBe(false);
+  });
 });
