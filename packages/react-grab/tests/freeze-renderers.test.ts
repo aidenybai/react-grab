@@ -4,7 +4,17 @@ import {
   registerRendererFreeze,
   unfreezeRegisteredRenderers,
 } from "../src/utils/freeze-renderers.js";
-import { registerThreeScene } from "../src/core/three-selection.js";
+import {
+  handleReactThreeFiberRootCommit,
+  registerThreeScene,
+} from "../src/core/three-selection.js";
+
+interface TestThreeFiberRoot {
+  current: {
+    child: object | null;
+    stateNode: object | null;
+  };
+}
 
 const unregisterCallbacks: Array<() => void> = [];
 
@@ -150,5 +160,65 @@ describe("renderer freezing", () => {
       "freeze stable",
       "unfreeze stable",
     ]);
+  });
+
+  it("unregisters an R3F canvas when its root state becomes unreadable", () => {
+    const calls: string[] = [];
+    const canvas = {
+      getContext: () => null,
+      isConnected: true,
+      tagName: "CANVAS",
+    };
+    const rootState = {
+      camera: { isCamera: true },
+      clock: { elapsedTime: 1 },
+      frameloop: "always",
+      gl: { domElement: canvas },
+      pointer: { set: () => undefined },
+      raycaster: {
+        intersectObjects: () => [],
+        setFromCamera: () => undefined,
+      },
+      scene: {
+        children: [],
+        isObject3D: true,
+        isScene: true,
+        matrixWorld: {
+          clone: () => ({}),
+          premultiply: () => ({}),
+        },
+        name: "",
+        type: "Scene",
+        updateWorldMatrix: () => undefined,
+        uuid: "react-three-fiber-scene",
+        visible: true,
+      },
+      setFrameloop: (frameloop: "always" | "demand" | "never") => {
+        calls.push(frameloop);
+        rootState.frameloop = frameloop;
+      },
+    };
+    const root: TestThreeFiberRoot = {
+      current: {
+        child: {},
+        stateNode: {
+          containerInfo: {
+            getState: () => rootState,
+          },
+        },
+      },
+    };
+
+    handleReactThreeFiberRootCommit(root);
+    freezeRegisteredRenderers();
+    expect(calls).toEqual(["never"]);
+
+    root.current.child = null;
+    root.current.stateNode = null;
+    handleReactThreeFiberRootCommit(root);
+    expect(calls).toEqual(["never", "always"]);
+
+    unfreezeRegisteredRenderers();
+    expect(calls).toEqual(["never", "always"]);
   });
 });

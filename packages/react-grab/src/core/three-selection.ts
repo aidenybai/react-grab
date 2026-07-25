@@ -1,10 +1,4 @@
-import {
-  getFiberFromHostInstance,
-  getLatestFiber,
-  instrument,
-  type Fiber,
-  type FiberRoot,
-} from "bippy";
+import { getFiberFromHostInstance, getLatestFiber, instrument, type Fiber } from "bippy";
 import type { OverlayBounds } from "../types.js";
 import {
   THREE_PREVIEW_ARRAY_MAX_LENGTH,
@@ -126,6 +120,18 @@ interface ThreeRoot {
   unfreezeRendering: (() => void) | null;
 }
 
+interface ThreeFiberRootLike {
+  current: {
+    child: unknown;
+    stateNode: unknown;
+  };
+}
+
+interface ReactThreeFiberRootRegistration {
+  canvas: HTMLCanvasElement;
+  root: ThreeRoot;
+}
+
 interface ThreeSelection {
   canvas: HTMLCanvasElement;
   element: Element;
@@ -141,6 +147,10 @@ interface ThreeSelection {
 const selectionsByObject = new WeakMap<ThreeObjectLike, Map<number | null, ThreeSelection>>();
 const threeRootByCanvas = new WeakMap<HTMLCanvasElement, ThreeRoot>();
 const rendererFreezeCleanupByCanvas = new WeakMap<HTMLCanvasElement, () => void>();
+const registrationByReactThreeFiberRoot = new WeakMap<
+  ThreeFiberRootLike,
+  ReactThreeFiberRootRegistration
+>();
 const THREE_PREVIEW_PROP_NAMES = [
   "name",
   "position",
@@ -283,7 +293,7 @@ const unregisterThreeRendererFreeze = (canvas: HTMLCanvasElement): void => {
 const getReactThreeFiberInstance = (object: ThreeObjectLike): ReactThreeFiberInstanceLike | null =>
   isReactThreeFiberInstance(object.__r3f) ? object.__r3f : null;
 
-const getThreeRootStateAccessor = (root: FiberRoot): (() => ThreeRootState) | null => {
+const getThreeRootStateAccessor = (root: ThreeFiberRootLike): (() => ThreeRootState) | null => {
   const stateNode = root.current.stateNode;
   if (!isRecord(stateNode) || !isObjectOrFunction(stateNode.containerInfo)) return null;
   const containerInfo = stateNode.containerInfo;
@@ -297,26 +307,54 @@ const getThreeRootStateAccessor = (root: FiberRoot): (() => ThreeRootState) | nu
   };
 };
 
+const unregisterReactThreeFiberRoot = (root: ThreeFiberRootLike): void => {
+  const registration = registrationByReactThreeFiberRoot.get(root);
+  if (!registration) return;
+  registrationByReactThreeFiberRoot.delete(root);
+  if (threeRootByCanvas.get(registration.canvas) !== registration.root) return;
+  threeRootByCanvas.delete(registration.canvas);
+  unregisterThreeRendererFreeze(registration.canvas);
+};
+
+export const handleReactThreeFiberRootCommit = (root: ThreeFiberRootLike): void => {
+  const getRootState = getThreeRootStateAccessor(root);
+  if (!getRootState) {
+    unregisterReactThreeFiberRoot(root);
+    return;
+  }
+  const rootState = getRootState();
+  const canvas = rootState.gl.domElement;
+  if (!canvas.isConnected || !root.current.child) {
+    unregisterReactThreeFiberRoot(root);
+    return;
+  }
+
+  let registration = registrationByReactThreeFiberRoot.get(root);
+  if (registration && registration.canvas !== canvas) {
+    unregisterReactThreeFiberRoot(root);
+    registration = undefined;
+  }
+  if (!registration) {
+    registration = {
+      canvas,
+      root: {
+        freezeRendering: null,
+        getState: getRootState,
+        isReactThreeFiber: true,
+        unfreezeRendering: null,
+      },
+    };
+    registrationByReactThreeFiberRoot.set(root, registration);
+  } else {
+    registration.root.getState = getRootState;
+  }
+  threeRootByCanvas.set(canvas, registration.root);
+  registerThreeRendererFreeze(canvas);
+};
+
 instrument({
   name: "react-grab-three-selection",
-  onCommitFiberRoot: (_rendererId, root) => {
-    const getRootState = getThreeRootStateAccessor(root);
-    if (!getRootState) return;
-    const rootState = getRootState();
-    const canvas = rootState.gl.domElement;
-    if (!canvas.isConnected || !root.current.child) {
-      threeRootByCanvas.delete(canvas);
-      unregisterThreeRendererFreeze(canvas);
-      return;
-    }
-    threeRootByCanvas.set(canvas, {
-      freezeRendering: null,
-      getState: getRootState,
-      isReactThreeFiber: true,
-      unfreezeRendering: null,
-    });
-    registerThreeRendererFreeze(canvas);
-  },
+  onCommitFiberRoot: (_rendererId, root) => handleReactThreeFiberRootCommit(root),
 });
 
 const findReactThreeFiberObject = (object: ThreeObjectLike): ThreeObjectLike | null => {
