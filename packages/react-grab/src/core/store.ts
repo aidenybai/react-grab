@@ -1,6 +1,6 @@
 import { createStore, produce } from "solid-js/store";
 import { batch, createSignal } from "solid-js";
-import type { Position, GrabbedBox, SelectionLabelInstance } from "../types.js";
+import type { Position, GrabbedBox, OverlayBounds, SelectionLabelInstance } from "../types.js";
 import { OFFSCREEN_POSITION } from "../constants.js";
 import { createElementBounds } from "../utils/create-element-bounds.js";
 import { getBoundsCenter } from "../utils/get-bounds-center.js";
@@ -159,7 +159,7 @@ interface GrabActions {
   startCopy: () => void;
   completeCopy: () => void;
   finishJustCopied: () => void;
-  enterPromptMode: (position: Position, element: Element) => void;
+  enterPromptMode: (position: Position, element: Element, selectionBounds?: OverlayBounds) => void;
   exitPromptMode: () => void;
   setInputText: (value: string) => void;
   clearInputText: () => void;
@@ -172,7 +172,7 @@ interface GrabActions {
   addFrozenElements: (elements: Element[]) => void;
   setFrozenDragRect: (rect: FrozenDragRect | null) => void;
   relinkLiveElements: () => void;
-  setCopyStart: (position: Position, element: Element) => void;
+  setCopyStart: (position: Position, element: Element, selectionBounds?: OverlayBounds) => void;
   setLastGrabbed: (element: Element | null) => void;
   setWasActivatedByToggle: (value: boolean) => void;
   setPendingCommentMode: (value: boolean) => void;
@@ -432,8 +432,8 @@ const createGrabStore = (input: GrabStoreInput) => {
       }
     },
 
-    enterPromptMode: (position: Position, element: Element) => {
-      const bounds = createElementBounds(element);
+    enterPromptMode: (position: Position, element: Element, selectionBounds?: OverlayBounds) => {
+      const bounds = selectionBounds ?? createElementBounds(element);
       const { x: selectionCenterX } = getBoundsCenter(bounds);
       trackElementAnchor(element);
 
@@ -533,8 +533,8 @@ const createGrabStore = (input: GrabStoreInput) => {
       setStore(produce(relinkSlots));
     },
 
-    setCopyStart: (position: Position, element: Element) => {
-      const bounds = createElementBounds(element);
+    setCopyStart: (position: Position, element: Element, selectionBounds?: OverlayBounds) => {
+      const bounds = selectionBounds ?? createElementBounds(element);
       const { x: selectionCenterX } = getBoundsCenter(bounds);
       setStore("copyStart", position);
       setStore("copyOffsetFromCenterX", position.x - selectionCenterX);

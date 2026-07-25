@@ -58,6 +58,7 @@ import { getElementsInDrag } from "../utils/get-elements-in-drag.js";
 import { getElementAnchorRatio } from "../utils/get-element-anchor-ratio.js";
 import { createElementBounds } from "../utils/create-element-bounds.js";
 import { createTextNodeBounds } from "../utils/create-text-node-bounds.js";
+import { createGrabbedBoxBounds } from "../utils/create-grabbed-box-bounds.js";
 import { getTextNodeAtPosition } from "../utils/get-text-node-at-position.js";
 import { formatTextNodeLabel } from "../utils/format-text-node-label.js";
 import { invalidateInteractionCaches } from "../utils/invalidate-interaction-caches.js";
@@ -504,15 +505,30 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }),
     );
 
+    const getPromptSelectionBounds = (element: Element) => {
+      const textNode = activeTextNode();
+      return textNode?.parentElement === element
+        ? createTextNodeBounds(textNode)
+        : createElementBounds(element);
+    };
+
     const preparePromptMode = (element: Element, positionX: number, positionY: number) => {
-      actions.setCopyStart({ x: positionX, y: positionY }, element);
+      actions.setCopyStart(
+        { x: positionX, y: positionY },
+        element,
+        getPromptSelectionBounds(element),
+      );
       actions.clearInputText();
     };
 
     const activatePromptMode = () => {
       const element = store.frozenElement || targetElement();
       if (element) {
-        actions.enterPromptMode({ x: pointer().x, y: pointer().y }, element);
+        actions.enterPromptMode(
+          { x: pointer().x, y: pointer().y },
+          element,
+          getPromptSelectionBounds(element),
+        );
       }
     };
 
@@ -633,10 +649,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const grabbedBoxTimeouts = new Map<string, number>();
 
-    const showTemporaryGrabbedBox = (bounds: OverlayBounds, element?: Element) => {
+    const showTemporaryGrabbedBox = (bounds: OverlayBounds, element?: Element, textNode?: Text) => {
       const boxId = generateId("grabbed");
       const createdAt = Date.now();
-      const newBox: GrabbedBox = { id: boxId, bounds, createdAt, element };
+      const newBox: GrabbedBox = { id: boxId, bounds, createdAt, element, textNode };
 
       actions.addGrabbedBox(newBox);
       if (element) {
@@ -921,7 +937,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           pluginRegistry.store.theme.grabbedBoxes.enabled &&
           textNode?.parentElement === element
         ) {
-          showTemporaryGrabbedBox(createTextNodeBounds(textNode));
+          showTemporaryGrabbedBox(createTextNodeBounds(textNode), element, textNode);
         } else if (pluginRegistry.store.theme.grabbedBoxes.enabled) {
           showTemporaryGrabbedBox(createElementBounds(element), element);
         }
@@ -1082,7 +1098,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       const labelInstanceId = tagName
         ? labelController.createInstance(labelBounds, tagName, undefined, "copying", {
-            element: selectedTextNode ? undefined : element,
+            element,
+            textNode: selectedTextNode,
             mouseX: labelCursorX,
             elements: selectedTextNode ? undefined : selectedElements,
           })
@@ -1587,13 +1604,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       ),
     );
 
-    const publicGrabbedBoxes = createMemo(() =>
-      store.grabbedBoxes.map((box) => ({
+    const publicGrabbedBoxes = createMemo(() => {
+      void viewportVersion();
+      return store.grabbedBoxes.map((box) => ({
         id: box.id,
-        bounds: box.bounds,
+        bounds: createGrabbedBoxBounds(box),
         createdAt: box.createdAt,
-      })),
-    );
+      }));
+    });
 
     const publicLabelInstances = createMemo(() =>
       store.labelInstances.map((instance) => ({
@@ -1993,7 +2011,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const enterCommentModeForElement = (element: Element, positionX: number, positionY: number) => {
       clearPendingToolbarSelection();
       actions.clearInputText();
-      actions.enterPromptMode({ x: positionX, y: positionY }, element);
+      actions.enterPromptMode(
+        { x: positionX, y: positionY },
+        element,
+        getPromptSelectionBounds(element),
+      );
     };
 
     const openContextMenu = (element: Element, position: Position) => {
@@ -3639,9 +3661,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const recomputeLabelInstance = (instance: SelectionLabelInstance): SelectionLabelInstance => {
       const liveElements = instance.elements?.filter(isElementConnected) ?? [];
       const instanceElement = instance.element;
+      const instanceTextNode = instance.textNode;
 
       let liveBoundsList: OverlayBounds[] | null = null;
-      if (liveElements.length > 0) {
+      if (instanceTextNode?.isConnected) {
+        liveBoundsList = [createTextNodeBounds(instanceTextNode)];
+      } else if (liveElements.length > 0) {
         liveBoundsList = liveElements.map(createElementBounds);
       } else if (instanceElement && isElementConnected(instanceElement)) {
         liveBoundsList = [createElementBounds(instanceElement)];
@@ -3751,15 +3776,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (!isThemeEnabled()) return [];
       if (!pluginRegistry.store.theme.grabbedBoxes.enabled) return [];
       void viewportVersion();
-      return store.grabbedBoxes.map((box) => {
-        if (!isElementConnected(box.element)) {
-          return box;
-        }
-        return {
-          ...box,
-          bounds: createElementBounds(box.element),
-        };
-      });
+      return store.grabbedBoxes.map((box) => ({
+        ...box,
+        bounds: createGrabbedBoxBounds(box),
+      }));
     });
 
     const dragVisible = createMemo(
@@ -4051,7 +4071,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           labelController.clearAll();
           clearPendingToolbarSelection();
           actions.clearInputText();
-          actions.enterPromptMode(position, element);
+          actions.enterPromptMode(position, element, getPromptSelectionBounds(element));
           deferHideContextMenu();
         },
       });

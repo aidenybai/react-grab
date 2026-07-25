@@ -43,13 +43,14 @@ test.describe("Element Selection", () => {
       const container = document.createElement("div");
       container.id = "mixed-text-target";
       container.style.cssText =
-        "position:fixed;left:40px;top:40px;padding:12px;background:white;color:black;font:16px sans-serif;z-index:2147483000";
+        "position:absolute;left:40px;top:240px;padding:12px;background:white;color:black;font:16px sans-serif;z-index:2147483000";
       container.append("Grab this text ");
 
       const nestedElement = document.createElement("strong");
       nestedElement.textContent = "not the nested element";
       container.append(nestedElement);
       document.body.append(container);
+      document.body.style.minHeight = "2000px";
 
       const textNode = container.firstChild;
       if (!(textNode instanceof Text)) throw new Error("Missing text node");
@@ -99,6 +100,65 @@ test.describe("Element Selection", () => {
     expect(clipboardMetadata.entries).toHaveLength(1);
     expect(clipboardMetadata.entries[0].tagName).toContain("Grab this text");
     expect(clipboardMetadata.entries[0].content).toContain('"Grab this text"');
+
+    const grabbedBoxBeforeScroll = await reactGrab.getGrabbedBoxInfo();
+    const initialGrabbedBoxY = grabbedBoxBeforeScroll.boxes[0]?.bounds.y;
+    if (initialGrabbedBoxY === undefined) throw new Error("Missing grabbed box");
+
+    const scrollYBefore = await reactGrab.page.evaluate(() => window.scrollY);
+    await reactGrab.scrollPage(60);
+    const scrollYAfter = await reactGrab.page.evaluate(() => window.scrollY);
+    const scrollDeltaY = scrollYAfter - scrollYBefore;
+    expect(scrollDeltaY).toBeGreaterThan(0);
+
+    await expect
+      .poll(async () => (await reactGrab.getGrabbedBoxInfo()).boxes[0]?.bounds.y)
+      .toBeCloseTo(initialGrabbedBoxY - scrollDeltaY, 0);
+  });
+
+  test("should keep prompt cursor aligned with grabbed text", async ({ reactGrab }) => {
+    const textCenter = await reactGrab.page.evaluate(() => {
+      const container = document.createElement("div");
+      container.id = "mixed-prompt-target";
+      container.style.cssText =
+        "position:fixed;left:200px;top:200px;width:500px;padding:12px;background:white;color:black;font:16px sans-serif;z-index:2147483000";
+      container.append("Prompt text ");
+
+      const nestedElement = document.createElement("strong");
+      nestedElement.textContent = "nested content";
+      container.append(nestedElement);
+      document.body.append(container);
+
+      const textNode = container.firstChild;
+      if (!(textNode instanceof Text)) throw new Error("Missing text node");
+
+      const range = document.createRange();
+      range.selectNodeContents(textNode);
+      const textBounds = range.getBoundingClientRect();
+      return {
+        x: textBounds.left + textBounds.width / 2,
+        y: textBounds.top + textBounds.height / 2,
+      };
+    });
+
+    await reactGrab.registerCommentAction();
+    await reactGrab.activate();
+    await reactGrab.page.mouse.move(textCenter.x, textCenter.y);
+    await expect
+      .poll(async () => (await reactGrab.getSelectionLabelInfo()).tagName)
+      .toContain("Prompt text");
+
+    await reactGrab.rightClickAtPosition(textCenter.x, textCenter.y);
+    await reactGrab.clickContextMenuItem("Comment");
+    await expect.poll(() => reactGrab.isPromptModeActive()).toBe(true);
+
+    await expect
+      .poll(async () => {
+        const labelBounds = await reactGrab.getSelectionLabelBounds();
+        const arrowBounds = labelBounds?.arrow;
+        return arrowBounds ? arrowBounds.x + arrowBounds.width / 2 : null;
+      })
+      .toBeCloseTo(textCenter.x, 0);
   });
 
   test("should keep text-only elements as element targets", async ({ reactGrab }) => {
