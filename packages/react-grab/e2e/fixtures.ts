@@ -1059,7 +1059,7 @@ const createReactGrabPageObject = (
         if (spanText.includes("elements")) {
           const match = spanText.match(/(\d+)\s*elements/);
           elementsCount = match ? parseInt(match[1], 10) : null;
-        } else if (spanText.includes(".")) {
+        } else if (spanText.includes(".") && !spanText.startsWith(".")) {
           const parts = spanText.split(".");
           componentName = parts[0] ?? null;
           tagName = parts[1] ?? null;

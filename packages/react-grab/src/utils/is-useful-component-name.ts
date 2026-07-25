@@ -32,6 +32,7 @@ const NEXT_INTERNAL_COMPONENT_NAMES = new Set([
   "InnerScrollAndFocusHandlerOld",
   "InnerScrollAndMaybeFocusHandler",
   "InnerScrollHandlerNew",
+  "LinkComponent",
   "LoadableComponent",
   "LoadingBoundary",
   "LoadingBoundaryProvider",

@@ -37,14 +37,14 @@ describe("isUsefulComponentName", () => {
     },
   );
 
-  it.each(["ErrorBoundary", "Head", "LoadingBoundary", "Router"])(
+  it.each(["ErrorBoundary", "Head", "LinkComponent", "LoadingBoundary", "Router"])(
     "keeps the authored component name %s outside Next.js",
     (componentName) => {
       expect(isUsefulComponentName(componentName)).toBe(true);
     },
   );
 
-  it.each(["ErrorBoundary", "Head", "LoadingBoundary", "Router"])(
+  it.each(["ErrorBoundary", "Head", "LinkComponent", "LoadingBoundary", "Router"])(
     "filters the Next.js internal component name %s in a Next.js project",
     (componentName) => {
       expect(isUsefulComponentName(componentName, true)).toBe(false);

@@ -26,6 +26,9 @@ const Page = () => {
       <button data-testid="grab-smoke-target" type="button">
         Smoke target
       </button>
+      <Link data-testid="component-name-link" href="/detail">
+        Component name link
+      </Link>
       <ProductionIconLink />
       <ServerCard />
       <section data-testid="key-edge-cases">
