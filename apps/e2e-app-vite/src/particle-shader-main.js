@@ -1,4 +1,4 @@
-import { init } from "react-grab";
+import { getGlobalApi, init } from "react-grab";
 import { registerThreeScene } from "react-grab/primitives";
 import * as THREE from "three";
 
@@ -399,7 +399,32 @@ const raycastPointer = new THREE.Vector2();
 const raycaster = new THREE.Raycaster();
 raycaster.params.Points.threshold = PARTICLE_RAYCAST_THRESHOLD_UNITS;
 registerThreeScene({ camera, pointer: raycastPointer, raycaster, renderer, scene });
-init();
+const reactGrab = getGlobalApi() ?? init();
+const reactGrabControls = document.querySelector("#react-grab-controls");
+const reactGrabActivateButton = document.querySelector("#react-grab-activate");
+const reactGrabStatus = document.querySelector("#react-grab-status");
+
+const updateReactGrabControls = () => {
+  const isActive = reactGrab.isActive();
+  reactGrabControls.dataset.active = String(isActive);
+  reactGrabActivateButton.textContent = isActive ? "React Grab active" : "Start React Grab";
+  reactGrabStatus.textContent = isActive
+    ? "Move over a particle and click it. Press Escape to stop."
+    : "Then move over a particle and click it.";
+};
+
+reactGrabActivateButton.addEventListener("click", () => {
+  reactGrab.activate();
+  updateReactGrabControls();
+});
+
+window.addEventListener("keyup", (event) => {
+  if (event.key === "Escape") requestAnimationFrame(updateReactGrabControls);
+});
+window.addEventListener("react-grab:element-selected", () => {
+  requestAnimationFrame(updateReactGrabControls);
+});
+updateReactGrabControls();
 
 /* ---------------------------------------------------------------- pointer */
 const ptr = { tx: 0, ty: 0, x: 0, y: 0 };

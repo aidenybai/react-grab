@@ -17,9 +17,47 @@
       canvas {
         display: block;
       }
+
+      #react-grab-controls {
+        position: fixed;
+        z-index: 10;
+        top: 16px;
+        left: 16px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px;
+        border: 1px solid rgb(255 255 255 / 14%);
+        border-radius: 10px;
+        background: rgb(2 4 10 / 82%);
+        color: #e9e5ff;
+        font:
+          13px/1.4 system-ui,
+          sans-serif;
+        backdrop-filter: blur(12px);
+      }
+
+      #react-grab-activate {
+        padding: 8px 12px;
+        border: 0;
+        border-radius: 7px;
+        background: #7c3aed;
+        color: white;
+        font: inherit;
+        font-weight: 650;
+        cursor: pointer;
+      }
+
+      #react-grab-controls[data-active="true"] #react-grab-activate {
+        background: #16a34a;
+      }
     </style>
   </head>
   <body>
+    <div id="react-grab-controls">
+      <button id="react-grab-activate" type="button">Start React Grab</button>
+      <span id="react-grab-status">Then move over a particle and click it.</span>
+    </div>
     <script type="module" src="/src/particle-shader-main.js"></script>
   </body>
 </html>

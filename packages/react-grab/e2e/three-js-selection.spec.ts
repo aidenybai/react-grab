@@ -82,7 +82,8 @@ test.describe("Three.js selection", () => {
 
   test("grabs shader particles in the standalone scene", async ({ reactGrab, page }) => {
     await page.goto("/particle-shader.html", { waitUntil: "domcontentloaded" });
-    await reactGrab.activate();
+    await page.getByRole("button", { name: "Start React Grab" }).click();
+    await expect.poll(() => reactGrab.getState().then((state) => state.isActive)).toBe(true);
     const pointerPosition = await moveToThreeObject(
       page,
       "particle-shader-canvas",
