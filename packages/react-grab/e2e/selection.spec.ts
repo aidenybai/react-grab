@@ -34,6 +34,19 @@ interface WrappedTextTarget {
   };
 }
 
+interface WrappedTextLineTarget {
+  position: {
+    x: number;
+    y: number;
+  };
+  textBounds: {
+    height: number;
+    width: number;
+    x: number;
+    y: number;
+  };
+}
+
 const createMixedTextTarget = async (reactGrab: ReactGrabPageObject): Promise<MixedTextTarget> => {
   return reactGrab.page.evaluate(() => {
     const container = document.createElement("div");
@@ -115,6 +128,35 @@ const createWrappedTextTarget = async (
       },
     };
   });
+};
+
+const getWrappedTextLineTarget = async (
+  reactGrab: ReactGrabPageObject,
+  rectIndex: number,
+): Promise<WrappedTextLineTarget> => {
+  return reactGrab.page.evaluate((targetRectIndex) => {
+    const container = document.querySelector("#wrapped-text-target");
+    const textNode = container?.firstChild;
+    if (!(textNode instanceof Text)) throw new Error("Missing wrapped text target");
+
+    const range = document.createRange();
+    range.selectNodeContents(textNode);
+    const textBounds = range.getClientRects()[targetRectIndex];
+    if (!textBounds) throw new Error("Missing wrapped text line");
+
+    return {
+      position: {
+        x: textBounds.left + textBounds.width / 2,
+        y: textBounds.top + textBounds.height / 2,
+      },
+      textBounds: {
+        height: textBounds.height,
+        width: textBounds.width,
+        x: textBounds.x,
+        y: textBounds.y,
+      },
+    };
+  }, rectIndex);
 };
 
 const reflowWrappedTextTarget = async (
@@ -322,6 +364,37 @@ test.describe("Element Selection", () => {
         return selectionBoxCall?.args[1];
       })
       .toEqual(expect.objectContaining(target.textBounds));
+  });
+
+  test("should update selection when hovering another line of the same text", async ({
+    reactGrab,
+  }) => {
+    const target = await createWrappedTextTarget(reactGrab);
+    const firstLineTarget = await getWrappedTextLineTarget(reactGrab, 0);
+
+    await reactGrab.setupCallbackTracking();
+    await reactGrab.activate();
+    await reactGrab.page.mouse.move(target.position.x, target.position.y);
+    await expect
+      .poll(async () => {
+        const callbackHistory = await reactGrab.getCallbackHistory();
+        const selectionBoxCall = callbackHistory.findLast(
+          (callback) => callback.name === "onSelectionBox" && callback.args[0] === true,
+        );
+        return selectionBoxCall?.args[1];
+      })
+      .toEqual(expect.objectContaining(target.textBounds));
+
+    await reactGrab.page.mouse.move(firstLineTarget.position.x, firstLineTarget.position.y);
+    await expect
+      .poll(async () => {
+        const callbackHistory = await reactGrab.getCallbackHistory();
+        const selectionBoxCall = callbackHistory.findLast(
+          (callback) => callback.name === "onSelectionBox" && callback.args[0] === true,
+        );
+        return selectionBoxCall?.args[1];
+      })
+      .toEqual(expect.objectContaining(firstLineTarget.textBounds));
   });
 
   test("should keep the hovered wrapped line targeted after reflow", async ({ reactGrab }) => {

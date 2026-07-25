@@ -623,11 +623,16 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const [resolvedComponentName, setResolvedComponentName] = createComponentNameForElement(
       debouncedElementForComponentName,
     );
+    const [textNodeBoundsVersion, setTextNodeBoundsVersion] = createSignal(0);
     const [detectedTextNode, setDetectedTextNodeSignal] = createSignal<Text | null>(null);
     const [frozenTextNode, setFrozenTextNodeSignal] = createSignal<Text | null>(null);
     const setDetectedTextNode = (textNode: Text | null): void => {
+      const previousTextNode = detectedTextNode();
       if (textNode) trackTextNodeAnchor(textNode);
       setDetectedTextNodeSignal(textNode);
+      if (textNode && textNode === previousTextNode) {
+        setTextNodeBoundsVersion((version) => version + 1);
+      }
     };
     const setFrozenTextNode = (textNode: Text | null): void => {
       if (textNode) trackTextNodeAnchor(textNode);
@@ -1386,6 +1391,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const selectionBounds = createMemo((): OverlayBounds | undefined => {
       void viewportVersion();
+      void textNodeBoundsVersion();
 
       const textNode = activeTextNode();
       if (textNode) return createTextNodeBounds(textNode);

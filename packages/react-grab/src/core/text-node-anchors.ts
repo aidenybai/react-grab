@@ -48,9 +48,10 @@ export const resolveLiveTextNode = (
   const contentCandidate = directTextNodes.find(
     (candidate) => candidate.textContent === anchor.textContent,
   );
-  const liveTextNode = isTextNode(childCandidate)
-    ? childCandidate
-    : (contentCandidate ?? indexedTextCandidate);
+  const liveTextNode =
+    isTextNode(childCandidate) && childCandidate.textContent === anchor.textContent
+      ? childCandidate
+      : (contentCandidate ?? indexedTextCandidate);
   if (!liveTextNode) return null;
 
   transferTextNodeBoundsRectIndex(textNode, liveTextNode);
