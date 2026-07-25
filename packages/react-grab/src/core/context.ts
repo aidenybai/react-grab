@@ -595,6 +595,19 @@ export const getElementReferenceContext = async (
   return `${getInlineHTMLPreview(element)}${composeElementContext(element, traceContext).replace(/\n\s+/g, " ")}`;
 };
 
+export const getTextNodeReferenceContext = async (
+  textNode: Text,
+  options: StackContextOptions = {},
+): Promise<string> => {
+  const textContent = textNode.textContent?.replace(/\s+/g, " ").trim() ?? "";
+  const parentElement = textNode.parentElement;
+  if (!parentElement) return JSON.stringify(textContent);
+
+  const traceContext = await getTraceContext(parentElement, options);
+  const parentContext = composeElementContext(parentElement, traceContext).replace(/\n\s+/g, " ");
+  return `${JSON.stringify(textContent)}${parentContext}`;
+};
+
 export const formatElementInfo = async (
   element: Element,
   options: StackContextOptions = {},

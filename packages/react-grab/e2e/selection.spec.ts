@@ -38,6 +38,85 @@ test.describe("Element Selection", () => {
     await expect.poll(() => reactGrab.getClipboardContent()).toContain("Todo List");
   });
 
+  test("should grab direct text nodes inside mixed-content elements", async ({ reactGrab }) => {
+    const target = await reactGrab.page.evaluate(() => {
+      const container = document.createElement("div");
+      container.id = "mixed-text-target";
+      container.style.cssText =
+        "position:fixed;left:40px;top:40px;padding:12px;background:white;color:black;font:16px sans-serif;z-index:2147483000";
+      container.append("Grab this text ");
+
+      const nestedElement = document.createElement("strong");
+      nestedElement.textContent = "not the nested element";
+      container.append(nestedElement);
+      document.body.append(container);
+
+      const textNode = container.firstChild;
+      if (!(textNode instanceof Text)) throw new Error("Missing text node");
+
+      const range = document.createRange();
+      range.selectNodeContents(textNode);
+      const textBounds = range.getBoundingClientRect();
+      const containerBounds = container.getBoundingClientRect();
+
+      return {
+        position: {
+          x: textBounds.left + textBounds.width / 2,
+          y: textBounds.top + textBounds.height / 2,
+        },
+        textWidth: textBounds.width,
+        containerWidth: containerBounds.width,
+      };
+    });
+
+    await reactGrab.setupCallbackTracking();
+    await reactGrab.activate();
+    await reactGrab.page.mouse.move(target.position.x, target.position.y);
+
+    await expect
+      .poll(async () => (await reactGrab.getSelectionLabelInfo()).tagName)
+      .toContain("Grab this text");
+
+    const callbackHistory = await reactGrab.getCallbackHistory();
+    const selectionBoxCall = callbackHistory.findLast(
+      (callback) => callback.name === "onSelectionBox" && callback.args[0] === true,
+    );
+    expect(selectionBoxCall?.args[1]).toEqual(
+      expect.objectContaining({
+        width: target.textWidth,
+      }),
+    );
+    expect(target.textWidth).toBeLessThan(target.containerWidth);
+
+    const copyPayloadPromise = reactGrab.captureNextClipboardWrites();
+    await reactGrab.page.mouse.click(target.position.x, target.position.y);
+    const copyPayload = await copyPayloadPromise;
+    const clipboardMetadataText = copyPayload["application/x-react-grab"];
+    if (!clipboardMetadataText) throw new Error("Missing React Grab clipboard metadata");
+
+    const clipboardMetadata = JSON.parse(clipboardMetadataText);
+    expect(copyPayload["text/plain"]).toContain('"Grab this text"');
+    expect(clipboardMetadata.entries).toHaveLength(1);
+    expect(clipboardMetadata.entries[0].tagName).toContain("Grab this text");
+    expect(clipboardMetadata.entries[0].content).toContain('"Grab this text"');
+  });
+
+  test("should keep text-only elements as element targets", async ({ reactGrab }) => {
+    await reactGrab.page.evaluate(() => {
+      const target = document.createElement("div");
+      target.id = "text-only-target";
+      target.textContent = "Text-only target";
+      target.style.cssText =
+        "position:fixed;left:40px;top:40px;padding:12px;background:white;color:black;font:16px sans-serif;z-index:2147483000";
+      document.body.append(target);
+    });
+
+    await reactGrab.activate();
+    await reactGrab.hoverUntilSelected("#text-only-target");
+
+    await expect.poll(async () => (await reactGrab.getSelectionLabelInfo()).tagName).toBe("div");
+  });
+
   test("should write React Grab clipboard metadata on copy", async ({ reactGrab }) => {
     await reactGrab.activate();
     await reactGrab.hoverUntilSelected("[data-testid='todo-list'] h1");

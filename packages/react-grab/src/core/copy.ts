@@ -1,7 +1,14 @@
-import { getElementReferenceContext, getStack, getStackContext, resolveSource } from "./context.js";
+import {
+  getElementReferenceContext,
+  getStack,
+  getStackContext,
+  getTextNodeReferenceContext,
+  resolveSource,
+} from "./context.js";
 import { copyContent } from "../utils/copy-content.js";
 import { normalizeError } from "../utils/normalize-error.js";
 import { getTagName } from "../utils/get-tag-name.js";
+import { formatTextNodeLabel } from "../utils/format-text-node-label.js";
 import { ABORTED_PROMISE_RESULT, racePromiseWithAbort } from "../utils/race-promise-with-abort.js";
 import type { StackFrame } from "bippy/source";
 import type { ReactGrabEntry, ReactGrabStackFrame } from "../types.js";
@@ -11,6 +18,7 @@ interface CopyFlowOptions {
   componentName?: string;
   maxContextLines?: number;
   signal?: AbortSignal;
+  textNode?: Text;
 }
 
 interface CopyFlowHooks {
@@ -68,7 +76,28 @@ const buildElementPayloadEntry = async (
 const buildClipboardPayload = async (
   elements: Element[],
   maxContextLines?: number,
+  textNode?: Text,
 ): Promise<CopyPayload | null> => {
+  const parentElement = elements[0];
+  if (textNode && parentElement) {
+    const stackOptions = { maxLines: maxContextLines };
+    const [referenceContext, stackContext, source, stack] = await Promise.all([
+      getTextNodeReferenceContext(textNode, stackOptions),
+      getStackContext(parentElement, stackOptions),
+      resolveSource(parentElement),
+      getStack(parentElement),
+    ]);
+    const entry: ReactGrabEntry = {
+      tagName: formatTextNodeLabel(textNode),
+      componentName: source?.componentName ?? undefined,
+      content: `[${referenceContext}]`,
+      source,
+      stackContext,
+      frames: (stack ?? []).map(formatStackFramePayload),
+    };
+    return { content: entry.content, entries: [entry] };
+  }
+
   const rawEntries = await Promise.all(
     elements.map((element) => buildElementPayloadEntry(element, maxContextLines)),
   );
@@ -122,7 +151,7 @@ export const runCopyFlow = async (
   try {
     const pendingPayload: Promise<CopyPayload | null> = options.getContent
       ? Promise.resolve(options.getContent(elements)).then((content) => ({ content }))
-      : buildClipboardPayload(elements, options.maxContextLines);
+      : buildClipboardPayload(elements, options.maxContextLines, options.textNode);
     const payload = await racePromiseWithAbort(pendingPayload, options.signal);
     if (payload === ABORTED_PROMISE_RESULT) return CANCELLED_COPY_FLOW_RESULT;
     const rawContent = payload?.content;
