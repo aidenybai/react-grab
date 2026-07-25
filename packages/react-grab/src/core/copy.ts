@@ -69,18 +69,12 @@ const buildClipboardPayload = async (
   elements: Element[],
   maxContextLines?: number,
 ): Promise<CopyPayload | null> => {
+  const uniqueElements = [...new Set(elements)];
   const rawEntries = await Promise.all(
-    elements.map((element) => buildElementPayloadEntry(element, maxContextLines)),
+    uniqueElements.map((element) => buildElementPayloadEntry(element, maxContextLines)),
   );
-  const entriesByContent = new Map<string, ReactGrabEntry>();
-  for (const entry of rawEntries) {
-    if (!entriesByContent.has(entry.content)) {
-      entriesByContent.set(entry.content, entry);
-    }
-  }
-  const entries = [...entriesByContent.values()];
-  return entries.length > 0
-    ? { content: entries.map((entry) => entry.content).join("\n"), entries }
+  return rawEntries.length > 0
+    ? { content: rawEntries.map((entry) => entry.content).join("\n"), entries: rawEntries }
     : null;
 };
 

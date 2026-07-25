@@ -2,6 +2,7 @@ import { getOwnerStack, getSource, type StackFrame } from "bippy/source";
 import {
   isInstrumentationActive,
   getDisplayName,
+  getLatestFiber,
   isCompositeFiber,
   traverseFiber,
   type Fiber,
@@ -29,18 +30,22 @@ import {
   isUsefulComponentName,
 } from "../utils/is-useful-component-name.js";
 import { shouldIncludeElementSelector } from "../utils/should-include-element-selector.js";
+import { createFiberRevision, type FiberRevision } from "../utils/create-fiber-revision.js";
+import { formatListItemKey } from "../utils/format-list-item-key.js";
 import type { SourceLocation } from "../types.js";
 import { getElementAdapter, getReactFiberForElement } from "./element-adapter.js";
 
-const isSourceComponentName = (name: string): boolean => {
+const isSourceComponentName = (name: string, isNextProject: boolean): boolean => {
   if (name.length <= 1) return false;
-  if (isInternalComponentName(name)) return false;
+  if (isInternalComponentName(name, isNextProject)) return false;
   if (name[0] !== name[0].toUpperCase()) return false;
   return true;
 };
 
-const toSourceComponentName = (name: string | null | undefined): string | null =>
-  name && isSourceComponentName(name) ? name : null;
+const toSourceComponentName = (
+  name: string | null | undefined,
+  isNextProject: boolean,
+): string | null => (name && isSourceComponentName(name, isNextProject) ? name : null);
 
 const isTrustedAppSourcePath = (fileName: string | null | undefined): boolean =>
   !isSharedUiSourcePath(fileName) && !isGeneratedBundleSourcePath(fileName);
@@ -94,11 +99,17 @@ const findNearestListItemKey = (startingFiber: Fiber | null): string | null => {
 
 const getNearestListItemKey = (element: Element): string | null => {
   if (!isInstrumentationActive()) return null;
-  return findNearestListItemKey(getReactFiberForElement(findNearestFiberElement(element)));
+  const fiber = getReactFiberForElement(findNearestFiberElement(element));
+  return findNearestListItemKey(fiber ? getLatestFiber(fiber) : null);
 };
 
-const stackCache = new WeakMap<Element, Promise<StackFrame[] | null>>();
-const fiberSourceCache = new WeakMap<Element, Promise<ResolvedSource | null>>();
+interface FiberContextCacheEntry<Result> {
+  promise: Promise<Result>;
+  revision: FiberRevision;
+}
+
+const stackCache = new WeakMap<Element, FiberContextCacheEntry<StackFrame[] | null>>();
+const fiberSourceCache = new WeakMap<Element, FiberContextCacheEntry<ResolvedSource | null>>();
 
 // Bundle/source-map fetches that bippy makes on react-grab's behalf. Routing
 // them through our own fetch lets us mark them high priority (so they jump the
@@ -113,12 +124,9 @@ const createSourceFetch =
 // symbolication POST adds another request. Both go through the source-fetch
 // queue so a hover storm (drag-select) or a multi-element copy never fans out
 // more concurrent requests than the connection pool can serve.
-const fetchStackForElement = (element: Element): Promise<StackFrame[] | null> =>
+const fetchStackForFiber = (fiber: Fiber): Promise<StackFrame[] | null> =>
   runQueuedSourceFetch(async (signal) => {
     try {
-      const fiber = getReactFiberForElement(element);
-      if (!fiber) return null;
-
       const frames = await getOwnerStack(fiber, true, createSourceFetch(signal));
 
       if (isNextProjectRuntime()) {
@@ -136,32 +144,41 @@ export const getStack = (element: Element): Promise<StackFrame[] | null> => {
   if (!isInstrumentationActive()) return Promise.resolve([]);
 
   const nearestFiberElement = findNearestFiberElement(element);
-  const cachedStackPromise = stackCache.get(nearestFiberElement);
-  if (cachedStackPromise) return cachedStackPromise;
+  const fiber = getReactFiberForElement(nearestFiberElement);
+  if (!fiber) return Promise.resolve(null);
+  const currentFiber = getLatestFiber(fiber);
+  const cachedStack = stackCache.get(nearestFiberElement);
+  if (cachedStack?.revision.matches(currentFiber)) return cachedStack.promise;
 
   // Evict failed or timed-out resolutions (null) so a later grab can retry once
   // the page's own fetches free a connection, while still deduping concurrent
   // in-flight lookups. A resolved empty array is a real "no frames" answer and
   // stays cached. Mirrors getCachedFiberSource.
-  const stackPromise = fetchStackForElement(nearestFiberElement).then((stack) => {
-    if (stack === null) stackCache.delete(nearestFiberElement);
+  const stackPromise = fetchStackForFiber(currentFiber).then((stack) => {
+    if (stack === null && stackCache.get(nearestFiberElement)?.revision.matches(currentFiber)) {
+      stackCache.delete(nearestFiberElement);
+    }
     return stack;
   });
-  stackCache.set(nearestFiberElement, stackPromise);
+  stackCache.set(nearestFiberElement, {
+    promise: stackPromise,
+    revision: createFiberRevision(currentFiber),
+  });
   return stackPromise;
 };
 
 export const getNearestComponentName = async (element: Element): Promise<string | null> => {
   if (!isInstrumentationActive()) return null;
+  const isNextProject = isNextProjectRuntime();
   const adaptedComponentName = getElementAdapter(element) ? getComponentDisplayName(element) : null;
-  const adaptedSourceComponentName = toSourceComponentName(adaptedComponentName);
+  const adaptedSourceComponentName = toSourceComponentName(adaptedComponentName, isNextProject);
   if (adaptedSourceComponentName) return adaptedSourceComponentName;
 
   const stack = await getStack(element);
   if (!stack) return null;
 
   for (const frame of stack) {
-    const componentName = toSourceComponentName(frame.functionName);
+    const componentName = toSourceComponentName(frame.functionName, isNextProject);
     if (componentName) return componentName;
   }
 
@@ -172,35 +189,34 @@ export interface ResolvedSource extends SourceLocation {
   origin: SourcePathClassification["origin"];
 }
 
-const pickSourceFrame = (frames: StackFrame[]): StackFrame | null => {
-  const namedFrame = frames.find((frame) => Boolean(toSourceComponentName(frame.functionName)));
-  return namedFrame ?? frames[0] ?? null;
-};
+const pickNearestSourceFrame = (frames: StackFrame[]): StackFrame | null => frames[0] ?? null;
 
-const getSourceComponentName = (fiber: Fiber | undefined): string | null => {
+const getSourceComponentName = (
+  fiber: Fiber | undefined,
+  isNextProject: boolean,
+): string | null => {
   if (!fiber || !isCompositeFiber(fiber)) return null;
-  return toSourceComponentName(getDisplayName(fiber.type));
+  return toSourceComponentName(getDisplayName(fiber.type), isNextProject);
 };
 
 // getSource reads React's own dev-only debug data, so it works without bippy
 // instrumentation, but it fetches the element's bundle/source map to map the
 // location, so it runs through the source-fetch queue alongside getOwnerStack:
 // both compete for the same connection pool and neither has its own timeout.
-const getFiberSource = (element: Element): Promise<ResolvedSource | null> =>
+const getFiberSource = (fiber: Fiber): Promise<ResolvedSource | null> =>
   runQueuedSourceFetch(async (signal) => {
-    const fiber = getReactFiberForElement(findNearestFiberElement(element));
-    if (!fiber) return null;
-
     try {
       const source = await getSource(fiber, true, createSourceFetch(signal));
       if (!source?.fileName) return null;
+      const isNextProject = isNextProjectRuntime();
 
       return {
         filePath: normalizeFilePath(source.fileName),
         lineNumber: source.lineNumber ?? null,
         columnNumber: source.columnNumber ?? null,
         componentName:
-          toSourceComponentName(source.functionName) ?? getSourceComponentName(fiber._debugOwner),
+          toSourceComponentName(source.functionName, isNextProject) ??
+          getSourceComponentName(fiber._debugOwner, isNextProject),
         origin: classifySourcePath(source.fileName).origin,
       };
     } catch {
@@ -210,16 +226,24 @@ const getFiberSource = (element: Element): Promise<ResolvedSource | null> =>
 
 const getCachedFiberSource = (element: Element): Promise<ResolvedSource | null> => {
   const nearestFiberElement = findNearestFiberElement(element);
-  const cachedFiberSourcePromise = fiberSourceCache.get(nearestFiberElement);
-  if (cachedFiberSourcePromise) return cachedFiberSourcePromise;
+  const fiber = getReactFiberForElement(nearestFiberElement);
+  if (!fiber) return Promise.resolve(null);
+  const currentFiber = getLatestFiber(fiber);
+  const cachedFiberSource = fiberSourceCache.get(nearestFiberElement);
+  if (cachedFiberSource?.revision.matches(currentFiber)) return cachedFiberSource.promise;
 
   // Evict null resolutions so a later grab can retry once the fiber's source
   // metadata is attached, while still deduping concurrent in-flight lookups.
-  const fiberSourcePromise = getFiberSource(nearestFiberElement).then((source) => {
-    if (!source) fiberSourceCache.delete(nearestFiberElement);
+  const fiberSourcePromise = getFiberSource(currentFiber).then((source) => {
+    if (!source && fiberSourceCache.get(nearestFiberElement)?.revision.matches(currentFiber)) {
+      fiberSourceCache.delete(nearestFiberElement);
+    }
     return source;
   });
-  fiberSourceCache.set(nearestFiberElement, fiberSourcePromise);
+  fiberSourceCache.set(nearestFiberElement, {
+    promise: fiberSourcePromise,
+    revision: createFiberRevision(currentFiber),
+  });
   return fiberSourcePromise;
 };
 
@@ -227,17 +251,18 @@ export const selectResolvedSource = (
   fiberSource: ResolvedSource | null,
   stack: StackFrame[],
 ): ResolvedSource | null => {
+  const isNextProject = isNextProjectRuntime();
   const resolveStackSource = (
     framesOfOrigin: StackFrame[],
     origin: SourcePathClassification["origin"],
   ): ResolvedSource | null => {
-    const preferredFrame = pickSourceFrame(framesOfOrigin);
+    const preferredFrame = pickNearestSourceFrame(framesOfOrigin);
     if (preferredFrame?.fileName) {
       return {
         filePath: normalizeFilePath(preferredFrame.fileName),
         lineNumber: preferredFrame.lineNumber ?? null,
         columnNumber: preferredFrame.columnNumber ?? null,
-        componentName: toSourceComponentName(preferredFrame.functionName),
+        componentName: toSourceComponentName(preferredFrame.functionName, isNextProject),
         origin,
       };
     }
@@ -293,6 +318,7 @@ interface TraceContextResult {
   shouldAppendSelectorHint: boolean;
   hasBudgetedStackFrame: boolean;
   renderedComponentNames: Set<string>;
+  remainingHardLineCapacity: number;
 }
 
 const getComponentNamesFromFiber = (
@@ -303,15 +329,20 @@ const getComponentNamesFromFiber = (
   if (!isInstrumentationActive()) return [];
   const fiber = getReactFiberForElement(element);
   if (!fiber) return [];
+  const isNextProject = isNextProjectRuntime();
 
   const componentNames: string[] = [];
   traverseFiber(
-    fiber,
+    getLatestFiber(fiber),
     (currentFiber) => {
       if (componentNames.length >= maxCount) return true;
       if (isCompositeFiber(currentFiber)) {
         const displayName = getDisplayName(currentFiber.type);
-        if (displayName && isUsefulComponentName(displayName) && shouldIncludeName(displayName)) {
+        if (
+          displayName &&
+          isUsefulComponentName(displayName, isNextProject) &&
+          shouldIncludeName(displayName)
+        ) {
           componentNames.push(displayName);
         }
       }
@@ -457,13 +488,12 @@ export const formatStackContext = (
     // maxLines is the budget for high-signal app-source frames. Low-signal
     // lines (library frames and shared-UI/design-system app frames) are free:
     // they never consume the soft budget, only the hard cap, so wrapper noise
-    // never crowds out the meaningful app source locations. maxLines of 0 is
-    // therefore the minimal trace: only the leading source line, if any.
-    if (budgetedLineCount >= maxLines || lines.length >= hardMaxLines) break;
+    // never crowds out the meaningful app source locations.
+    if (lines.length >= hardMaxLines) break;
 
     const sourceClassification = classifySourcePath(frame.fileName);
 
-    const componentName = toSourceComponentName(frame.functionName);
+    const componentName = toSourceComponentName(frame.functionName, isNextProject);
     const libraryFrameKey = sourceClassification.packageName
       ? `${sourceClassification.packageName}:${componentName ?? ""}:${frame.isServer ? "server" : "client"}`
       : null;
@@ -488,6 +518,7 @@ export const formatStackContext = (
       isNextProject,
     );
     if (frameLine === null) continue;
+    if (frameLine.consumesBudget && budgetedLineCount >= maxLines) continue;
 
     // Shared-UI frames are now surfaced for free, so a single primitives file
     // (e.g. several sidebar parts, or a recursive component) can emit the same
@@ -511,6 +542,7 @@ export const formatStackContext = (
     shouldAppendSelectorHint: !hasTrustedSource,
     hasBudgetedStackFrame,
     renderedComponentNames,
+    remainingHardLineCapacity: Math.max(0, hardMaxLines - lines.length),
   };
 };
 
@@ -532,17 +564,22 @@ const appendFiberAncestorNames = (
   stackContext: TraceContextResult,
   maxAncestorCount: number,
 ): TraceContextResult => {
+  const ancestorCount = Math.min(maxAncestorCount, stackContext.remainingHardLineCapacity);
+  if (ancestorCount === 0) return stackContext;
+  const isNextProject = isNextProjectRuntime();
   const missingAncestorNames = getComponentNamesFromFiber(
     findNearestFiberElement(element),
-    maxAncestorCount,
+    ancestorCount,
     (ancestorName) =>
-      isSourceComponentName(ancestorName) && !stackContext.renderedComponentNames.has(ancestorName),
+      isSourceComponentName(ancestorName, isNextProject) &&
+      !stackContext.renderedComponentNames.has(ancestorName),
   );
   if (missingAncestorNames.length === 0) return stackContext;
 
   return {
     ...stackContext,
     text: `${stackContext.text}${formatComponentNameLines(missingAncestorNames)}`,
+    remainingHardLineCapacity: stackContext.remainingHardLineCapacity - missingAncestorNames.length,
   };
 };
 
@@ -563,11 +600,13 @@ const getTraceContext = async (
   }
 
   const componentNames = getComponentNamesFromFiber(findNearestFiberElement(element), maxLines);
+  const hardMaxLines = Math.max(maxLines, MAX_TRACE_CONTEXT_LINES);
   return {
     text: formatComponentNameLines(componentNames),
     shouldAppendSelectorHint: true,
     hasBudgetedStackFrame: false,
     renderedComponentNames: new Set(componentNames),
+    remainingHardLineCapacity: Math.max(0, hardMaxLines - componentNames.length),
   };
 };
 
@@ -581,7 +620,7 @@ export const getStackContext = async (
 
 const composeElementContext = (element: Element, traceContext: TraceContextResult): string => {
   const listItemKey = getNearestListItemKey(element);
-  const keyHint = listItemKey !== null ? `\n  key: "${listItemKey}"` : "";
+  const keyHint = listItemKey !== null ? `\n  key: ${formatListItemKey(listItemKey)}` : "";
   const selectorDetails = createElementSelectorDetails(findSelectorTarget(element));
   const selectorHint = shouldIncludeElementSelector(
     traceContext.shouldAppendSelectorHint,

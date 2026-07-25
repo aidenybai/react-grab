@@ -2,4 +2,4 @@
 "react-grab": patch
 ---
 
-Include concise semantic selectors such as IDs, test IDs, ARIA labels, and links alongside trusted source context, while omitting brittle structural selectors unless source context needs a fallback.
+Improve copied element context with semantic selectors, nearest-source resolution, refresh-aware source caching, bounded previews and keys, nested control labels, consistent trace budgets, and lossless multi-element selection.

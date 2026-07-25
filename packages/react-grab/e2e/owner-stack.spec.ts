@@ -65,6 +65,25 @@ test.describe("React owner stack semantics", () => {
     expect(context).not.toContain("selector:");
   });
 
+  test("keeps nested control text in the inline preview", async ({ reactGrab }) => {
+    const context = await copyElementContext(reactGrab, ".duplicate-context-target");
+
+    expect(context).toContain("<button");
+    expect(context).toContain("Repeated action");
+  });
+
+  test("keeps one copied entry per distinct selected element", async ({ reactGrab }) => {
+    const didCopy = await reactGrab.page.evaluate(async () => {
+      const elements = Array.from(document.querySelectorAll(".duplicate-context-target"));
+      return (await window.__REACT_GRAB__?.copyElement(elements)) ?? false;
+    });
+    expect(didCopy).toBe(true);
+
+    const context = await reactGrab.getClipboardContent();
+    const copiedButtonEntries = context.split("\n").filter((line) => line.startsWith("[<button"));
+    expect(copiedButtonEntries).toHaveLength(2);
+  });
+
   test("keeps ownership through a fragment boundary", async ({ reactGrab }) => {
     const context = await copyElementContext(reactGrab, "[data-testid='fragment-owner-target']");
 
@@ -87,6 +106,13 @@ test.describe("React owner stack semantics", () => {
     const context = await copyElementContext(reactGrab, "[data-testid='list-key-target-second']");
 
     expect(context).toContain('key: "second"');
+  });
+
+  test("escapes structural characters in list keys", async ({ reactGrab }) => {
+    const context = await copyElementContext(reactGrab, "[data-testid='escaped-key-target']");
+
+    expect(context).toContain('key: "item:\\"two\\"\\nnext"');
+    expect(context).not.toContain('key: "item:"two"');
   });
 
   test("does not replace a deeply passed child's owner with repeated wrappers", async ({

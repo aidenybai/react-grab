@@ -144,7 +144,7 @@ describe("selectResolvedSource", () => {
     expect(selectResolvedSource(null, [])).toBe(null);
   });
 
-  it("picks the first named frame within an origin over an earlier anonymous frame", () => {
+  it("keeps the nearest source frame even when a deeper frame has a component name", () => {
     const anonymousFrame: StackFrame = {
       fileName: "/src/app/anonymous.tsx",
       lineNumber: 2,
@@ -152,12 +152,12 @@ describe("selectResolvedSource", () => {
     };
 
     expect(selectResolvedSource(null, [anonymousFrame, appFrame])).toMatchObject({
-      filePath: "/src/app/widget.tsx",
-      componentName: "Widget",
+      filePath: "/src/app/anonymous.tsx",
+      componentName: null,
     });
   });
 
-  it("skips placeholder and slot-wrapper frame names", () => {
+  it("keeps the nearest source location while filtering its internal component name", () => {
     const internalFrames: StackFrame[] = [
       { fileName: "/src/app/slot.tsx", functionName: "SlotClone" },
       { fileName: "/src/app/anonymous.tsx", functionName: "Anonymous" },
@@ -166,8 +166,20 @@ describe("selectResolvedSource", () => {
     ];
 
     expect(selectResolvedSource(null, internalFrames)).toMatchObject({
-      filePath: "/src/app/widget.tsx",
-      componentName: "Widget",
+      filePath: "/src/app/slot.tsx",
+      componentName: null,
+    });
+  });
+
+  it("keeps common authored component names outside Next.js", () => {
+    expect(
+      selectResolvedSource(null, [
+        { fileName: "/src/app/error-boundary.tsx", functionName: "ErrorBoundary" },
+        appFrame,
+      ]),
+    ).toMatchObject({
+      filePath: "/src/app/error-boundary.tsx",
+      componentName: "ErrorBoundary",
     });
   });
 
@@ -226,6 +238,19 @@ describe("formatStackContext", () => {
     expect(result.text).toContain("app/section.tsx");
     expect(result.text).toContain("app/page.tsx");
     expect(result.text).not.toContain("app/layout.tsx");
+  });
+
+  it("keeps low-signal frames after the source budget is full", () => {
+    const result = formatStackContext(
+      [
+        { fileName: "src/app/widget.tsx", functionName: "Widget" },
+        { fileName: "node_modules/react-tabs/dist/index.js", functionName: "Tabs" },
+      ],
+      { maxLines: 1 },
+    );
+
+    expect(result.text).toContain("app/widget.tsx");
+    expect(result.text).toContain("in Tabs (react-tabs)");
   });
 
   it("does not let shared-UI wrapper frames spend the compact line budget", () => {
@@ -398,6 +423,21 @@ describe("formatStackContext", () => {
       const lines = result.text.split("\n").filter(Boolean);
       expect(lines.length).toBeLessThanOrEqual(MAX_TRACE_CONTEXT_LINES);
     }
+  });
+
+  it("reports no remaining capacity when low-signal frames fill the hard cap", () => {
+    const stack: StackFrame[] = Array.from(
+      { length: MAX_TRACE_CONTEXT_LINES },
+      (_unused, index) => ({
+        fileName: `node_modules/library-${index}/index.js`,
+        functionName: `Library${index}`,
+      }),
+    );
+
+    const result = formatStackContext(stack);
+
+    expect(result.text.split("\n").filter(Boolean)).toHaveLength(MAX_TRACE_CONTEXT_LINES);
+    expect(result.remainingHardLineCapacity).toBe(0);
   });
 
   it("falls back to the default budget when maxLines is NaN", () => {

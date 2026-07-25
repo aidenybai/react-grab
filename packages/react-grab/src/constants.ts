@@ -122,6 +122,9 @@ export const ARROW_PANEL_OVERLAP_PX = 1;
 export const LABEL_GAP_PX = 4;
 export const PREVIEW_TEXT_MAX_LENGTH = 100;
 export const PREVIEW_ATTR_VALUE_MAX_LENGTH = 15;
+export const PREVIEW_IDENTIFYING_ATTR_VALUE_MAX_LENGTH_CHARS = 120;
+export const PREVIEW_ATTRIBUTE_MAX_COUNT = 8;
+export const LIST_ITEM_KEY_MAX_LENGTH_CHARS = 120;
 export const PREVIEW_PRIORITY_ATTRS: readonly string[] = [
   "id",
   "class",
@@ -155,7 +158,15 @@ export const PREVIEW_IDENTIFYING_ATTRS = new Set([
   "open",
 ]);
 
-export const PREVIEW_DESCENDANT_TEXT_TAGS = new Set(["a", "code", "pre"]);
+export const PREVIEW_DESCENDANT_TEXT_TAGS = new Set([
+  "a",
+  "button",
+  "code",
+  "label",
+  "option",
+  "pre",
+  "summary",
+]);
 export const PREVIEW_SKIPPED_TEXT_TAGS = new Set(["script", "style", "template", "noscript"]);
 
 export const MODIFIER_KEYS: readonly string[] = ["Meta", "Control", "Shift", "Alt"];

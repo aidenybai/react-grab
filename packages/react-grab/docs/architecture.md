@@ -179,6 +179,10 @@ Low-signal covers two kinds of frame. The first is library frames from `node_mod
 
 Selector hints consider both source quality and selector quality. When no trusted feature source survives, the copied context always includes a selector as its concrete fallback, including a generated structural path when necessary. With trusted source, a selector is included only when it is semantic: a unique ID, a preferred identifying attribute such as `data-testid`, `aria-label`, or `href`, or a domain-specific selector supplied by an element adapter. Generated class, tag, and positional paths are omitted beside trusted source because they add brittle noise. A selector crossing shadow-root or iframe boundaries is semantic only when every segment needed to reach the target is semantic.
 
+Source locations and component labels are ranked independently. The nearest surviving source frame supplies the editable file location even when its component name is anonymous, minified, or filtered; a better label on a deeper ancestor never redirects the source location. Cached source resolutions also carry a React fiber revision so Fast Refresh and ownership changes invalidate stale paths while repeated reads within one revision remain deduplicated.
+
+Element previews bound both attribute count and value length, encode structural characters, and collect descendant text for semantic controls such as buttons and labels. List keys use the same bounded, escaped representation. Multi-element copies preserve one entry per distinct selected DOM element even when two entries render to identical text.
+
 When the default still isn't deep enough, the public `maxContextLines` option raises the soft budget. It flows from `Options` through the plugin registry into the copy flow and the `getStackContext` API, and can also be set via the script tag's `data-options` attribute.
 
 ### Opening in editor

@@ -89,6 +89,17 @@ const SuspenseOwner = () => (
   </Suspense>
 );
 
+const DuplicateContextOwner = () => (
+  <div>
+    <button className="duplicate-context-target" type="button">
+      <span>Repeated action</span>
+    </button>
+    <button className="duplicate-context-target" type="button">
+      <span>Repeated action</span>
+    </button>
+  </div>
+);
+
 const ProductionIconLink = () => (
   <a
     aria-label="Production GitHub link"
@@ -114,6 +125,7 @@ export const OwnerStackCases = () => (
       <MemoLeaf />
       <FragmentOwner />
       <SuspenseOwner />
+      <DuplicateContextOwner />
       <ProductionIconLink />
       {[
         <button data-testid="single-key-target" key="only" type="button">
@@ -126,6 +138,14 @@ export const OwnerStackCases = () => (
         </button>,
         <button data-testid="list-key-target-second" key="second" type="button">
           Second keyed target
+        </button>,
+      ]}
+      {[
+        <button data-testid="escaped-key-target" key={'item:"two"\nnext'} type="button">
+          Escaped key target
+        </button>,
+        <button key="escaped-key-sibling" type="button">
+          Escaped key sibling
         </button>,
       ]}
       {[

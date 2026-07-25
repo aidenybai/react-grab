@@ -158,6 +158,23 @@ test.describe("Element Context Fallback", () => {
       expect(clipboard).not.toContain("viewBox");
     });
 
+    test("should include visible text for SVG text elements", async ({ reactGrab }) => {
+      await reactGrab.page.evaluate(() => {
+        const svgElement = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        const textElement = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        textElement.id = "svg-visible-label";
+        textElement.textContent = "Quarterly revenue";
+        svgElement.appendChild(textElement);
+        document.body.appendChild(svgElement);
+      });
+
+      const didCopy = await reactGrab.copyElementViaApi("#svg-visible-label");
+      expect(didCopy).toBe(true);
+
+      const clipboard = await reactGrab.getClipboardContent();
+      expect(clipboard).toContain('<text id="svg-visible-label">Quarterly revenue</text>');
+    });
+
     test("should use a semantic link selector for a source-less SVG path", async ({
       reactGrab,
     }) => {
@@ -269,6 +286,7 @@ test.describe("Element Context Fallback", () => {
         });
         const longElement = document.createElement("div");
         longElement.id = "long-dom-element";
+        longElement.setAttribute("aria-label", "c".repeat(300));
         longElement.className = "a".repeat(300);
         longElement.textContent = "b".repeat(300);
         wrapper.appendChild(longElement);
@@ -427,9 +445,7 @@ test.describe("Element Context Fallback", () => {
       expect(elementInfo).toContain("<span ...>");
     });
 
-    test("should preserve newlines inside attribute values in copied references", async ({
-      reactGrab,
-    }) => {
+    test("should encode structural characters inside attribute values", async ({ reactGrab }) => {
       await reactGrab.page.evaluate(() => {
         const wrapper = document.createElement("div");
         Object.assign(wrapper.style, {
@@ -443,7 +459,7 @@ test.describe("Element Context Fallback", () => {
 
         const saveButton = document.createElement("button");
         saveButton.id = "multiline-label-button";
-        saveButton.setAttribute("aria-label", "Save\n  draft");
+        saveButton.setAttribute("aria-label", 'Save "draft" & close\n  next');
         saveButton.textContent = "Save";
 
         wrapper.appendChild(saveButton);
@@ -454,7 +470,8 @@ test.describe("Element Context Fallback", () => {
       expect(didCopy).toBe(true);
 
       const clipboard = await reactGrab.getClipboardContent();
-      expect(clipboard).toContain('aria-label="Save\n  draft"');
+      expect(clipboard).toContain('aria-label="Save &quot;draft&quot; &amp; close&#10;  next"');
+      expect(clipboard).not.toContain('aria-label="Save "draft"');
     });
 
     test("should include nested text for mixed inline content", async ({ reactGrab }) => {
