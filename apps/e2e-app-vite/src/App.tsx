@@ -889,6 +889,12 @@ export default function App() {
             Activate React Grab and select the purple point in the center of either canvas to
             inspect its uniforms, defines, vertex shader, and fragment shader.
           </p>
+          <a
+            className="mt-3 inline-flex rounded-md bg-purple-700 px-3 py-2 text-sm font-medium text-white hover:bg-purple-800"
+            href="/particle-shader.html"
+          >
+            Open full particle shader scene
+          </a>
         </div>
 
         <ThreeFiberFixture />

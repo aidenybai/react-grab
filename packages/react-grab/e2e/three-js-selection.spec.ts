@@ -1,6 +1,7 @@
 import { expect, test } from "./fixtures.js";
 import { moveToThreeObject } from "./move-to-three-object.js";
 import {
+  THREE_CANVAS_HORIZONTAL_CENTER_RATIO,
   THREE_LEFT_OBJECT_HORIZONTAL_RATIO,
   THREE_RIGHT_OBJECT_HORIZONTAL_RATIO,
   THREE_SELECTION_MAX_CANVAS_WIDTH_RATIO,
@@ -77,5 +78,22 @@ test.describe("Three.js selection", () => {
     expect(clipboardContent).toContain('defines={["USE_TINT"]}');
     expect(clipboardContent).toContain("uniform float uPointSize;");
     expect(clipboardContent).toContain("uniform vec3 uColor;");
+  });
+
+  test("grabs shader particles in the standalone scene", async ({ reactGrab, page }) => {
+    await page.goto("/particle-shader.html", { waitUntil: "domcontentloaded" });
+    await reactGrab.activate();
+    const pointerPosition = await moveToThreeObject(
+      page,
+      "particle-shader-canvas",
+      THREE_CANVAS_HORIZONTAL_CENTER_RATIO,
+      "points",
+    );
+    await page.mouse.click(pointerPosition.x, pointerPosition.y);
+
+    await expect.poll(() => reactGrab.getClipboardContent()).toContain("<points name=");
+    const clipboardContent = await reactGrab.getClipboardContent();
+    expect(clipboardContent).toContain("<shaderMaterial");
+    expect(clipboardContent).toContain("uniform float uTime;");
   });
 });
