@@ -130,7 +130,9 @@ export const OwnerStackCases = () => (
       ]}
       {[
         <Fragment key="fragment-first">
-          <button type="button">First fragment keyed target</button>
+          <button className="structural-selector-target" type="button">
+            First fragment keyed target
+          </button>
         </Fragment>,
         <Fragment key="fragment-second">
           <button data-testid="fragment-key-target" type="button">

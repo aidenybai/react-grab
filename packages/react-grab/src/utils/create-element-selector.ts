@@ -5,6 +5,11 @@ import { isShadowRoot } from "./is-shadow-root.js";
 import { isElementNode } from "./is-element-node.js";
 import { getElementAdapter } from "../core/element-adapter.js";
 
+export interface ElementSelectorDetails {
+  selector: string;
+  isSemantic: boolean;
+}
+
 const getFinderRoot = (element: Element): Element =>
   element.ownerDocument.body ?? element.ownerDocument.documentElement;
 
@@ -37,11 +42,16 @@ const isSelectorUniqueForElement = (element: Element, selector: string): boolean
   }
 };
 
-const createFastElementSelector = (element: Element): string | null => {
+const createFastElementSelector = (element: Element): ElementSelectorDetails | null => {
   const elementId = element.getAttribute("id");
   if (elementId) {
     const idSelector = `#${CSS.escape(elementId)}`;
-    if (isSelectorUniqueForElement(element, idSelector)) return idSelector;
+    if (isSelectorUniqueForElement(element, idSelector)) {
+      return {
+        selector: idSelector,
+        isSemantic: isPreferredAttributeValueSafe(elementId),
+      };
+    }
   }
 
   for (const attributeName of PREFERRED_SELECTOR_ATTRIBUTE_NAMES) {
@@ -53,12 +63,12 @@ const createFastElementSelector = (element: Element): string | null => {
 
     const attributeOnlySelector = `[${attributeName}=${quotedValue}]`;
     if (isSelectorUniqueForElement(element, attributeOnlySelector)) {
-      return attributeOnlySelector;
+      return { selector: attributeOnlySelector, isSemantic: true };
     }
 
     const tagSelector = `${element.tagName.toLowerCase()}${attributeOnlySelector}`;
     if (isSelectorUniqueForElement(element, tagSelector)) {
-      return tagSelector;
+      return { selector: tagSelector, isSemantic: true };
     }
   }
 
@@ -100,7 +110,7 @@ const createNthChildSelector = (element: Element): string => {
   return segments.join(" > ");
 };
 
-const createLocalElementSelector = (element: Element): string => {
+const createLocalElementSelector = (element: Element): ElementSelectorDetails => {
   const fastSelector = createFastElementSelector(element);
   if (fastSelector) return fastSelector;
 
@@ -114,25 +124,36 @@ const createLocalElementSelector = (element: Element): string => {
         (PREFERRED_SELECTOR_ATTRIBUTE_NAMES.has(attributeName) &&
           isPreferredAttributeValueSafe(attributeValue)),
     );
-    if (selector) return selector;
+    if (selector) return { selector, isSemantic: false };
     // @medv/finder can throw on unusual DOM structures (SVG, web components,
     // detached nodes), so we fall back to an nth-child selector instead.
   } catch {}
 
-  return createNthChildSelector(element);
+  return { selector: createNthChildSelector(element), isSemantic: false };
 };
 
-export const createElementSelector = (element: Element): string => {
+export const createElementSelectorDetails = (element: Element): ElementSelectorDetails => {
   const adapter = getElementAdapter(element);
-  if (adapter) return adapter.getSelector();
+  if (adapter) return { selector: adapter.getSelector(), isSemantic: true };
   const localSelector = createLocalElementSelector(element);
   const rootNode = element.getRootNode();
   if (isShadowRoot(rootNode)) {
-    return `${createElementSelector(rootNode.host)} >>> ${localSelector}`;
+    const hostSelector = createElementSelectorDetails(rootNode.host);
+    return {
+      selector: `${hostSelector.selector} >>> ${localSelector.selector}`,
+      isSemantic: hostSelector.isSemantic && localSelector.isSemantic,
+    };
   }
 
   const frameElement = getWindowFrameElement(element.ownerDocument.defaultView);
-  return frameElement
-    ? `${createElementSelector(frameElement)} >>iframe>> ${localSelector}`
-    : localSelector;
+  if (!frameElement) return localSelector;
+
+  const frameSelector = createElementSelectorDetails(frameElement);
+  return {
+    selector: `${frameSelector.selector} >>iframe>> ${localSelector.selector}`,
+    isSemantic: frameSelector.isSemantic && localSelector.isSemantic,
+  };
 };
+
+export const createElementSelector = (element: Element): string =>
+  createElementSelectorDetails(element).selector;

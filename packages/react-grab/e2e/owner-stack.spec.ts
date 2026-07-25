@@ -55,6 +55,13 @@ test.describe("React owner stack semantics", () => {
     const context = await copyElementContext(reactGrab, "[data-testid='memo-owner-target']");
 
     expect(context).toContain("owner-stack-cases.tsx");
+    expect(context).toContain('selector: [data-testid="memo-owner-target"]');
+  });
+
+  test("omits a structural selector when owner source is available", async ({ reactGrab }) => {
+    const context = await copyElementContext(reactGrab, ".structural-selector-target");
+
+    expect(context).toContain("owner-stack-cases.tsx");
     expect(context).not.toContain("selector:");
   });
 

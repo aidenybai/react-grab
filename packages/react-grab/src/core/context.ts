@@ -13,7 +13,7 @@ import {
   classifySourcePath,
   type SourcePathClassification,
 } from "../utils/classify-source-path.js";
-import { createElementSelector } from "../utils/create-element-selector.js";
+import { createElementSelectorDetails } from "../utils/create-element-selector.js";
 import { findSelectorTarget } from "../utils/find-selector-target.js";
 import { isGeneratedBundleSourcePath } from "../utils/is-generated-bundle-source-path.js";
 import { isSharedUiSourcePath } from "../utils/is-shared-ui-source-path.js";
@@ -28,6 +28,7 @@ import {
   isInternalComponentName,
   isUsefulComponentName,
 } from "../utils/is-useful-component-name.js";
+import { shouldIncludeElementSelector } from "../utils/should-include-element-selector.js";
 import type { SourceLocation } from "../types.js";
 import { getElementAdapter, getReactFiberForElement } from "./element-adapter.js";
 
@@ -581,8 +582,12 @@ export const getStackContext = async (
 const composeElementContext = (element: Element, traceContext: TraceContextResult): string => {
   const listItemKey = getNearestListItemKey(element);
   const keyHint = listItemKey !== null ? `\n  key: "${listItemKey}"` : "";
-  const selectorHint = traceContext.shouldAppendSelectorHint
-    ? `\n  selector: ${createElementSelector(findSelectorTarget(element))}`
+  const selectorDetails = createElementSelectorDetails(findSelectorTarget(element));
+  const selectorHint = shouldIncludeElementSelector(
+    traceContext.shouldAppendSelectorHint,
+    selectorDetails,
+  )
+    ? `\n  selector: ${selectorDetails.selector}`
     : "";
   return `${traceContext.text}${keyHint}${selectorHint}`;
 };
