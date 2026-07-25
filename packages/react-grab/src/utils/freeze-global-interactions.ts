@@ -8,10 +8,16 @@ import {
   collectPseudoStates,
   unfreezePseudoStates,
 } from "./freeze-pseudo-states.js";
+import { freezeRegisteredRenderers, unfreezeRegisteredRenderers } from "./freeze-renderers.js";
 import { throwCollectedErrors } from "./throw-collected-errors.js";
 
 const unfreezeInteractionLayers = (): unknown[] => {
   const cleanupErrors: unknown[] = [];
+  try {
+    unfreezeRegisteredRenderers();
+  } catch (error) {
+    cleanupErrors.push(error);
+  }
   try {
     unfreezePseudoStates();
   } catch (error) {
@@ -35,6 +41,7 @@ export const freezeGlobalInteractions = (cursorX?: number, cursorY?: number): vo
   try {
     applyPseudoStates(pseudoSnapshot);
     applyGlobalAnimationFreeze(animationsToFreeze);
+    freezeRegisteredRenderers();
   } catch (error) {
     const rollbackErrors = unfreezeInteractionLayers();
     if (rollbackErrors.length === 0) throw error;

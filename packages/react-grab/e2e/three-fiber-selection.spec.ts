@@ -1,12 +1,65 @@
 import { expect, test } from "./fixtures.js";
 import { moveToThreeObject } from "./move-to-three-object.js";
 import {
+  THREE_ELAPSED_TIME_WINDOW_PROPERTY,
+  THREE_FRAME_COUNT_WINDOW_PROPERTY,
   THREE_LEFT_OBJECT_HORIZONTAL_RATIO,
+  THREE_RENDER_FREEZE_OBSERVATION_MS,
+  THREE_RENDER_FREEZE_SETTLE_MS,
   THREE_RIGHT_OBJECT_HORIZONTAL_RATIO,
   THREE_SELECTION_MAX_CANVAS_WIDTH_RATIO,
 } from "./constants.js";
 
 test.describe("React Three Fiber selection", () => {
+  test("pauses and resumes the render loop without resetting its clock", async ({
+    reactGrab,
+    page,
+  }) => {
+    const readRenderingMetrics = () =>
+      page.evaluate(
+        ({ elapsedTimePropertyName, frameCountPropertyName }) => {
+          const elapsedTime = Reflect.get(window, elapsedTimePropertyName);
+          const frameCount = Reflect.get(window, frameCountPropertyName);
+          return {
+            elapsedTime: typeof elapsedTime === "number" ? elapsedTime : 0,
+            frameCount: typeof frameCount === "number" ? frameCount : 0,
+          };
+        },
+        {
+          elapsedTimePropertyName: THREE_ELAPSED_TIME_WINDOW_PROPERTY,
+          frameCountPropertyName: THREE_FRAME_COUNT_WINDOW_PROPERTY,
+        },
+      );
+
+    await expect.poll(async () => (await readRenderingMetrics()).frameCount).toBeGreaterThan(0);
+    const metricsBeforeFreeze = await readRenderingMetrics();
+    await reactGrab.activate();
+    await page.waitForTimeout(THREE_RENDER_FREEZE_SETTLE_MS);
+    const frozenMetrics = await readRenderingMetrics();
+    expect(frozenMetrics.elapsedTime).toBeGreaterThanOrEqual(metricsBeforeFreeze.elapsedTime);
+    await page.waitForTimeout(THREE_RENDER_FREEZE_OBSERVATION_MS);
+    expect(await readRenderingMetrics()).toEqual(frozenMetrics);
+
+    await reactGrab.deactivate();
+    await expect
+      .poll(async () => (await readRenderingMetrics()).frameCount)
+      .toBeGreaterThan(frozenMetrics.frameCount);
+    expect((await readRenderingMetrics()).elapsedTime).toBeGreaterThanOrEqual(
+      frozenMetrics.elapsedTime,
+    );
+
+    await reactGrab.activate();
+    await page.waitForTimeout(THREE_RENDER_FREEZE_SETTLE_MS);
+    const secondFrozenMetrics = await readRenderingMetrics();
+    await page.waitForTimeout(THREE_RENDER_FREEZE_OBSERVATION_MS);
+    expect(await readRenderingMetrics()).toEqual(secondFrozenMetrics);
+
+    await reactGrab.deactivate();
+    await expect
+      .poll(async () => (await readRenderingMetrics()).frameCount)
+      .toBeGreaterThan(secondFrozenMetrics.frameCount);
+  });
+
   test("grabs an individual mesh with projected bounds and source context", async ({
     reactGrab,
     page,
