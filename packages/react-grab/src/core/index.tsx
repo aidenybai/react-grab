@@ -393,6 +393,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       deactivateRenderer: () => deactivateRenderer(),
       performCopyWithLabel: (options) => performCopyWithLabel(options),
       onOpen: () => {
+        setFrozenTextNode(null);
         dismissToolbarMenu();
         stopEditPanelTracking?.();
         stopEditPanelTracking = trackDropdownPosition(computeEditPanelAnchor, setEditPanelPosition);
@@ -4059,7 +4060,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           filePath,
           lineNumber,
           componentName,
-          tagName,
+          tagName: getTagName(element) || undefined,
         });
         if (didOpen) {
           clearPendingToolbarSelection();

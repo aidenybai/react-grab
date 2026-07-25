@@ -57,4 +57,40 @@ describe("text node anchors", () => {
       matchingTextNode,
     );
   });
+
+  it("ignores whitespace-only siblings when text content changes", () => {
+    const previousChildren: Node[] = [];
+    const previousElement = createElement(previousChildren);
+    const previousTextNode = createTextNode("previous text", previousElement);
+    previousChildren.push(previousTextNode);
+    trackTextNodeAnchor(previousTextNode);
+    Object.defineProperty(previousTextNode, "isConnected", { value: false });
+
+    const liveChildren: Node[] = [];
+    const liveElement = createElement(liveChildren);
+    const whitespaceTextNode = createTextNode(" \n ", liveElement);
+    const changedTextNode = createTextNode("changed text", liveElement);
+    liveChildren.push(whitespaceTextNode, changedTextNode);
+
+    expect(resolveLiveTextNode(previousTextNode, liveElement)).toBe(changedTextNode);
+  });
+
+  it("preserves the selected occurrence when direct text content is duplicated", () => {
+    const previousChildren: Node[] = [];
+    const previousElement = createElement(previousChildren);
+    const firstPreviousTextNode = createTextNode("duplicate", previousElement);
+    const selectedPreviousTextNode = createTextNode("duplicate", previousElement);
+    previousChildren.push(firstPreviousTextNode, selectedPreviousTextNode);
+    trackTextNodeAnchor(selectedPreviousTextNode);
+    Object.defineProperty(selectedPreviousTextNode, "isConnected", { value: false });
+
+    const liveChildren: Node[] = [];
+    const liveElement = createElement(liveChildren);
+    const insertedElement = createElement([]);
+    const firstLiveTextNode = createTextNode("duplicate", liveElement);
+    const selectedLiveTextNode = createTextNode("duplicate", liveElement);
+    liveChildren.push(insertedElement, firstLiveTextNode, selectedLiveTextNode);
+
+    expect(resolveLiveTextNode(selectedPreviousTextNode, liveElement)).toBe(selectedLiveTextNode);
+  });
 });

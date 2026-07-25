@@ -1,7 +1,7 @@
 import { convertClientPositionToTopWindow } from "./convert-client-position-to-top-window.js";
 import { setTextNodeBoundsRectIndex } from "./create-text-node-bounds.js";
+import { isGrabbableTextNode } from "./is-grabbable-text-node.js";
 import { isPointInsideRect } from "./is-point-inside-rect.js";
-import { isTextNode } from "./is-text-node.js";
 
 export const getTextNodeAtPosition = (
   parentElement: Element,
@@ -13,7 +13,7 @@ export const getTextNodeAtPosition = (
   const range = parentElement.ownerDocument.createRange();
 
   for (const childNode of parentElement.childNodes) {
-    if (!isTextNode(childNode) || !childNode.textContent?.trim()) continue;
+    if (!isGrabbableTextNode(childNode)) continue;
 
     range.selectNodeContents(childNode);
     const rects = range.getClientRects();

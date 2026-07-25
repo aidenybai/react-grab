@@ -1,5 +1,5 @@
 import { transferTextNodeBoundsRectIndex } from "../utils/create-text-node-bounds.js";
-import { isTextNode } from "../utils/is-text-node.js";
+import { isGrabbableTextNode } from "../utils/is-grabbable-text-node.js";
 
 interface TextNodeAnchor {
   childIndex: number;
@@ -12,7 +12,7 @@ const anchorByTextNode = new WeakMap<Text, TextNodeAnchor>();
 const getDirectTextNodes = (element: Element): Text[] => {
   const textNodes: Text[] = [];
   for (const childNode of element.childNodes) {
-    if (isTextNode(childNode)) textNodes.push(childNode);
+    if (isGrabbableTextNode(childNode)) textNodes.push(childNode);
   }
   return textNodes;
 };
@@ -49,9 +49,11 @@ export const resolveLiveTextNode = (
     (candidate) => candidate.textContent === anchor.textContent,
   );
   const liveTextNode =
-    isTextNode(childCandidate) && childCandidate.textContent === anchor.textContent
-      ? childCandidate
-      : (contentCandidate ?? indexedTextCandidate);
+    indexedTextCandidate?.textContent === anchor.textContent
+      ? indexedTextCandidate
+      : isGrabbableTextNode(childCandidate) && childCandidate.textContent === anchor.textContent
+        ? childCandidate
+        : (contentCandidate ?? indexedTextCandidate);
   if (!liveTextNode) return null;
 
   transferTextNodeBoundsRectIndex(textNode, liveTextNode);

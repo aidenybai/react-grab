@@ -323,6 +323,32 @@ test.describe("Element Selection", () => {
       .toBeCloseTo(initialGrabbedBoxY - scrollDeltaY, 0);
   });
 
+  test("should edit the parent element of a direct text node", async ({ reactGrab }) => {
+    const target = await createMixedTextTarget(reactGrab);
+
+    await reactGrab.activate();
+    await reactGrab.page.mouse.move(target.position.x, target.position.y);
+    await expect
+      .poll(async () => (await reactGrab.getSelectionLabelInfo()).tagName)
+      .toContain("Grab this text");
+
+    await reactGrab.rightClickAtPosition(target.position.x, target.position.y);
+    await expect
+      .poll(async () => (await reactGrab.getContextMenuInfo()).tagBadgeText)
+      .toContain("Grab this text");
+
+    await reactGrab.clickContextMenuItem("Style");
+    await expect
+      .poll(() =>
+        reactGrab.page.evaluate((attrName) => {
+          const host = document.querySelector(`[${attrName}]`);
+          const panel = host?.shadowRoot?.querySelector("[data-react-grab-edit-panel]");
+          return panel?.textContent?.trim() ?? null;
+        }, ATTRIBUTE_NAME),
+      )
+      .toMatch(/^div/);
+  });
+
   test("should use element bounds when a click misses its direct text", async ({ reactGrab }) => {
     const target = await createMixedTextTarget(reactGrab);
 
