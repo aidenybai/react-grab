@@ -66,7 +66,7 @@ test.describe("shared owner semantics", () => {
     test.skip(!isNextProject(testInfo.project.name), "Next.js link semantics only");
 
     await reactGrab.activate();
-    await reactGrab.hoverUntilSelected('[data-testid="component-name-link"]');
+    await reactGrab.hoverUntilTargetSelected('[data-testid="component-name-link"]');
 
     if (isProductionProject(testInfo.project.name)) {
       expect((await reactGrab.getSelectionLabelInfo()).componentName).not.toBe("LinkComponent");
