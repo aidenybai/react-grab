@@ -8,9 +8,25 @@ interface CachedTextNodeBounds {
 }
 
 let textNodeBoundsCache = new WeakMap<Text, CachedTextNodeBounds>();
+const boundsRectIndexByTextNode = new WeakMap<Text, number>();
 
 export const invalidateTextNodeBoundsCache = () => {
   textNodeBoundsCache = new WeakMap<Text, CachedTextNodeBounds>();
+};
+
+export const setTextNodeBoundsRectIndex = (textNode: Text, rectIndex: number): void => {
+  boundsRectIndexByTextNode.set(textNode, rectIndex);
+  textNodeBoundsCache.delete(textNode);
+};
+
+export const transferTextNodeBoundsRectIndex = (
+  previousTextNode: Text,
+  nextTextNode: Text,
+): void => {
+  const rectIndex = boundsRectIndexByTextNode.get(previousTextNode);
+  if (rectIndex !== undefined) {
+    setTextNodeBoundsRectIndex(nextTextNode, rectIndex);
+  }
 };
 
 export const createTextNodeBounds = (textNode: Text): OverlayBounds => {
@@ -22,7 +38,10 @@ export const createTextNodeBounds = (textNode: Text): OverlayBounds => {
 
   const range = textNode.ownerDocument.createRange();
   range.selectNodeContents(textNode);
-  const rect = range.getBoundingClientRect();
+  const rectIndex = boundsRectIndexByTextNode.get(textNode);
+  const rect =
+    (rectIndex === undefined ? undefined : range.getClientRects()[rectIndex]) ??
+    range.getBoundingClientRect();
   const topWindowPosition = convertClientPositionToTopWindow(
     textNode.ownerDocument.defaultView,
     rect.left,

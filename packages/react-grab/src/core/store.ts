@@ -6,6 +6,7 @@ import { createElementBounds } from "../utils/create-element-bounds.js";
 import { getBoundsCenter } from "../utils/get-bounds-center.js";
 import { isElementConnected } from "../utils/is-element-connected.js";
 import { resolveLiveElement, trackElementAnchor } from "./element-anchors.js";
+import { resolveLiveTextNode } from "./text-node-anchors.js";
 
 interface FrozenDragRect {
   pageX: number;
@@ -94,7 +95,12 @@ const relinkSlots = (draft: GrabStore): void => {
   draft.contextMenuElement = draft.contextMenuElement && relinkElement(draft.contextMenuElement);
 
   for (const instance of draft.labelInstances) {
-    if (instance.element) instance.element = relinkElement(instance.element);
+    if (instance.element) {
+      instance.element = relinkElement(instance.element);
+      if (instance.textNode) {
+        instance.textNode = resolveLiveTextNode(instance.textNode, instance.element) ?? undefined;
+      }
+    }
     if (instance.elements) {
       for (let index = 0; index < instance.elements.length; index += 1) {
         instance.elements[index] = relinkElement(instance.elements[index]);
@@ -102,7 +108,12 @@ const relinkSlots = (draft: GrabStore): void => {
     }
   }
   for (const box of draft.grabbedBoxes) {
-    if (box.element) box.element = relinkElement(box.element);
+    if (box.element) {
+      box.element = relinkElement(box.element);
+      if (box.textNode) {
+        box.textNode = resolveLiveTextNode(box.textNode, box.element) ?? undefined;
+      }
+    }
   }
 };
 

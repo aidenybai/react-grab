@@ -61,6 +61,7 @@ import { createTextNodeBounds } from "../utils/create-text-node-bounds.js";
 import { createGrabbedBoxBounds } from "../utils/create-grabbed-box-bounds.js";
 import { getTextNodeAtPosition } from "../utils/get-text-node-at-position.js";
 import { formatTextNodeLabel } from "../utils/format-text-node-label.js";
+import { resolveLiveTextNode, trackTextNodeAnchor } from "./text-node-anchors.js";
 import { invalidateInteractionCaches } from "../utils/invalidate-interaction-caches.js";
 import { normalizeErrorMessage } from "../utils/normalize-error.js";
 import {
@@ -522,11 +523,16 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         : createElementBounds(element);
     };
 
-    const preparePromptMode = (element: Element, positionX: number, positionY: number) => {
+    const preparePromptMode = (
+      element: Element,
+      positionX: number,
+      positionY: number,
+      preferredTextNode?: Text | null,
+    ) => {
       actions.setCopyStart(
         { x: positionX, y: positionY },
         element,
-        getPromptSelectionBounds(element),
+        getPromptSelectionBounds(element, preferredTextNode),
       );
       actions.clearInputText();
     };
@@ -617,8 +623,23 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const [resolvedComponentName, setResolvedComponentName] = createComponentNameForElement(
       debouncedElementForComponentName,
     );
-    const [detectedTextNode, setDetectedTextNode] = createSignal<Text | null>(null);
-    const [frozenTextNode, setFrozenTextNode] = createSignal<Text | null>(null);
+    const [detectedTextNode, setDetectedTextNodeSignal] = createSignal<Text | null>(null);
+    const [frozenTextNode, setFrozenTextNodeSignal] = createSignal<Text | null>(null);
+    const setDetectedTextNode = (textNode: Text | null): void => {
+      if (textNode) trackTextNodeAnchor(textNode);
+      setDetectedTextNodeSignal(textNode);
+    };
+    const setFrozenTextNode = (textNode: Text | null): void => {
+      if (textNode) trackTextNodeAnchor(textNode);
+      setFrozenTextNodeSignal(textNode);
+    };
+    const relinkLiveTargets = (): void => {
+      const previousDetectedTextNode = detectedTextNode();
+      const previousFrozenTextNode = frozenTextNode();
+      actions.relinkLiveElements();
+      setDetectedTextNode(resolveLiveTextNode(previousDetectedTextNode, store.detectedElement));
+      setFrozenTextNode(resolveLiveTextNode(previousFrozenTextNode, store.frozenElement));
+    };
     const toolbarActiveActionId = createMemo(() => {
       if (editMode.isOpen()) return EDIT_ACTION_ID;
       if (isCommentMode()) return COMMENT_ACTION_ID;
@@ -1241,7 +1262,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         // active; if recovery can't relink it, re-detect under the pointer so
         // the selection latches onto its replacement instead of vanishing.
         if (!isElementConnected(store.detectedElement)) {
-          actions.relinkLiveElements();
+          relinkLiveTargets();
         }
         if (!isElementConnected(store.detectedElement)) {
           if (remainingRelinkGraceAttempts > 0) {
@@ -3557,7 +3578,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         if (boundsRecalcIntervalId !== null) return;
 
         boundsRecalcIntervalId = window.setInterval(() => {
-          actions.relinkLiveElements();
+          relinkLiveTargets();
           scheduleBoundsSync();
         }, BOUNDS_RECALC_INTERVAL_MS);
         return;
@@ -4018,9 +4039,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         labelController.clearAll();
         clearPendingToolbarSelection();
         onBeforePrompt?.();
-        preparePromptMode(element, position.x, position.y);
+        const textNode = getTextNodeForElement(element);
+        preparePromptMode(element, position.x, position.y, textNode);
         actions.setPointer({ x: position.x, y: position.y });
         actions.setFrozenElement(element);
+        setFrozenTextNode(textNode);
         activatePromptMode();
         if (!isActivated()) {
           activateRenderer();
