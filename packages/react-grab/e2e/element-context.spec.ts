@@ -303,6 +303,35 @@ test.describe("Element Context Fallback", () => {
       expect(clipboard.length).toBeLessThanOrEqual(510);
     });
 
+    test("should retain class when other attributes fill the preview budget", async ({
+      reactGrab,
+    }) => {
+      await reactGrab.page.evaluate(() => {
+        const button = document.createElement("button");
+        button.id = "preview-budget-target";
+        button.className = "class-marker";
+        button.setAttribute("aria-label", "Preview budget target");
+        button.setAttribute("data-testid", "preview-budget-target");
+        button.setAttribute("role", "button");
+        button.setAttribute("name", "preview-budget");
+        button.setAttribute("title", "Preview budget");
+        button.setAttribute("type", "button");
+        button.setAttribute("data-state", "open");
+        button.setAttribute("data-value", "preview");
+        button.setAttribute("tabindex", "0");
+        button.textContent = "Preview budget target";
+        document.body.appendChild(button);
+      });
+
+      const didCopy = await reactGrab.copyElementViaApi(".class-marker");
+      expect(didCopy).toBe(true);
+
+      const clipboard = await reactGrab.getClipboardContent();
+      expect(clipboard).toContain(
+        '<button id="preview-budget-target" class="class-marker" aria-label=',
+      );
+    });
+
     test("should include descendant text for syntax highlighted code blocks", async ({
       reactGrab,
     }) => {
@@ -372,7 +401,9 @@ test.describe("Element Context Fallback", () => {
       expect(didCopy).toBe(true);
 
       const clipboard = await reactGrab.getClipboardContent();
-      expect(clipboard).toContain('<a href="/docs/ci-and-prs/github-actions-setup"');
+      expect(clipboard).toContain(
+        'href="/docs/ci-and-prs/github-actions-setup">GitHub Actions setup',
+      );
       expect(clipboard).toContain("GitHub Actions setup");
       expect(clipboard).not.toContain("# GitHub Actions setup");
       expect(clipboard).toContain('selector: [href="/docs/ci-and-prs/github-actions-setup"]');

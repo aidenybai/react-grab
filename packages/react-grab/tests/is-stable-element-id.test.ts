@@ -5,6 +5,8 @@ describe("isStableElementId", () => {
   it("accepts authored identifiers", () => {
     expect(isStableElementId("checkout-submit")).toBe(true);
     expect(isStableElementId("user-123-profile")).toBe(true);
+    expect(isStableElementId("header-r-content")).toBe(true);
+    expect(isStableElementId("menu_r_item")).toBe(true);
   });
 
   it("rejects React-generated identifiers", () => {

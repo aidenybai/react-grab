@@ -23,7 +23,7 @@ const formatAttribute = (
   maxLength: number,
 ): string => `${attributeName}="${escapeHtmlAttribute(truncateString(attributeValue, maxLength))}"`;
 
-const formatPriorityAttrs = (element: Element): string => {
+const getFormattedPriorityAttrs = (element: Element): string[] => {
   const priorityAttrs: string[] = [];
 
   for (const attributeName of PREVIEW_PRIORITY_ATTRS) {
@@ -37,6 +37,11 @@ const formatPriorityAttrs = (element: Element): string => {
     priorityAttrs.push(formatAttribute(attributeName, attributeValue, maxLength));
   }
 
+  return priorityAttrs;
+};
+
+const formatPriorityAttrs = (element: Element): string => {
+  const priorityAttrs = getFormattedPriorityAttrs(element);
   return priorityAttrs.length > 0 ? ` ${priorityAttrs.join(" ")}` : "";
 };
 
@@ -44,18 +49,16 @@ const isClassOrStyleAttr = (attributeName: string): boolean =>
   attributeName === "class" || attributeName === "className" || attributeName === "style";
 
 const formatAttrsForPreview = (element: Element): string => {
+  const priorityParts = getFormattedPriorityAttrs(element).map(
+    (formattedAttribute) => ` ${formattedAttribute}`,
+  );
   const identifyingParts: string[] = [];
   const remainingParts: string[] = [];
-  let classAttr = "";
 
   for (const { name: attributeName, value: attributeValue } of element.attributes) {
     if (isInternalAttribute(attributeName)) continue;
-    if (isClassOrStyleAttr(attributeName)) {
-      if (attributeName !== "style" && attributeValue) {
-        classAttr = ` ${formatAttribute("class", attributeValue, PREVIEW_ATTR_VALUE_MAX_LENGTH)}`;
-      }
-      continue;
-    }
+    if (PREVIEW_PRIORITY_ATTRS.includes(attributeName)) continue;
+    if (isClassOrStyleAttr(attributeName)) continue;
     if (PREVIEW_IDENTIFYING_ATTRS.has(attributeName)) {
       identifyingParts.push(
         attributeValue
@@ -73,7 +76,7 @@ const formatAttrsForPreview = (element: Element): string => {
     }
   }
 
-  return [...identifyingParts, ...remainingParts, ...(classAttr ? [classAttr] : [])]
+  return [...priorityParts, ...identifyingParts, ...remainingParts]
     .slice(0, PREVIEW_ATTRIBUTE_MAX_COUNT)
     .join("");
 };
