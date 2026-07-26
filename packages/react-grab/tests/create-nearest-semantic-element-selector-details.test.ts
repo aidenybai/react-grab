@@ -66,8 +66,24 @@ describe("createNearestSemanticElementSelectorDetails", () => {
     expect(createNearestSemanticElementSelectorDetails(selectedElement)).toBe(
       expectedSelectorDetails,
     );
-    expect(createSemanticElementSelectorDetails).toHaveBeenNthCalledWith(1, repeatedCandidate);
-    expect(createSemanticElementSelectorDetails).toHaveBeenNthCalledWith(2, uniqueAncestor);
+    expect(createSemanticElementSelectorDetails).toHaveBeenNthCalledWith(1, selectedElement);
+    expect(createSemanticElementSelectorDetails).toHaveBeenNthCalledWith(2, repeatedCandidate);
+    expect(createSemanticElementSelectorDetails).toHaveBeenNthCalledWith(3, uniqueAncestor);
+  });
+
+  it("uses an adapter selector from the selected element", () => {
+    const selectedElement = createSelectorTargetTestElement();
+    const expectedSelectorDetails: ElementSelectorDetails = {
+      selector: 'mesh[name="left-cube"]',
+      isSemantic: true,
+    };
+    vi.mocked(createSemanticElementSelectorDetails).mockReturnValue(expectedSelectorDetails);
+
+    expect(createNearestSemanticElementSelectorDetails(selectedElement)).toBe(
+      expectedSelectorDetails,
+    );
+    expect(createSemanticElementSelectorDetails).toHaveBeenCalledOnce();
+    expect(createSemanticElementSelectorDetails).toHaveBeenCalledWith(selectedElement);
   });
 
   it("evaluates preferred alt selector candidates", () => {
@@ -115,8 +131,9 @@ describe("createNearestSemanticElementSelectorDetails", () => {
     expect(createNearestSemanticElementSelectorDetails(selectedElement)).toBe(
       expectedSelectorDetails,
     );
-    expect(createSemanticElementSelectorDetails).toHaveBeenCalledOnce();
-    expect(createSemanticElementSelectorDetails).toHaveBeenCalledWith(semanticAncestor);
+    expect(createSemanticElementSelectorDetails).toHaveBeenCalledTimes(2);
+    expect(createSemanticElementSelectorDetails).toHaveBeenNthCalledWith(1, selectedElement);
+    expect(createSemanticElementSelectorDetails).toHaveBeenNthCalledWith(2, semanticAncestor);
   });
 
   it("does not replace a generic control with a semantic ancestor", () => {
@@ -153,6 +170,7 @@ describe("createNearestSemanticElementSelectorDetails", () => {
     );
 
     expect(createNearestSemanticElementSelectorDetails(selectedElement)).toBe(null);
-    expect(createSemanticElementSelectorDetails).not.toHaveBeenCalled();
+    expect(createSemanticElementSelectorDetails).toHaveBeenCalledOnce();
+    expect(createSemanticElementSelectorDetails).toHaveBeenCalledWith(selectedElement);
   });
 });
