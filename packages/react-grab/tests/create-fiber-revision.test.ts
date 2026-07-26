@@ -63,6 +63,27 @@ describe("createFiberRevision", () => {
     expect(revision.matches(alternateFiber)).toBe(true);
   });
 
+  it("matches an alternate created after the revision", () => {
+    const debugOwner = { type: "Owner" };
+    const debugSource = { fileName: "button.tsx" };
+    const debugStack = new Error();
+    const fiber: FiberRevisionSource = {
+      _debugOwner: debugOwner,
+      _debugSource: debugSource,
+      _debugStack: debugStack,
+    };
+    const revision = createFiberRevision(fiber);
+    const alternateFiber: FiberRevisionSource = {
+      alternate: fiber,
+      _debugOwner: debugOwner,
+      _debugSource: debugSource,
+      _debugStack: debugStack,
+    };
+    fiber.alternate = alternateFiber;
+
+    expect(revision.matches(alternateFiber)).toBe(true);
+  });
+
   it("invalidates a replacement fiber with unchanged source metadata", () => {
     const debugOwner = { type: "Owner" };
     const debugSource = { fileName: "button.tsx" };

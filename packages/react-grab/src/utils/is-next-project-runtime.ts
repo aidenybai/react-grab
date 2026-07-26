@@ -1,13 +1,14 @@
 let cachedIsNextProject: boolean | undefined;
 
-const hasNextAssetScript = (): boolean => {
+const hasNextAssetScript = (shouldAllowCrossOrigin = false): boolean => {
   const documentUrl = new URL(document.baseURI);
   return Array.from(document.scripts).some((script) => {
     if (!script.src) return false;
     try {
       const scriptUrl = new URL(script.src, documentUrl);
       return (
-        scriptUrl.origin === documentUrl.origin && scriptUrl.pathname.includes("/_next/static/")
+        (shouldAllowCrossOrigin || scriptUrl.origin === documentUrl.origin) &&
+        scriptUrl.pathname.includes("/_next/static/")
       );
     } catch {
       return false;
@@ -28,7 +29,7 @@ export const isNextProjectRuntime = (shouldRevalidate?: boolean): boolean => {
       document.getElementById("__NEXT_DATA__") ||
       document.querySelector("nextjs-portal") ||
       hasNextAssetScript() ||
-      hasNextFlightDataScript(),
+      (hasNextFlightDataScript() && hasNextAssetScript(true)),
     );
   return cachedIsNextProject;
 };

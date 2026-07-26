@@ -63,6 +63,17 @@ describe("isNextProjectRuntime", () => {
     expect(isNextProjectRuntime(true)).toBe(true);
   });
 
+  it("rejects flight bootstrap text without a Next asset", () => {
+    setDocumentMarkers(
+      null,
+      false,
+      [],
+      ['const example = "self.__next_f.push([1, \\"app-router-payload\\"])";'],
+    );
+
+    expect(isNextProjectRuntime(true)).toBe(false);
+  });
+
   it("rejects unrelated and cross-origin script paths containing _next", () => {
     setDocumentMarkers(null, false, [
       "/vendor/_next/plugin.js",

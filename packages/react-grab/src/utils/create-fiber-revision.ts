@@ -18,7 +18,9 @@ export const createFiberRevision = (fiber: FiberRevisionSource): FiberRevision =
 
   return {
     matches: (currentFiber) =>
-      (currentFiber === fiber || currentFiber === alternateFiber) &&
+      (currentFiber === fiber ||
+        currentFiber === alternateFiber ||
+        currentFiber.alternate === fiber) &&
       currentFiber._debugOwner === debugOwner &&
       currentFiber._debugSource === debugSource &&
       currentFiber._debugStack === debugStack,
