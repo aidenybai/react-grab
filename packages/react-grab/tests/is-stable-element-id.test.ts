@@ -28,6 +28,7 @@ describe("isStableElementId", () => {
     expect(isStableElementId("downshift-2-input")).toBe(false);
     expect(isStableElementId("headlessui-menu-button-7")).toBe(false);
     expect(isStableElementId("mui-12")).toBe(false);
+    expect(isStableElementId("radix-3")).toBe(false);
     expect(isStableElementId("react-aria-4-option")).toBe(false);
     expect(isStableElementId("react-select-2-input")).toBe(false);
     expect(isStableElementId("ember123")).toBe(false);
