@@ -5,6 +5,7 @@ import { isShadowRoot } from "./is-shadow-root.js";
 import { isElementNode } from "./is-element-node.js";
 import { getElementAdapter } from "../core/element-adapter.js";
 import { isStableElementId } from "./is-stable-element-id.js";
+import { PREFERRED_SELECTOR_ATTRIBUTE_NAMES } from "./preferred-selector-attribute-names.js";
 
 export interface ElementSelectorDetails {
   selector: string;
@@ -13,21 +14,6 @@ export interface ElementSelectorDetails {
 
 const getFinderRoot = (element: Element): Element =>
   element.ownerDocument.body ?? element.ownerDocument.documentElement;
-
-const PREFERRED_SELECTOR_ATTRIBUTE_NAMES = new Set<string>([
-  "data-testid",
-  "data-test-id",
-  "data-test",
-  "data-cy",
-  "data-qa",
-  "aria-label",
-  "href",
-  "src",
-  "role",
-  "name",
-  "title",
-  "alt",
-]);
 
 const isPreferredAttributeValueSafe = (value: string): boolean =>
   value.length > 0 && value.length <= SELECTOR_ATTR_VALUE_MAX_LENGTH_CHARS;

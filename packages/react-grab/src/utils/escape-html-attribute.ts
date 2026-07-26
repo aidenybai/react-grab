@@ -1,9 +1,8 @@
+import { escapeHtmlText } from "./escape-html-text.js";
+
 export const escapeHtmlAttribute = (attributeValue: string): string =>
-  attributeValue
-    .replace(/&/g, "&amp;")
+  escapeHtmlText(attributeValue)
     .replace(/"/g, "&quot;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
     .replace(/\r/g, "&#13;")
     .replace(/\n/g, "&#10;")
     .replace(/\t/g, "&#9;");

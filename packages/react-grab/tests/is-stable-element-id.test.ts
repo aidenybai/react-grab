@@ -7,6 +7,10 @@ describe("isStableElementId", () => {
     expect(isStableElementId("user-123-profile")).toBe(true);
     expect(isStableElementId("header-r-content")).toBe(true);
     expect(isStableElementId("menu_r_item")).toBe(true);
+    expect(isStableElementId("headlessui-navigation")).toBe(true);
+    expect(isStableElementId("mui-dialog")).toBe(true);
+    expect(isStableElementId("radix-settings")).toBe(true);
+    expect(isStableElementId("react-aria-calendar")).toBe(true);
   });
 
   it("rejects React-generated identifiers", () => {
@@ -21,7 +25,10 @@ describe("isStableElementId", () => {
   });
 
   it("rejects framework-generated identifiers", () => {
+    expect(isStableElementId("downshift-2-input")).toBe(false);
     expect(isStableElementId("headlessui-menu-button-7")).toBe(false);
+    expect(isStableElementId("mui-12")).toBe(false);
+    expect(isStableElementId("react-aria-4-option")).toBe(false);
     expect(isStableElementId("react-select-2-input")).toBe(false);
     expect(isStableElementId("ember123")).toBe(false);
   });

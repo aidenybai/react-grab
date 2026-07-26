@@ -11,6 +11,7 @@ vi.mock("../src/utils/create-element-selector.js", () => ({
 
 interface SelectorTargetTestElementOptions {
   hasSelectorIdentifier?: boolean;
+  isBroadSelectorTarget?: boolean;
   isSelectorTarget?: boolean;
   parentElement?: Element | null;
 }
@@ -20,12 +21,10 @@ const createSelectorTargetTestElement = (
 ): Element => {
   const element = Object.create(null);
   element.getAttribute = () => null;
+  element.hasAttribute = () => Boolean(options.hasSelectorIdentifier);
   element.matches = (selector: string) =>
-    Boolean(
-      options.hasSelectorIdentifier ||
-      (options.isSelectorTarget && selector.split(",").includes("button")),
-    );
-  element.getElementsByTagName = () => [];
+    Boolean(options.isSelectorTarget && selector.split(",").includes("button"));
+  element.getElementsByTagName = () => (options.isBroadSelectorTarget ? [element] : []);
   element.parentElement = options.parentElement ?? null;
   element.ownerDocument = {
     body: {
@@ -65,8 +64,24 @@ describe("createNearestSemanticElementSelectorDetails", () => {
     expect(createNearestSemanticElementSelectorDetails(selectedElement)).toBe(
       expectedSelectorDetails,
     );
-    expect(createSemanticElementSelectorDetails).toHaveBeenNthCalledWith(1, repeatedCandidate);
-    expect(createSemanticElementSelectorDetails).toHaveBeenNthCalledWith(2, uniqueAncestor);
+    expect(createSemanticElementSelectorDetails).toHaveBeenNthCalledWith(1, selectedElement);
+    expect(createSemanticElementSelectorDetails).toHaveBeenNthCalledWith(2, repeatedCandidate);
+    expect(createSemanticElementSelectorDetails).toHaveBeenNthCalledWith(3, uniqueAncestor);
+  });
+
+  it("evaluates preferred selector attributes outside the selector target query", () => {
+    const selectedElement = createSelectorTargetTestElement();
+    const expectedSelectorDetails: ElementSelectorDetails = {
+      selector: '[alt="Account avatar"]',
+      isSemantic: true,
+    };
+    vi.mocked(createSemanticElementSelectorDetails).mockReturnValue(expectedSelectorDetails);
+
+    expect(createNearestSemanticElementSelectorDetails(selectedElement)).toBe(
+      expectedSelectorDetails,
+    );
+    expect(createSemanticElementSelectorDetails).toHaveBeenCalledOnce();
+    expect(createSemanticElementSelectorDetails).toHaveBeenCalledWith(selectedElement);
   });
 
   it("does not replace a generic control with a semantic ancestor", () => {
@@ -83,5 +98,27 @@ describe("createNearestSemanticElementSelectorDetails", () => {
     expect(createNearestSemanticElementSelectorDetails(genericControl)).toBe(null);
     expect(createSemanticElementSelectorDetails).toHaveBeenCalledOnce();
     expect(createSemanticElementSelectorDetails).toHaveBeenCalledWith(genericControl);
+  });
+
+  it("does not replace a selected descendant with a broad semantic ancestor", () => {
+    const broadSemanticAncestor = createSelectorTargetTestElement({
+      hasSelectorIdentifier: true,
+      isBroadSelectorTarget: true,
+    });
+    const selectedElement = createSelectorTargetTestElement({
+      parentElement: broadSemanticAncestor,
+    });
+    vi.mocked(createSemanticElementSelectorDetails).mockImplementation((candidate) =>
+      candidate === broadSemanticAncestor
+        ? {
+            selector: '[title="Application shell"]',
+            isSemantic: true,
+          }
+        : null,
+    );
+
+    expect(createNearestSemanticElementSelectorDetails(selectedElement)).toBe(null);
+    expect(createSemanticElementSelectorDetails).toHaveBeenCalledOnce();
+    expect(createSemanticElementSelectorDetails).toHaveBeenCalledWith(selectedElement);
   });
 });
