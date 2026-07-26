@@ -15,10 +15,8 @@ import {
   classifySourcePath,
   type SourcePathClassification,
 } from "../utils/classify-source-path.js";
-import {
-  createElementSelectorDetails,
-  createSemanticElementSelectorDetails,
-} from "../utils/create-element-selector.js";
+import { createElementSelectorDetails } from "../utils/create-element-selector.js";
+import { createNearestSemanticElementSelectorDetails } from "../utils/create-nearest-semantic-element-selector-details.js";
 import { findSelectorTarget } from "../utils/find-selector-target.js";
 import { isGeneratedBundleSourcePath } from "../utils/is-generated-bundle-source-path.js";
 import { isSharedUiSourcePath } from "../utils/is-shared-ui-source-path.js";
@@ -669,10 +667,9 @@ export const getStackContext = async (
 const composeElementContext = (element: Element, traceContext: TraceContextResult): string => {
   const listItemKey = getNearestListItemKey(element);
   const keyHint = listItemKey !== null ? `\n  key: ${formatListItemKey(listItemKey)}` : "";
-  const selectorTarget = findSelectorTarget(element);
   const selectorDetails = traceContext.shouldAppendSelectorHint
-    ? createElementSelectorDetails(selectorTarget)
-    : createSemanticElementSelectorDetails(selectorTarget);
+    ? createElementSelectorDetails(findSelectorTarget(element))
+    : createNearestSemanticElementSelectorDetails(element);
   const selectorHint =
     selectorDetails &&
     shouldIncludeElementSelector(traceContext.shouldAppendSelectorHint, selectorDetails)

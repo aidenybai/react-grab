@@ -421,15 +421,7 @@ const createReactGrabPageObject = (
       try {
         await page.waitForFunction(
           (targetSelector) => {
-            const api = (
-              window as {
-                __REACT_GRAB__?: {
-                  getState: () => {
-                    targetElement: Element | null;
-                  };
-                };
-              }
-            ).__REACT_GRAB__;
+            const api = window.__REACT_GRAB__;
             const expectedTarget = document.querySelector(targetSelector);
             const selectedTarget = api?.getState().targetElement;
             return Boolean(

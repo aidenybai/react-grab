@@ -1,7 +1,7 @@
 import { BROAD_SELECTOR_TARGET_DESCENDANT_RATIO } from "../constants.js";
 import { isStableElementId } from "./is-stable-element-id.js";
 
-const SELECTOR_TARGET_QUERY = [
+const SELECTOR_IDENTIFIER_QUERY = [
   "[data-testid]",
   "[data-test-id]",
   "[data-test]",
@@ -9,10 +9,6 @@ const SELECTOR_TARGET_QUERY = [
   "[data-qa]",
   "[aria-label]",
   "a[href]",
-  "button",
-  "input",
-  "select",
-  "textarea",
   '[role="button"]',
   '[role="link"]',
   '[role="checkbox"]',
@@ -27,12 +23,17 @@ const SELECTOR_TARGET_QUERY = [
   '[role="spinbutton"]',
 ].join(",");
 
-const isSelectorTarget = (element: Element): boolean => {
+const GENERIC_SELECTOR_TARGET_QUERY = ["button", "input", "select", "textarea"].join(",");
+
+const hasSelectorIdentifier = (element: Element): boolean => {
   const elementId = element.getAttribute("id");
   return Boolean(
-    (elementId && isStableElementId(elementId)) || element.matches(SELECTOR_TARGET_QUERY),
+    (elementId && isStableElementId(elementId)) || element.matches(SELECTOR_IDENTIFIER_QUERY),
   );
 };
+
+const isSelectorTarget = (element: Element): boolean =>
+  hasSelectorIdentifier(element) || element.matches(GENERIC_SELECTOR_TARGET_QUERY);
 
 const isBroadSelectorTarget = (element: Element): boolean => {
   const { body, documentElement } = element.ownerDocument;
@@ -46,11 +47,18 @@ const isBroadSelectorTarget = (element: Element): boolean => {
   return elementDescendantCount / bodyDescendantCount >= BROAD_SELECTOR_TARGET_DESCENDANT_RATIO;
 };
 
-export const findSelectorTarget = (element: Element): Element => {
+const acceptAnySelectorTarget = (): boolean => true;
+
+export const findSelectorTarget = (
+  element: Element,
+  isCandidateAccepted: (candidate: Element) => boolean = acceptAnySelectorTarget,
+): Element => {
   let currentElement: Element | null = element;
   while (currentElement) {
     if (isSelectorTarget(currentElement)) {
-      return isBroadSelectorTarget(currentElement) ? element : currentElement;
+      if (isBroadSelectorTarget(currentElement)) return element;
+      if (isCandidateAccepted(currentElement)) return currentElement;
+      if (!hasSelectorIdentifier(currentElement)) return currentElement;
     }
     currentElement = currentElement.parentElement;
   }

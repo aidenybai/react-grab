@@ -117,6 +117,14 @@ const GeneratedIdOwner = () => (
         <span className="nested-generated-id-target">Nested generated ID target</span>
       </span>
     </button>
+    <button aria-label="Unique semantic ancestor" type="button">
+      <span data-testid="repeated-semantic-candidate">
+        <span className="nested-repeated-semantic-target">Nested repeated semantic target</span>
+      </span>
+    </button>
+    <button aria-label="Other semantic ancestor" type="button">
+      <span data-testid="repeated-semantic-candidate">Other repeated semantic target</span>
+    </button>
   </>
 );
 

@@ -89,6 +89,13 @@ test.describe("React owner stack semantics", () => {
     expect(context).not.toContain("selector: #");
   });
 
+  test("looks past a repeated semantic candidate for a unique ancestor", async ({ reactGrab }) => {
+    const context = await copyElementContext(reactGrab, ".nested-repeated-semantic-target");
+
+    expect(context).toContain('selector: [aria-label="Unique semantic ancestor"]');
+    expect(context).not.toContain('selector: [data-testid="repeated-semantic-candidate"]');
+  });
+
   test("keeps nested control text in the inline preview", async ({ reactGrab }) => {
     const context = await copyElementContext(reactGrab, ".duplicate-context-target");
 
