@@ -72,6 +72,12 @@ describe("isNextProjectRuntime", () => {
     expect(isNextProjectRuntime(true)).toBe(false);
   });
 
+  it("ignores malformed script URLs", () => {
+    setDocumentMarkers(null, false, ["http://[::1"]);
+
+    expect(isNextProjectRuntime(true)).toBe(false);
+  });
+
   it("rejects documents without Next markers", () => {
     setDocumentMarkers(null, false);
 

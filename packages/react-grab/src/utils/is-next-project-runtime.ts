@@ -4,8 +4,14 @@ const hasNextAssetScript = (): boolean => {
   const documentUrl = new URL(document.baseURI);
   return Array.from(document.scripts).some((script) => {
     if (!script.src) return false;
-    const scriptUrl = new URL(script.src, documentUrl);
-    return scriptUrl.origin === documentUrl.origin && scriptUrl.pathname.includes("/_next/static/");
+    try {
+      const scriptUrl = new URL(script.src, documentUrl);
+      return (
+        scriptUrl.origin === documentUrl.origin && scriptUrl.pathname.includes("/_next/static/")
+      );
+    } catch {
+      return false;
+    }
   });
 };
 

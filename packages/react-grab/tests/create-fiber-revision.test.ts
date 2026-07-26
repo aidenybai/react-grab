@@ -40,13 +40,25 @@ describe("createFiberRevision", () => {
     expect(revision.matches(fiber)).toBe(false);
   });
 
-  it("invalidates when the current fiber identity or render time changes", () => {
-    const fiber: FiberRevisionSource = { actualStartTime: 1 };
+  it("matches alternate fibers and render times when source metadata is unchanged", () => {
+    const debugOwner = { type: "Owner" };
+    const debugSource = { fileName: "button.tsx" };
+    const debugStack = new Error();
+    const fiber: FiberRevisionSource = {
+      _debugOwner: debugOwner,
+      _debugSource: debugSource,
+      _debugStack: debugStack,
+      actualStartTime: 1,
+    };
     const revision = createFiberRevision(fiber);
 
-    expect(revision.matches({ actualStartTime: 1 })).toBe(false);
-
-    fiber.actualStartTime = 2;
-    expect(revision.matches(fiber)).toBe(false);
+    expect(
+      revision.matches({
+        _debugOwner: debugOwner,
+        _debugSource: debugSource,
+        _debugStack: debugStack,
+        actualStartTime: 2,
+      }),
+    ).toBe(true);
   });
 });

@@ -13,14 +13,11 @@ export const createFiberRevision = (fiber: FiberRevisionSource): FiberRevision =
   const debugOwner = fiber._debugOwner;
   const debugSource = fiber._debugSource;
   const debugStack = fiber._debugStack;
-  const actualStartTime = fiber.actualStartTime;
 
   return {
     matches: (currentFiber) =>
-      currentFiber === fiber &&
       currentFiber._debugOwner === debugOwner &&
       currentFiber._debugSource === debugSource &&
-      currentFiber._debugStack === debugStack &&
-      currentFiber.actualStartTime === actualStartTime,
+      currentFiber._debugStack === debugStack,
   };
 };
