@@ -1,5 +1,5 @@
 import { test as base, expect, Page, Locator } from "@playwright/test";
-import { ATTRIBUTE_NAME } from "./constants.js";
+import { ATTRIBUTE_NAME, KEYBOARD_ACTIVATION_SETTLE_DELAY_MS } from "./constants.js";
 import { COVERAGE_RAW_DIR } from "./coverage-config.js";
 
 const COVERAGE_ENABLED = Boolean(process.env.COVERAGE);
@@ -267,11 +267,18 @@ const createReactGrabPageObject = (
     await page.keyboard.down(activationModifierKey);
     await page.keyboard.down("c");
     try {
-      await waitForActive(true);
+      await page.evaluate(
+        (settleDelayMs) =>
+          new Promise<void>((resolve) => {
+            window.setTimeout(resolve, settleDelayMs);
+          }),
+        KEYBOARD_ACTIVATION_SETTLE_DELAY_MS,
+      );
     } finally {
       await page.keyboard.up("c");
       await page.keyboard.up(activationModifierKey);
     }
+    await waitForActive(true);
   };
 
   const activate = async () => {
