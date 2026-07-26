@@ -1,4 +1,5 @@
 import { BROAD_SELECTOR_TARGET_DESCENDANT_RATIO } from "../constants.js";
+import { ACTIONABLE_SELECTOR_ROLES } from "./actionable-selector-roles.js";
 import { isStableElementId } from "./is-stable-element-id.js";
 import { PREFERRED_SELECTOR_ATTRIBUTE_NAMES } from "./preferred-selector-attribute-names.js";
 
@@ -6,18 +7,7 @@ const SELECTOR_IDENTIFIER_QUERY = [
   ...Array.from(PREFERRED_SELECTOR_ATTRIBUTE_NAMES)
     .filter((attributeName) => attributeName !== "role")
     .map((attributeName) => `[${attributeName}]`),
-  '[role="button"]',
-  '[role="link"]',
-  '[role="checkbox"]',
-  '[role="radio"]',
-  '[role="switch"]',
-  '[role="tab"]',
-  '[role="menuitem"]',
-  '[role="option"]',
-  '[role="textbox"]',
-  '[role="combobox"]',
-  '[role="slider"]',
-  '[role="spinbutton"]',
+  ...Array.from(ACTIONABLE_SELECTOR_ROLES).map((role) => `[role~="${role}"]`),
 ].join(",");
 
 const GENERIC_SELECTOR_TARGET_QUERY = ["button", "input", "select", "textarea"].join(",");

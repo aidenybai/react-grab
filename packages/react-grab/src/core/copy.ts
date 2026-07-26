@@ -1,4 +1,4 @@
-import { resolveElementContext } from "./context.js";
+import { resolveElementReferenceContext } from "./context.js";
 import { copyContent } from "../utils/copy-content.js";
 import { normalizeError } from "../utils/normalize-error.js";
 import { getTagName } from "../utils/get-tag-name.js";
@@ -48,10 +48,13 @@ const buildElementPayloadEntry = async (
   element: Element,
   maxContextLines?: number,
 ): Promise<ReactGrabEntry> => {
-  const elementContext = await resolveElementContext(element, { maxLines: maxContextLines });
+  const elementContext = await resolveElementReferenceContext(element, {
+    maxLines: maxContextLines,
+  });
   return {
     tagName: getTagName(element),
-    componentName: elementContext.source?.componentName ?? undefined,
+    componentName:
+      elementContext.componentName ?? elementContext.source?.componentName ?? undefined,
     content: `[${elementContext.referenceContext}]`,
     source: elementContext.source,
     stackContext: elementContext.stackContext,

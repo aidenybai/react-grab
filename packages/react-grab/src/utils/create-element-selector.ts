@@ -6,6 +6,7 @@ import { isElementNode } from "./is-element-node.js";
 import { getElementAdapter } from "../core/element-adapter.js";
 import { isStableElementId } from "./is-stable-element-id.js";
 import { PREFERRED_SELECTOR_ATTRIBUTE_NAMES } from "./preferred-selector-attribute-names.js";
+import { ACTIONABLE_SELECTOR_ROLES } from "./actionable-selector-roles.js";
 
 export interface ElementSelectorDetails {
   selector: string;
@@ -17,6 +18,12 @@ const getFinderRoot = (element: Element): Element =>
 
 const isPreferredAttributeValueSafe = (value: string): boolean =>
   value.length > 0 && value.length <= SELECTOR_ATTR_VALUE_MAX_LENGTH_CHARS;
+
+const isPreferredSelectorAttribute = (attributeName: string, attributeValue: string): boolean =>
+  PREFERRED_SELECTOR_ATTRIBUTE_NAMES.has(attributeName) &&
+  isPreferredAttributeValueSafe(attributeValue) &&
+  (attributeName !== "role" ||
+    attributeValue.split(/\s+/).some((role) => ACTIONABLE_SELECTOR_ROLES.has(role)));
 
 const isSelectorUniqueForElement = (element: Element, selector: string): boolean => {
   try {
@@ -43,7 +50,7 @@ const createFastElementSelector = (element: Element): ElementSelectorDetails | n
   for (const attributeName of PREFERRED_SELECTOR_ATTRIBUTE_NAMES) {
     const attributeValue = element.getAttribute(attributeName);
     if (!attributeValue) continue;
-    if (!isPreferredAttributeValueSafe(attributeValue)) continue;
+    if (!isPreferredSelectorAttribute(attributeName, attributeValue)) continue;
 
     const quotedValue = JSON.stringify(attributeValue);
 
@@ -107,8 +114,7 @@ const createLocalElementSelector = (element: Element): ElementSelectorDetails =>
       FINDER_TIMEOUT_MS,
       (attributeName, attributeValue) =>
         isAcceptedAttr(attributeName, attributeValue) ||
-        (PREFERRED_SELECTOR_ATTRIBUTE_NAMES.has(attributeName) &&
-          isPreferredAttributeValueSafe(attributeValue)),
+        isPreferredSelectorAttribute(attributeName, attributeValue),
     );
     if (selector) return { selector, isSemantic: false };
     // @medv/finder can throw on unusual DOM structures (SVG, web components,

@@ -418,14 +418,20 @@ export interface StackContextOptions {
   maxLines?: number;
 }
 
-export interface ResolvedElementContext {
+interface ResolvedElementContextBase {
   componentName: string | null;
-  elementInfo: string;
   fiber: Fiber | null;
-  referenceContext: string;
   source: ResolvedSource | null;
   stack: StackFrame[];
   stackContext: string;
+}
+
+export interface ResolvedElementContext extends ResolvedElementContextBase {
+  elementInfo: string;
+}
+
+export interface ResolvedElementReferenceContext extends ResolvedElementContextBase {
+  referenceContext: string;
 }
 
 interface TraceContextResult {
@@ -775,13 +781,11 @@ export const formatElementInfo = async (
   return `${htmlPreview}${composeElementContext(nearestFiberElement, traceContext)}`;
 };
 
-const createResolvedElementContext = (
+const createResolvedElementContextBase = (
   element: Element,
-  options: StackContextOptions,
   traceResolution: FiberTraceResolution,
-): ResolvedElementContext => {
-  const traceContext = createTraceContext(element, options, traceResolution);
-  const nearestFiberElement = findNearestFiberElement(element);
+  traceContext: TraceContextResult,
+): ResolvedElementContextBase => {
   const resolvedStack = traceResolution.stack ?? [];
   const solidSourceLocation =
     process.env.REACT_GRAB_SOURCE_LOCATIONS === "true" ? resolveSolidSourceLocation(element) : null;
@@ -790,26 +794,62 @@ const createResolvedElementContext = (
     : selectResolvedSource(traceResolution.fiberSource, resolvedStack);
   return {
     componentName: getComponentDisplayName(element),
-    elementInfo: `${getHTMLPreview(nearestFiberElement)}${composeElementContext(nearestFiberElement, traceContext)}`,
     fiber: getReactFiberForElement(element),
-    referenceContext: `${getInlineHTMLPreview(element)}${composeElementContext(element, traceContext).replace(/\n\s+/g, " ")}`,
     source,
     stack: resolvedStack,
     stackContext: traceContext.text,
   };
 };
 
+const createResolvedElementContext = (
+  element: Element,
+  options: StackContextOptions,
+  traceResolution: FiberTraceResolution,
+): ResolvedElementContext => {
+  const traceContext = createTraceContext(element, options, traceResolution);
+  const nearestFiberElement = findNearestFiberElement(element);
+  return {
+    ...createResolvedElementContextBase(element, traceResolution, traceContext),
+    elementInfo: `${getHTMLPreview(nearestFiberElement)}${composeElementContext(nearestFiberElement, traceContext)}`,
+  };
+};
+
+const createResolvedElementReferenceContext = (
+  element: Element,
+  options: StackContextOptions,
+  traceResolution: FiberTraceResolution,
+): ResolvedElementReferenceContext => {
+  const traceContext = createTraceContext(element, options, traceResolution);
+  return {
+    ...createResolvedElementContextBase(element, traceResolution, traceContext),
+    referenceContext: `${getInlineHTMLPreview(element)}${composeElementContext(element, traceContext).replace(/\n\s+/g, " ")}`,
+  };
+};
+
+const resolveElementContextValue = <Value>(
+  element: Element,
+  options: StackContextOptions,
+  createValue: (
+    element: Element,
+    options: StackContextOptions,
+    traceResolution: FiberTraceResolution,
+  ) => Value,
+): Promise<Value> =>
+  resolveCurrentFiberRevisionValue(
+    element,
+    () => createValue(element, options, { fiberSource: null, stack: [] }),
+    async (snapshot) =>
+      createValue(element, options, await getFiberTraceResolutionForRevision(snapshot)),
+  );
+
 export const resolveElementContext = (
   element: Element,
   options: StackContextOptions = {},
 ): Promise<ResolvedElementContext> =>
-  resolveCurrentFiberRevisionValue(
-    element,
-    () => createResolvedElementContext(element, options, { fiberSource: null, stack: [] }),
-    async (snapshot) =>
-      createResolvedElementContext(
-        element,
-        options,
-        await getFiberTraceResolutionForRevision(snapshot),
-      ),
-  );
+  resolveElementContextValue(element, options, createResolvedElementContext);
+
+export const resolveElementReferenceContext = (
+  element: Element,
+  options: StackContextOptions = {},
+): Promise<ResolvedElementReferenceContext> =>
+  resolveElementContextValue(element, options, createResolvedElementReferenceContext);

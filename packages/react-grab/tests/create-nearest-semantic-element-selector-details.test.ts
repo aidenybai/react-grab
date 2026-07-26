@@ -127,6 +127,7 @@ describe("createNearestSemanticElementSelectorDetails", () => {
       hasSelectorIdentifier: true,
     });
     const selectedElement = createSelectorTargetTestElement({
+      hasSelectorIdentifier: true,
       parentElement: semanticAncestor,
       role: "img",
     });
@@ -136,10 +137,7 @@ describe("createNearestSemanticElementSelectorDetails", () => {
     };
     vi.mocked(createSemanticElementSelectorDetails).mockImplementation((candidate) =>
       candidate === selectedElement
-        ? {
-            selector: '[role="img"]',
-            isSemantic: true,
-          }
+        ? null
         : candidate === semanticAncestor
           ? expectedSelectorDetails
           : null,
@@ -148,8 +146,8 @@ describe("createNearestSemanticElementSelectorDetails", () => {
     expect(createNearestSemanticElementSelectorDetails(selectedElement)).toBe(
       expectedSelectorDetails,
     );
-    expect(createSemanticElementSelectorDetails).toHaveBeenCalledOnce();
-    expect(createSemanticElementSelectorDetails).toHaveBeenCalledWith(semanticAncestor);
+    expect(createSemanticElementSelectorDetails).toHaveBeenNthCalledWith(1, selectedElement);
+    expect(createSemanticElementSelectorDetails).toHaveBeenNthCalledWith(2, semanticAncestor);
   });
 
   it("does not replace a generic control with a semantic ancestor", () => {
