@@ -21,9 +21,11 @@ const createSelectorTargetTestElement = (
 ): Element => {
   const element = Object.create(null);
   element.getAttribute = () => null;
-  element.hasAttribute = () => Boolean(options.hasSelectorIdentifier);
   element.matches = (selector: string) =>
-    Boolean(options.isSelectorTarget && selector.split(",").includes("button"));
+    Boolean(
+      options.hasSelectorIdentifier ||
+      (options.isSelectorTarget && selector.split(",").includes("button")),
+    );
   element.getElementsByTagName = () => (options.isBroadSelectorTarget ? [element] : []);
   element.parentElement = options.parentElement ?? null;
   element.ownerDocument = {
@@ -64,13 +66,14 @@ describe("createNearestSemanticElementSelectorDetails", () => {
     expect(createNearestSemanticElementSelectorDetails(selectedElement)).toBe(
       expectedSelectorDetails,
     );
-    expect(createSemanticElementSelectorDetails).toHaveBeenNthCalledWith(1, selectedElement);
-    expect(createSemanticElementSelectorDetails).toHaveBeenNthCalledWith(2, repeatedCandidate);
-    expect(createSemanticElementSelectorDetails).toHaveBeenNthCalledWith(3, uniqueAncestor);
+    expect(createSemanticElementSelectorDetails).toHaveBeenNthCalledWith(1, repeatedCandidate);
+    expect(createSemanticElementSelectorDetails).toHaveBeenNthCalledWith(2, uniqueAncestor);
   });
 
-  it("evaluates preferred selector attributes outside the selector target query", () => {
-    const selectedElement = createSelectorTargetTestElement();
+  it("evaluates preferred alt selector candidates", () => {
+    const selectedElement = createSelectorTargetTestElement({
+      hasSelectorIdentifier: true,
+    });
     const expectedSelectorDetails: ElementSelectorDetails = {
       selector: '[alt="Account avatar"]',
       isSemantic: true,
@@ -82,6 +85,38 @@ describe("createNearestSemanticElementSelectorDetails", () => {
     );
     expect(createSemanticElementSelectorDetails).toHaveBeenCalledOnce();
     expect(createSemanticElementSelectorDetails).toHaveBeenCalledWith(selectedElement);
+  });
+
+  it("skips a non-interactive role in favor of an actionable semantic ancestor", () => {
+    const semanticAncestor = createSelectorTargetTestElement({
+      hasSelectorIdentifier: true,
+    });
+    const nonInteractiveRole = createSelectorTargetTestElement({
+      parentElement: semanticAncestor,
+    });
+    const selectedElement = createSelectorTargetTestElement({
+      parentElement: nonInteractiveRole,
+    });
+    const expectedSelectorDetails: ElementSelectorDetails = {
+      selector: '[aria-label="Source-less icon link"]',
+      isSemantic: true,
+    };
+    vi.mocked(createSemanticElementSelectorDetails).mockImplementation((candidate) =>
+      candidate === nonInteractiveRole
+        ? {
+            selector: '[role="img"]',
+            isSemantic: true,
+          }
+        : candidate === semanticAncestor
+          ? expectedSelectorDetails
+          : null,
+    );
+
+    expect(createNearestSemanticElementSelectorDetails(selectedElement)).toBe(
+      expectedSelectorDetails,
+    );
+    expect(createSemanticElementSelectorDetails).toHaveBeenCalledOnce();
+    expect(createSemanticElementSelectorDetails).toHaveBeenCalledWith(semanticAncestor);
   });
 
   it("does not replace a generic control with a semantic ancestor", () => {
@@ -118,7 +153,6 @@ describe("createNearestSemanticElementSelectorDetails", () => {
     );
 
     expect(createNearestSemanticElementSelectorDetails(selectedElement)).toBe(null);
-    expect(createSemanticElementSelectorDetails).toHaveBeenCalledOnce();
-    expect(createSemanticElementSelectorDetails).toHaveBeenCalledWith(selectedElement);
+    expect(createSemanticElementSelectorDetails).not.toHaveBeenCalled();
   });
 });
