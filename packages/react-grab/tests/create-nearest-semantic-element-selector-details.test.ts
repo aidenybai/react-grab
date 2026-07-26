@@ -4,6 +4,7 @@ import {
   type ElementSelectorDetails,
 } from "../src/utils/create-element-selector.js";
 import { createNearestSemanticElementSelectorDetails } from "../src/utils/create-nearest-semantic-element-selector-details.js";
+import { registerElementAdapter } from "../src/core/element-adapter.js";
 
 vi.mock("../src/utils/create-element-selector.js", () => ({
   createSemanticElementSelectorDetails: vi.fn(),
@@ -14,17 +15,20 @@ interface SelectorTargetTestElementOptions {
   isBroadSelectorTarget?: boolean;
   isSelectorTarget?: boolean;
   parentElement?: Element | null;
+  role?: string;
 }
 
 const createSelectorTargetTestElement = (
   options: SelectorTargetTestElementOptions = {},
 ): Element => {
   const element = Object.create(null);
-  element.getAttribute = () => null;
+  element.getAttribute = (attributeName: string) =>
+    attributeName === "role" ? (options.role ?? null) : null;
   element.matches = (selector: string) =>
     Boolean(
       options.hasSelectorIdentifier ||
-      (options.isSelectorTarget && selector.split(",").includes("button")),
+      (options.isSelectorTarget && selector.split(",").includes("button")) ||
+      (options.role && selector.split(",").includes(`[role="${options.role}"]`)),
     );
   element.getElementsByTagName = () => (options.isBroadSelectorTarget ? [element] : []);
   element.parentElement = options.parentElement ?? null;
@@ -66,9 +70,8 @@ describe("createNearestSemanticElementSelectorDetails", () => {
     expect(createNearestSemanticElementSelectorDetails(selectedElement)).toBe(
       expectedSelectorDetails,
     );
-    expect(createSemanticElementSelectorDetails).toHaveBeenNthCalledWith(1, selectedElement);
-    expect(createSemanticElementSelectorDetails).toHaveBeenNthCalledWith(2, repeatedCandidate);
-    expect(createSemanticElementSelectorDetails).toHaveBeenNthCalledWith(3, uniqueAncestor);
+    expect(createSemanticElementSelectorDetails).toHaveBeenNthCalledWith(1, repeatedCandidate);
+    expect(createSemanticElementSelectorDetails).toHaveBeenNthCalledWith(2, uniqueAncestor);
   });
 
   it("uses an adapter selector from the selected element", () => {
@@ -77,6 +80,22 @@ describe("createNearestSemanticElementSelectorDetails", () => {
       selector: 'mesh[name="left-cube"]',
       isSemantic: true,
     };
+    registerElementAdapter(selectedElement, {
+      hostElement: selectedElement,
+      supportsDomEditing: false,
+      getBounds: () => ({
+        borderRadius: "0px",
+        height: 1,
+        width: 1,
+        x: 0,
+        y: 0,
+      }),
+      getFiber: () => null,
+      getPreview: () => "<mesh />",
+      getSelector: () => expectedSelectorDetails.selector,
+      getTagName: () => "mesh",
+      isConnected: () => true,
+    });
     vi.mocked(createSemanticElementSelectorDetails).mockReturnValue(expectedSelectorDetails);
 
     expect(createNearestSemanticElementSelectorDetails(selectedElement)).toBe(
@@ -107,18 +126,16 @@ describe("createNearestSemanticElementSelectorDetails", () => {
     const semanticAncestor = createSelectorTargetTestElement({
       hasSelectorIdentifier: true,
     });
-    const nonInteractiveRole = createSelectorTargetTestElement({
-      parentElement: semanticAncestor,
-    });
     const selectedElement = createSelectorTargetTestElement({
-      parentElement: nonInteractiveRole,
+      parentElement: semanticAncestor,
+      role: "img",
     });
     const expectedSelectorDetails: ElementSelectorDetails = {
-      selector: '[aria-label="Source-less icon link"]',
+      selector: '[aria-label="Trusted-source icon link"]',
       isSemantic: true,
     };
     vi.mocked(createSemanticElementSelectorDetails).mockImplementation((candidate) =>
-      candidate === nonInteractiveRole
+      candidate === selectedElement
         ? {
             selector: '[role="img"]',
             isSemantic: true,
@@ -131,9 +148,8 @@ describe("createNearestSemanticElementSelectorDetails", () => {
     expect(createNearestSemanticElementSelectorDetails(selectedElement)).toBe(
       expectedSelectorDetails,
     );
-    expect(createSemanticElementSelectorDetails).toHaveBeenCalledTimes(2);
-    expect(createSemanticElementSelectorDetails).toHaveBeenNthCalledWith(1, selectedElement);
-    expect(createSemanticElementSelectorDetails).toHaveBeenNthCalledWith(2, semanticAncestor);
+    expect(createSemanticElementSelectorDetails).toHaveBeenCalledOnce();
+    expect(createSemanticElementSelectorDetails).toHaveBeenCalledWith(semanticAncestor);
   });
 
   it("does not replace a generic control with a semantic ancestor", () => {
@@ -170,7 +186,6 @@ describe("createNearestSemanticElementSelectorDetails", () => {
     );
 
     expect(createNearestSemanticElementSelectorDetails(selectedElement)).toBe(null);
-    expect(createSemanticElementSelectorDetails).toHaveBeenCalledOnce();
-    expect(createSemanticElementSelectorDetails).toHaveBeenCalledWith(selectedElement);
+    expect(createSemanticElementSelectorDetails).not.toHaveBeenCalled();
   });
 });

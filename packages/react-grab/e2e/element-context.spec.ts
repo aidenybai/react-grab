@@ -38,6 +38,18 @@ test.describe("Element Context Fallback", () => {
       expect(clipboard).toContain("TodoItem");
     });
 
+    test("should prefer an actionable ancestor over a weak role with trusted source", async ({
+      reactGrab,
+    }) => {
+      const didCopy = await reactGrab.copyElementViaApi("[data-testid='production-icon-link'] svg");
+      expect(didCopy).toBe(true);
+
+      const clipboard = await reactGrab.getClipboardContent();
+      expect(clipboard).toContain("<svg");
+      expect(clipboard).toContain('selector: [data-testid="production-icon-link"]');
+      expect(clipboard).not.toContain('selector: [role="img"]');
+    });
+
     test("should surface the list-item key for mapped host elements", async ({ reactGrab }) => {
       await reactGrab.activate();
 
