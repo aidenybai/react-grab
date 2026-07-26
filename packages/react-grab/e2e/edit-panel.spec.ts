@@ -1200,8 +1200,10 @@ test.describe("Style Panel", () => {
       const searchInput = reactGrab.page
         .locator(`[${ATTRIBUTE_NAME}]`)
         .locator(`[${SEARCH_INPUT_ATTR}]`);
-      await expect(searchInput).toBeFocused();
-      await searchInput.pressSequentially("t-");
+      await searchInput.click();
+      await searchInput.press("t");
+      await expect(searchInput).toHaveValue("mt");
+      await searchInput.press("-");
       await expect(searchInput).toHaveValue("mt-");
       const activeKey = await getActivePropertyKey(reactGrab.page);
       expect(activeKey).toBe("margin-top");

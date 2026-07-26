@@ -82,7 +82,7 @@ const buildClipboardPayload = async (
   if (textNode && parentElement) {
     const stackOptions = { maxLines: maxContextLines };
     const [referenceContext, stackContext, source, stack] = await Promise.all([
-      getTextNodeReferenceContext(textNode, stackOptions),
+      getTextNodeReferenceContext(textNode, stackOptions, parentElement),
       getStackContext(parentElement, stackOptions),
       resolveSource(parentElement),
       getStack(parentElement),

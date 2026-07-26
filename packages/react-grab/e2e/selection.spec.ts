@@ -614,10 +614,32 @@ test.describe("Element Selection", () => {
         return (
           typeof copiedContent === "string" &&
           copiedContent.includes('"Grab this text"') &&
+          copiedContent.includes("selector: #mixed-text-target") &&
           !copiedContent.includes("not the nested element")
         );
       })
       .toBe(true);
+  });
+
+  test("should clear text targeting when the hovered tree is disconnected", async ({
+    reactGrab,
+  }) => {
+    const target = await createMixedTextTarget(reactGrab);
+
+    await reactGrab.activate();
+    await reactGrab.page.mouse.move(target.position.x, target.position.y);
+    await expect
+      .poll(async () => (await reactGrab.getSelectionLabelInfo()).tagName)
+      .toContain("Grab this text");
+
+    await reactGrab.page.evaluate(() => {
+      document.querySelector("#mixed-text-target")?.remove();
+      window.dispatchEvent(new Event("resize"));
+    });
+
+    await expect
+      .poll(async () => (await reactGrab.getSelectionLabelInfo()).tagName)
+      .not.toContain("Grab this text");
   });
 
   test("should relink grabbed text after its DOM node is replaced", async ({ reactGrab }) => {

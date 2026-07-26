@@ -75,6 +75,26 @@ describe("text node anchors", () => {
     expect(resolveLiveTextNode(previousTextNode, liveElement)).toBe(changedTextNode);
   });
 
+  it("does not relink to a sibling that shifts into a removed text node's index", () => {
+    const previousChildren: Node[] = [];
+    const previousElement = createElement(previousChildren);
+    const removedTextNode = createTextNode("removed text", previousElement);
+    const nestedElement = createElement([]);
+    const remainingTextNode = createTextNode("remaining text", previousElement);
+    previousChildren.push(removedTextNode, nestedElement, remainingTextNode);
+    trackTextNodeAnchor(removedTextNode);
+    Object.defineProperty(removedTextNode, "isConnected", { value: false });
+
+    const liveChildren: Node[] = [];
+    const liveElement = createElement(liveChildren);
+    const liveNestedElement = createElement([]);
+    const liveRemainingTextNode = createTextNode("remaining text", liveElement);
+    liveChildren.push(liveNestedElement, liveRemainingTextNode);
+
+    expect(resolveLiveTextNode(removedTextNode, liveElement)).toBe(null);
+    expect(transferTextNodeBoundsRectIndex).not.toHaveBeenCalled();
+  });
+
   it("preserves the selected occurrence when direct text content is duplicated", () => {
     const previousChildren: Node[] = [];
     const previousElement = createElement(previousChildren);

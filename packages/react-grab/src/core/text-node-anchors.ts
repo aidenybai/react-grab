@@ -3,6 +3,7 @@ import { isGrabbableTextNode } from "../utils/is-grabbable-text-node.js";
 
 interface TextNodeAnchor {
   childIndex: number;
+  directTextCount: number;
   directTextIndex: number;
   textContent: string;
 }
@@ -24,6 +25,7 @@ export const trackTextNodeAnchor = (textNode: Text): void => {
   const directTextNodes = getDirectTextNodes(parentElement);
   anchorByTextNode.set(textNode, {
     childIndex: Array.from(parentElement.childNodes).indexOf(textNode),
+    directTextCount: directTextNodes.length,
     directTextIndex: directTextNodes.indexOf(textNode),
     textContent: textNode.textContent ?? "",
   });
@@ -48,12 +50,14 @@ export const resolveLiveTextNode = (
   const contentCandidate = directTextNodes.find(
     (candidate) => candidate.textContent === anchor.textContent,
   );
+  const changedTextCandidate =
+    directTextNodes.length === anchor.directTextCount ? indexedTextCandidate : undefined;
   const liveTextNode =
     indexedTextCandidate?.textContent === anchor.textContent
       ? indexedTextCandidate
       : isGrabbableTextNode(childCandidate) && childCandidate.textContent === anchor.textContent
         ? childCandidate
-        : (contentCandidate ?? indexedTextCandidate);
+        : (contentCandidate ?? changedTextCandidate);
   if (!liveTextNode) return null;
 
   transferTextNodeBoundsRectIndex(textNode, liveTextNode);

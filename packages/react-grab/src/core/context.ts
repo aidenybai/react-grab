@@ -598,9 +598,10 @@ export const getElementReferenceContext = async (
 export const getTextNodeReferenceContext = async (
   textNode: Text,
   options: StackContextOptions = {},
+  fallbackParentElement?: Element,
 ): Promise<string> => {
   const textContent = textNode.textContent?.replace(/\s+/g, " ").trim() ?? "";
-  const parentElement = textNode.parentElement;
+  const parentElement = textNode.parentElement ?? fallbackParentElement;
   if (!parentElement) return JSON.stringify(textContent);
 
   const traceContext = await getTraceContext(parentElement, options);

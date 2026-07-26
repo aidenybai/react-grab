@@ -1237,7 +1237,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (isFrozenPhase()) return null;
 
       const detectedNode = detectedTextNode();
-      return detectedNode?.parentElement === targetElement() ? detectedNode : null;
+      const detectedElement = targetElement();
+      return detectedNode && detectedElement && detectedNode.parentElement === detectedElement
+        ? detectedNode
+        : null;
     });
 
     // The hierarchy dropdown appears while keyboard-navigating a frozen
