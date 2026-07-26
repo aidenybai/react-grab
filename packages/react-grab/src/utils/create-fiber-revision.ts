@@ -1,4 +1,5 @@
 export interface FiberRevisionSource {
+  alternate?: FiberRevisionSource | null;
   _debugOwner?: unknown;
   _debugSource?: unknown;
   _debugStack?: unknown;
@@ -6,17 +7,18 @@ export interface FiberRevisionSource {
 }
 
 export interface FiberRevision {
-  matches: (currentFiber: FiberRevisionSource, currentFiberId: number) => boolean;
+  matches: (currentFiber: FiberRevisionSource) => boolean;
 }
 
-export const createFiberRevision = (fiber: FiberRevisionSource, fiberId: number): FiberRevision => {
+export const createFiberRevision = (fiber: FiberRevisionSource): FiberRevision => {
+  const alternateFiber = fiber.alternate;
   const debugOwner = fiber._debugOwner;
   const debugSource = fiber._debugSource;
   const debugStack = fiber._debugStack;
 
   return {
-    matches: (currentFiber, currentFiberId) =>
-      currentFiberId === fiberId &&
+    matches: (currentFiber) =>
+      (currentFiber === fiber || currentFiber === alternateFiber) &&
       currentFiber._debugOwner === debugOwner &&
       currentFiber._debugSource === debugSource &&
       currentFiber._debugStack === debugStack,

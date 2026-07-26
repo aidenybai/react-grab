@@ -40,6 +40,7 @@ export const SYMBOLICATION_TIMEOUT_MS = 5000;
 // un-cancelable bundle fetch is stuck behind a saturated connection pool, and
 // exists to free the queue slot rather than to bound normal latency.
 export const SOURCE_FETCH_TIMEOUT_MS = 8000;
+export const FIBER_CONTEXT_REVISION_MAX_ATTEMPTS = 2;
 // Cap on react-grab's own concurrent source-resolution fetches.
 //
 // Resolving a grabbed element's source location fetches its JS bundle and source

@@ -2,7 +2,6 @@ import { getOwnerStack, getSource, type StackFrame } from "bippy/source";
 import {
   isInstrumentationActive,
   getDisplayName,
-  getFiberId,
   getLatestFiber,
   isCompositeFiber,
   traverseFiber,
@@ -36,6 +35,7 @@ import { createFiberRevision, type FiberRevision } from "../utils/create-fiber-r
 import { formatListItemKey } from "../utils/format-list-item-key.js";
 import { deleteCacheEntryIfCurrent } from "../utils/delete-cache-entry-if-current.js";
 import { createSupersedablePromise } from "../utils/create-supersedable-promise.js";
+import { resolveCurrentRevisionValue } from "../utils/resolve-current-revision-value.js";
 import type { SourceLocation } from "../types.js";
 import { getElementAdapter, getReactFiberForElement } from "./element-adapter.js";
 
@@ -114,8 +114,59 @@ interface FiberContextCacheEntry<Result> {
   supersedeWith: (replacementPromise: Promise<Result>) => void;
 }
 
+interface FiberContextRevisionSnapshot {
+  element: Element;
+  fiber: Fiber;
+  revision: FiberRevision;
+}
+
+interface FiberTraceResolution {
+  fiberSource: ResolvedSource | null;
+  stack: StackFrame[] | null;
+}
+
 const stackCache = new WeakMap<Element, FiberContextCacheEntry<StackFrame[] | null>>();
 const fiberSourceCache = new WeakMap<Element, FiberContextCacheEntry<ResolvedSource | null>>();
+
+const createFiberContextRevisionSnapshot = (
+  element: Element,
+): FiberContextRevisionSnapshot | null => {
+  const nearestFiberElement = findNearestFiberElement(element);
+  const fiber = getReactFiberForElement(nearestFiberElement);
+  if (!fiber) return null;
+  const currentFiber = getLatestFiber(fiber);
+  return {
+    element: nearestFiberElement,
+    fiber: currentFiber,
+    revision: createFiberRevision(currentFiber),
+  };
+};
+
+const isFiberContextRevisionCurrent = (
+  element: Element,
+  snapshot: FiberContextRevisionSnapshot,
+): boolean => {
+  const currentSnapshot = createFiberContextRevisionSnapshot(element);
+  return Boolean(
+    currentSnapshot &&
+    currentSnapshot.element === snapshot.element &&
+    snapshot.revision.matches(currentSnapshot.fiber),
+  );
+};
+
+const resolveCurrentFiberRevisionValue = <Value>(
+  element: Element,
+  fallbackValue: Value,
+  resolveSnapshot: (snapshot: FiberContextRevisionSnapshot) => Promise<Value>,
+): Promise<Value> =>
+  resolveCurrentRevisionValue(() => {
+    const snapshot = createFiberContextRevisionSnapshot(element);
+    if (!snapshot) return null;
+    return {
+      isCurrent: () => isFiberContextRevisionCurrent(element, snapshot),
+      valuePromise: resolveSnapshot(snapshot),
+    };
+  }, fallbackValue);
 
 // Bundle/source-map fetches that bippy makes on react-grab's behalf. Routing
 // them through our own fetch lets us mark them high priority (so they jump the
@@ -130,20 +181,14 @@ const createSourceFetch =
 // symbolication POST adds another request. Both go through the source-fetch
 // queue so a hover storm (drag-select) or a multi-element copy never fans out
 // more concurrent requests than the connection pool can serve.
-const fetchStackForElement = (
-  element: Element,
-  abortSignal: AbortSignal,
-): Promise<StackFrame[] | null> =>
+const fetchStackForFiber = (fiber: Fiber, abortSignal: AbortSignal): Promise<StackFrame[] | null> =>
   runQueuedSourceFetch(
     async (signal) => {
       try {
-        const fiber = getReactFiberForElement(element);
-        if (!fiber) return null;
-        const currentFiber = getLatestFiber(fiber);
-        const frames = await getOwnerStack(currentFiber, true, createSourceFetch(signal));
+        const frames = await getOwnerStack(fiber, true, createSourceFetch(signal));
 
         if (isNextProjectRuntime()) {
-          const enrichedFrames = enrichServerFrameLocations(currentFiber, frames);
+          const enrichedFrames = enrichServerFrameLocations(fiber, frames);
           return await symbolicateServerFrames(enrichedFrames, signal);
         }
 
@@ -157,39 +202,42 @@ const fetchStackForElement = (
     abortSignal,
   );
 
-export const getStack = (element: Element): Promise<StackFrame[] | null> => {
+const getStackForRevision = (
+  snapshot: FiberContextRevisionSnapshot,
+): Promise<StackFrame[] | null> => {
   if (!isInstrumentationActive()) return Promise.resolve([]);
 
-  const nearestFiberElement = findNearestFiberElement(element);
-  const fiber = getReactFiberForElement(nearestFiberElement);
-  if (!fiber) return Promise.resolve(null);
-  const currentFiber = getLatestFiber(fiber);
-  const currentFiberId = getFiberId(currentFiber);
-  const cachedStack = stackCache.get(nearestFiberElement);
-  if (cachedStack?.revision.matches(currentFiber, currentFiberId)) return cachedStack.promise;
+  const cachedStack = stackCache.get(snapshot.element);
+  if (cachedStack?.revision.matches(snapshot.fiber)) return cachedStack.promise;
 
   // Evict failed or timed-out resolutions (null) so a later grab can retry once
   // the page's own fetches free a connection, while still deduping concurrent
   // in-flight lookups. A resolved empty array is a real "no frames" answer and
   // stays cached. Mirrors getCachedFiberSource.
   const controller = new AbortController();
-  const stackResolution = fetchStackForElement(nearestFiberElement, controller.signal);
+  const stackResolution = fetchStackForFiber(snapshot.fiber, controller.signal);
+  if (!isFiberContextRevisionCurrent(snapshot.element, snapshot)) return stackResolution;
   const stackPromise = createSupersedablePromise(stackResolution);
   const cacheEntry: FiberContextCacheEntry<StackFrame[] | null> = {
     controller,
     promise: stackPromise.promise,
-    revision: createFiberRevision(currentFiber, currentFiberId),
+    revision: snapshot.revision,
     supersedeWith: stackPromise.supersedeWith,
   };
-  stackCache.set(nearestFiberElement, cacheEntry);
+  stackCache.set(snapshot.element, cacheEntry);
   if (cachedStack) {
     cachedStack.supersedeWith(cacheEntry.promise);
     cachedStack.controller.abort();
   }
   void cacheEntry.promise.then((stack) => {
-    if (stack === null) deleteCacheEntryIfCurrent(stackCache, nearestFiberElement, cacheEntry);
+    if (stack === null) deleteCacheEntryIfCurrent(stackCache, snapshot.element, cacheEntry);
   });
   return cacheEntry.promise;
+};
+
+export const getStack = (element: Element): Promise<StackFrame[] | null> => {
+  if (!isInstrumentationActive()) return Promise.resolve([]);
+  return resolveCurrentFiberRevisionValue(element, null, getStackForRevision);
 };
 
 export const getNearestComponentName = async (element: Element): Promise<string | null> => {
@@ -228,17 +276,14 @@ const getSourceComponentName = (
 // instrumentation, but it fetches the element's bundle/source map to map the
 // location, so it runs through the source-fetch queue alongside getOwnerStack:
 // both compete for the same connection pool and neither has its own timeout.
-const getFiberSourceForElement = (
-  element: Element,
+const getFiberSourceForFiber = (
+  fiber: Fiber,
   abortSignal: AbortSignal,
 ): Promise<ResolvedSource | null> =>
   runQueuedSourceFetch(
     async (signal) => {
       try {
-        const fiber = getReactFiberForElement(element);
-        if (!fiber) return null;
-        const currentFiber = getLatestFiber(fiber);
-        const source = await getSource(currentFiber, true, createSourceFetch(signal));
+        const source = await getSource(fiber, true, createSourceFetch(signal));
         if (!source?.fileName) return null;
         const isNextProject = isNextProjectRuntime();
 
@@ -248,7 +293,7 @@ const getFiberSourceForElement = (
           columnNumber: source.columnNumber ?? null,
           componentName:
             toSourceComponentName(source.functionName, isNextProject) ??
-            getSourceComponentName(currentFiber._debugOwner, isNextProject),
+            getSourceComponentName(fiber._debugOwner, isNextProject),
           origin: classifySourcePath(source.fileName).origin,
         };
       } catch {
@@ -260,35 +305,33 @@ const getFiberSourceForElement = (
     abortSignal,
   );
 
-const getCachedFiberSource = (element: Element): Promise<ResolvedSource | null> => {
-  const nearestFiberElement = findNearestFiberElement(element);
-  const fiber = getReactFiberForElement(nearestFiberElement);
-  if (!fiber) return Promise.resolve(null);
-  const currentFiber = getLatestFiber(fiber);
-  const currentFiberId = getFiberId(currentFiber);
-  const cachedFiberSource = fiberSourceCache.get(nearestFiberElement);
-  if (cachedFiberSource?.revision.matches(currentFiber, currentFiberId)) {
+const getCachedFiberSourceForRevision = (
+  snapshot: FiberContextRevisionSnapshot,
+): Promise<ResolvedSource | null> => {
+  const cachedFiberSource = fiberSourceCache.get(snapshot.element);
+  if (cachedFiberSource?.revision.matches(snapshot.fiber)) {
     return cachedFiberSource.promise;
   }
 
   // Evict null resolutions so a later grab can retry once the fiber's source
   // metadata is attached, while still deduping concurrent in-flight lookups.
   const controller = new AbortController();
-  const fiberSourceResolution = getFiberSourceForElement(nearestFiberElement, controller.signal);
+  const fiberSourceResolution = getFiberSourceForFiber(snapshot.fiber, controller.signal);
+  if (!isFiberContextRevisionCurrent(snapshot.element, snapshot)) return fiberSourceResolution;
   const fiberSourcePromise = createSupersedablePromise(fiberSourceResolution);
   const cacheEntry: FiberContextCacheEntry<ResolvedSource | null> = {
     controller,
     promise: fiberSourcePromise.promise,
-    revision: createFiberRevision(currentFiber, currentFiberId),
+    revision: snapshot.revision,
     supersedeWith: fiberSourcePromise.supersedeWith,
   };
-  fiberSourceCache.set(nearestFiberElement, cacheEntry);
+  fiberSourceCache.set(snapshot.element, cacheEntry);
   if (cachedFiberSource) {
     cachedFiberSource.supersedeWith(cacheEntry.promise);
     cachedFiberSource.controller.abort();
   }
   void cacheEntry.promise.then((source) => {
-    if (!source) deleteCacheEntryIfCurrent(fiberSourceCache, nearestFiberElement, cacheEntry);
+    if (!source) deleteCacheEntryIfCurrent(fiberSourceCache, snapshot.element, cacheEntry);
   });
   return cacheEntry.promise;
 };
@@ -345,11 +388,13 @@ export const resolveSource = async (element: Element): Promise<ResolvedSource | 
     if (solidSourceLocation) return { ...solidSourceLocation, origin: "app" };
   }
 
-  const fiberSource = await getCachedFiberSource(element);
-  if (fiberSource?.origin === "app" && isTrustedAppSourcePath(fiberSource.filePath)) {
-    return fiberSource;
-  }
-  return selectResolvedSource(fiberSource, (await getStack(element)) ?? []);
+  return resolveCurrentFiberRevisionValue(element, null, async (snapshot) => {
+    const fiberSource = await getCachedFiberSourceForRevision(snapshot);
+    if (fiberSource?.origin === "app" && isTrustedAppSourcePath(fiberSource.filePath)) {
+      return fiberSource;
+    }
+    return selectResolvedSource(fiberSource, (await getStackForRevision(snapshot)) ?? []);
+  });
 };
 
 export const getComponentDisplayName = (element: Element): string | null =>
@@ -633,10 +678,19 @@ const getTraceContext = async (
   element: Element,
   options: StackContextOptions = {},
 ): Promise<TraceContextResult> => {
-  const fiberSource = await getCachedFiberSource(element);
-  const stack = await getStack(element);
-  const resolvedStack = stack ?? [];
-  const leadingSource = resolveLeadingSource(fiberSource, resolvedStack);
+  const traceResolution = await resolveCurrentFiberRevisionValue<FiberTraceResolution>(
+    element,
+    { fiberSource: null, stack: [] },
+    async (snapshot) => {
+      const [fiberSource, stack] = await Promise.all([
+        getCachedFiberSourceForRevision(snapshot),
+        getStackForRevision(snapshot),
+      ]);
+      return { fiberSource, stack };
+    },
+  );
+  const resolvedStack = traceResolution.stack ?? [];
+  const leadingSource = resolveLeadingSource(traceResolution.fiberSource, resolvedStack);
 
   const maxLines = resolveMaxContextLines(options.maxLines);
   const stackContext = formatStackContext(resolvedStack, options, leadingSource);
