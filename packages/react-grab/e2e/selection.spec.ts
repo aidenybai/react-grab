@@ -1,5 +1,5 @@
 import { test, expect, type ReactGrabPageObject } from "./fixtures.js";
-import { ATTRIBUTE_NAME } from "./constants.js";
+import { ATTRIBUTE_NAME, POINTER_SETTLE_DELAY_MS } from "./constants.js";
 
 interface MixedTextTarget {
   paddingPosition: {
@@ -440,9 +440,8 @@ test.describe("Element Selection", () => {
       })
       .toEqual(expect.objectContaining(target.textBounds));
 
-    await reactGrab.page.mouse.move(firstLineTarget.position.x, firstLineTarget.position.y, {
-      steps: 5,
-    });
+    await reactGrab.page.waitForTimeout(POINTER_SETTLE_DELAY_MS);
+    await reactGrab.page.mouse.move(firstLineTarget.position.x, firstLineTarget.position.y);
     await expect
       .poll(async () => {
         const callbackHistory = await reactGrab.getCallbackHistory();

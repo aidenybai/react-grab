@@ -99,25 +99,15 @@ test.describe("Activation Mode Configuration", () => {
   test("should activate when focused on input element", async ({ reactGrab }) => {
     await reactGrab.page.click("[data-testid='test-input']");
 
-    await reactGrab.page.keyboard.down(reactGrab.modifierKey);
-    await reactGrab.page.keyboard.down("c");
-    await reactGrab.page.waitForTimeout(500);
-    await reactGrab.page.keyboard.up("c");
-    await reactGrab.page.keyboard.up(reactGrab.modifierKey);
-
-    await expect.poll(() => reactGrab.isOverlayVisible(), { timeout: 1000 }).toBe(true);
+    await reactGrab.activateViaKeyboardFromFocusedInput();
+    expect(await reactGrab.isOverlayVisible()).toBe(true);
   });
 
   test("should activate when focused on textarea", async ({ reactGrab }) => {
     await reactGrab.page.click("[data-testid='test-textarea']");
 
-    await reactGrab.page.keyboard.down(reactGrab.modifierKey);
-    await reactGrab.page.keyboard.down("c");
-    await reactGrab.page.waitForTimeout(500);
-    await reactGrab.page.keyboard.up("c");
-    await reactGrab.page.keyboard.up(reactGrab.modifierKey);
-
-    await expect.poll(() => reactGrab.isOverlayVisible(), { timeout: 1000 }).toBe(true);
+    await reactGrab.activateViaKeyboardFromFocusedInput();
+    expect(await reactGrab.isOverlayVisible()).toBe(true);
   });
 
   test("activation should work after clicking outside input", async ({ reactGrab }) => {

@@ -108,6 +108,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
   let searchInputRef: HTMLTextAreaElement | undefined;
   const preview = props.state.preview;
 
+  const [searchInputElement, setSearchInputElement] = createSignal<HTMLTextAreaElement>();
   const [searchQuery, setSearchQuery] = createSignal(props.state.initialSearchQuery ?? "");
   const [inlineNumericSearchQuery, setInlineNumericSearchQuery] = createSignal<string | null>(null);
   const [activeKey, setActiveKey] = createSignal<"left" | "right" | null>(null);
@@ -156,6 +157,16 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
   let containerRef: HTMLDivElement | undefined;
 
   const dropdown = createAnchoredDropdown(() => containerRef, props.position);
+
+  createEffect(() => {
+    const searchInput = searchInputElement();
+    if (!dropdown.shouldMount() || !searchInput) return;
+    queueMicrotask(() => {
+      focusInOverlay(searchInput, { preventScroll: true });
+      const searchInputLength = searchInput.value.length;
+      searchInput.setSelectionRange(searchInputLength, searchInputLength);
+    });
+  });
 
   const flashActiveKey = (direction: "left" | "right") => {
     setActiveKey(direction);
@@ -485,13 +496,6 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
   };
 
   onMount(() => {
-    queueMicrotask(() => {
-      focusInOverlay(searchInputRef, { preventScroll: true });
-      if (searchInputRef) {
-        const length = searchInputRef.value.length;
-        searchInputRef.setSelectionRange(length, length);
-      }
-    });
     dropdown.measure();
     const initialQuery = searchQuery();
     if (initialQuery) autoApply.applyTailwindClass(initialQuery);
@@ -676,6 +680,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
             <textarea
               ref={(element) => {
                 searchInputRef = element;
+                setSearchInputElement(element);
               }}
               data-react-grab-ignore-events
               data-react-grab-input

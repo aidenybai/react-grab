@@ -150,7 +150,11 @@ test.describe("Prompt Mode", () => {
 
       await reactGrab.typeInInput("Some unsaved text");
 
-      await reactGrab.pressEscape();
+      const promptInput = reactGrab.page.getByRole("textbox", {
+        name: "Add context for selected element",
+      });
+      await expect(promptInput).toHaveValue("Some unsaved text");
+      await promptInput.press("Escape");
 
       await expect.poll(() => reactGrab.isPromptModeActive()).toBe(false);
     });

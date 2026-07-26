@@ -42,7 +42,7 @@ test.describe("Toolbar Selection Hover", () => {
 
       await expect.poll(() => reactGrab.isSelectionBoxVisible(), { timeout: 2000 }).toBe(false);
 
-      await hoverAwayFromToolbar(reactGrab.page);
+      await reactGrab.hoverUntilSelected("li");
 
       await expect.poll(() => reactGrab.isSelectionBoxVisible(), { timeout: 2000 }).toBe(true);
     });

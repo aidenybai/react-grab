@@ -1,5 +1,5 @@
 import { test as base, expect, Page, Locator } from "@playwright/test";
-import { ATTRIBUTE_NAME } from "./constants.js";
+import { ATTRIBUTE_NAME, FOCUSED_INPUT_KEY_HOLD_DURATION_MS } from "./constants.js";
 import { COVERAGE_RAW_DIR } from "./coverage-config.js";
 
 const COVERAGE_ENABLED = Boolean(process.env.COVERAGE);
@@ -104,6 +104,7 @@ export interface ReactGrabPageObject {
   feedbackModifierKey: ModifierKey;
   activate: () => Promise<void>;
   activateViaKeyboard: () => Promise<void>;
+  activateViaKeyboardFromFocusedInput: () => Promise<void>;
   deactivate: () => Promise<void>;
   isOverlayVisible: () => Promise<boolean>;
   getOverlayHost: () => Locator;
@@ -295,6 +296,15 @@ const createReactGrabPageObject = (
 
   const activateViaKeyboard = async () => {
     await holdToActivate();
+    await page.keyboard.up("c");
+    await page.keyboard.up(activationModifierKey);
+    await waitForActive(true);
+  };
+
+  const activateViaKeyboardFromFocusedInput = async () => {
+    await page.keyboard.down(activationModifierKey);
+    await page.keyboard.down("c");
+    await page.waitForTimeout(FOCUSED_INPUT_KEY_HOLD_DURATION_MS);
     await page.keyboard.up("c");
     await page.keyboard.up(activationModifierKey);
     await waitForActive(true);
@@ -654,32 +664,13 @@ const createReactGrabPageObject = (
   };
 
   const typeInInput = async (text: string) => {
-    await page.evaluate((attrName) => {
-      const host = document.querySelector(`[${attrName}]`);
-      const shadowRoot = host?.shadowRoot;
-      if (!shadowRoot) return;
-      const root = shadowRoot.querySelector(`[${attrName}]`);
-      if (!root) return;
-      const textarea = root.querySelector<HTMLTextAreaElement>("[data-react-grab-input]");
-      if (textarea) {
-        textarea.focus();
-      }
-    }, ATTRIBUTE_NAME);
+    const promptInput = getOverlayHost().locator("textarea[data-react-grab-input]");
+    await promptInput.focus();
     await page.keyboard.insertText(text);
   };
 
   const getInputValue = async (): Promise<string> => {
-    return page.evaluate((attrName) => {
-      const host = document.querySelector(`[${attrName}]`);
-      const shadowRoot = host?.shadowRoot;
-      if (!shadowRoot) return "";
-      const root = shadowRoot.querySelector(`[${attrName}]`);
-      if (!root) return "";
-      const textarea = root.querySelector(
-        "textarea[data-react-grab-ignore-events]",
-      ) as HTMLTextAreaElement;
-      return textarea?.value ?? "";
-    }, ATTRIBUTE_NAME);
+    return getOverlayHost().locator("textarea[data-react-grab-input]").inputValue();
   };
 
   const submitInput = async () => {
@@ -1705,6 +1696,7 @@ const createReactGrabPageObject = (
     feedbackModifierKey,
     activate,
     activateViaKeyboard,
+    activateViaKeyboardFromFocusedInput,
     deactivate,
     isOverlayVisible,
     getOverlayHost,
