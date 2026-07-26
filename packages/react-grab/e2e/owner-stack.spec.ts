@@ -82,6 +82,13 @@ test.describe("React owner stack semantics", () => {
     expect(context).not.toContain("selector: #");
   });
 
+  test("looks past a generated ID wrapper for a semantic ancestor", async ({ reactGrab }) => {
+    const context = await copyElementContext(reactGrab, ".nested-generated-id-target");
+
+    expect(context).toContain('selector: [data-testid="semantic-ancestor-target"]');
+    expect(context).not.toContain("selector: #");
+  });
+
   test("keeps nested control text in the inline preview", async ({ reactGrab }) => {
     const context = await copyElementContext(reactGrab, ".duplicate-context-target");
 

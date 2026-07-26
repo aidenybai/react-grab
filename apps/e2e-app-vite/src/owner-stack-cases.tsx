@@ -112,6 +112,11 @@ const GeneratedIdOwner = () => (
     >
       Generated ID with semantic attribute
     </button>
+    <button data-testid="semantic-ancestor-target" type="button">
+      <span id=":r2:">
+        <span className="nested-generated-id-target">Nested generated ID target</span>
+      </span>
+    </button>
   </>
 );
 

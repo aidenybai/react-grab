@@ -6,16 +6,17 @@ export interface FiberRevisionSource {
 }
 
 export interface FiberRevision {
-  matches: (currentFiber: FiberRevisionSource) => boolean;
+  matches: (currentFiber: FiberRevisionSource, currentFiberId: number) => boolean;
 }
 
-export const createFiberRevision = (fiber: FiberRevisionSource): FiberRevision => {
+export const createFiberRevision = (fiber: FiberRevisionSource, fiberId: number): FiberRevision => {
   const debugOwner = fiber._debugOwner;
   const debugSource = fiber._debugSource;
   const debugStack = fiber._debugStack;
 
   return {
-    matches: (currentFiber) =>
+    matches: (currentFiber, currentFiberId) =>
+      currentFiberId === fiberId &&
       currentFiber._debugOwner === debugOwner &&
       currentFiber._debugSource === debugSource &&
       currentFiber._debugStack === debugStack,

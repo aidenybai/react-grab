@@ -1,7 +1,7 @@
 import { BROAD_SELECTOR_TARGET_DESCENDANT_RATIO } from "../constants.js";
+import { isStableElementId } from "./is-stable-element-id.js";
 
 const SELECTOR_TARGET_QUERY = [
-  "[id]",
   "[data-testid]",
   "[data-test-id]",
   "[data-test]",
@@ -27,6 +27,13 @@ const SELECTOR_TARGET_QUERY = [
   '[role="spinbutton"]',
 ].join(",");
 
+const isSelectorTarget = (element: Element): boolean => {
+  const elementId = element.getAttribute("id");
+  return Boolean(
+    (elementId && isStableElementId(elementId)) || element.matches(SELECTOR_TARGET_QUERY),
+  );
+};
+
 const isBroadSelectorTarget = (element: Element): boolean => {
   const { body, documentElement } = element.ownerDocument;
   if (element === body || element === documentElement) return true;
@@ -40,7 +47,12 @@ const isBroadSelectorTarget = (element: Element): boolean => {
 };
 
 export const findSelectorTarget = (element: Element): Element => {
-  const selectorTarget = element.closest(SELECTOR_TARGET_QUERY);
-  if (!selectorTarget || isBroadSelectorTarget(selectorTarget)) return element;
-  return selectorTarget;
+  let currentElement: Element | null = element;
+  while (currentElement) {
+    if (isSelectorTarget(currentElement)) {
+      return isBroadSelectorTarget(currentElement) ? element : currentElement;
+    }
+    currentElement = currentElement.parentElement;
+  }
+  return element;
 };

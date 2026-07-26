@@ -2,6 +2,7 @@ import { getOwnerStack, getSource, type StackFrame } from "bippy/source";
 import {
   isInstrumentationActive,
   getDisplayName,
+  getFiberId,
   getLatestFiber,
   isCompositeFiber,
   traverseFiber,
@@ -165,8 +166,9 @@ export const getStack = (element: Element): Promise<StackFrame[] | null> => {
   const fiber = getReactFiberForElement(nearestFiberElement);
   if (!fiber) return Promise.resolve(null);
   const currentFiber = getLatestFiber(fiber);
+  const currentFiberId = getFiberId(currentFiber);
   const cachedStack = stackCache.get(nearestFiberElement);
-  if (cachedStack?.revision.matches(currentFiber)) return cachedStack.promise;
+  if (cachedStack?.revision.matches(currentFiber, currentFiberId)) return cachedStack.promise;
 
   // Evict failed or timed-out resolutions (null) so a later grab can retry once
   // the page's own fetches free a connection, while still deduping concurrent
@@ -178,7 +180,7 @@ export const getStack = (element: Element): Promise<StackFrame[] | null> => {
   const cacheEntry: FiberContextCacheEntry<StackFrame[] | null> = {
     controller,
     promise: stackPromise.promise,
-    revision: createFiberRevision(currentFiber),
+    revision: createFiberRevision(currentFiber, currentFiberId),
     supersedeWith: stackPromise.supersedeWith,
   };
   stackCache.set(nearestFiberElement, cacheEntry);
@@ -265,8 +267,11 @@ const getCachedFiberSource = (element: Element): Promise<ResolvedSource | null> 
   const fiber = getReactFiberForElement(nearestFiberElement);
   if (!fiber) return Promise.resolve(null);
   const currentFiber = getLatestFiber(fiber);
+  const currentFiberId = getFiberId(currentFiber);
   const cachedFiberSource = fiberSourceCache.get(nearestFiberElement);
-  if (cachedFiberSource?.revision.matches(currentFiber)) return cachedFiberSource.promise;
+  if (cachedFiberSource?.revision.matches(currentFiber, currentFiberId)) {
+    return cachedFiberSource.promise;
+  }
 
   // Evict null resolutions so a later grab can retry once the fiber's source
   // metadata is attached, while still deduping concurrent in-flight lookups.
@@ -276,7 +281,7 @@ const getCachedFiberSource = (element: Element): Promise<ResolvedSource | null> 
   const cacheEntry: FiberContextCacheEntry<ResolvedSource | null> = {
     controller,
     promise: fiberSourcePromise.promise,
-    revision: createFiberRevision(currentFiber),
+    revision: createFiberRevision(currentFiber, currentFiberId),
     supersedeWith: fiberSourcePromise.supersedeWith,
   };
   fiberSourceCache.set(nearestFiberElement, cacheEntry);
