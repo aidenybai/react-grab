@@ -16,6 +16,7 @@ interface LabelStoreBridge {
 
 interface CreateLabelInstanceOptions {
   element?: Element;
+  textNode?: Text;
   mouseX?: number;
   elements?: Element[];
   boundsMultiple?: OverlayBounds[];
@@ -35,6 +36,7 @@ interface BuildLabelInstanceOptions {
   componentName: string | undefined;
   status: SelectionLabelInstance["status"];
   element?: Element;
+  textNode?: Text;
   mouseX?: number;
   elements?: Element[];
   boundsMultiple?: OverlayBounds[];
@@ -74,6 +76,7 @@ const buildLabelInstance = (options: BuildLabelInstanceOptions): SelectionLabelI
     status: options.status,
     createdAt: Date.now(),
     element: options.element,
+    textNode: options.textNode,
     elements: options.elements,
     mouseX: options.mouseX,
     mouseXOffsetFromCenter: mouseXOffset,
@@ -140,6 +143,7 @@ export const createLabelController = (
       componentName,
       status,
       element: options?.element,
+      textNode: options?.textNode,
       mouseX: options?.mouseX,
       elements: options?.elements,
       boundsMultiple: options?.boundsMultiple,

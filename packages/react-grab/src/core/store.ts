@@ -1,11 +1,12 @@
 import { createStore, produce } from "solid-js/store";
 import { batch, createSignal } from "solid-js";
-import type { Position, GrabbedBox, SelectionLabelInstance } from "../types.js";
+import type { Position, GrabbedBox, OverlayBounds, SelectionLabelInstance } from "../types.js";
 import { OFFSCREEN_POSITION } from "../constants.js";
 import { createElementBounds } from "../utils/create-element-bounds.js";
 import { getBoundsCenter } from "../utils/get-bounds-center.js";
 import { isElementConnected } from "../utils/is-element-connected.js";
 import { resolveLiveElement, trackElementAnchor } from "./element-anchors.js";
+import { resolveLiveTextNode, trackTextNodeAnchor } from "./text-node-anchors.js";
 
 interface FrozenDragRect {
   pageX: number;
@@ -94,7 +95,13 @@ const relinkSlots = (draft: GrabStore): void => {
   draft.contextMenuElement = draft.contextMenuElement && relinkElement(draft.contextMenuElement);
 
   for (const instance of draft.labelInstances) {
-    if (instance.element) instance.element = relinkElement(instance.element);
+    if (instance.element) {
+      instance.element = relinkElement(instance.element);
+      if (instance.textNode) {
+        instance.textNode =
+          resolveLiveTextNode(instance.textNode, instance.element) ?? instance.textNode;
+      }
+    }
     if (instance.elements) {
       for (let index = 0; index < instance.elements.length; index += 1) {
         instance.elements[index] = relinkElement(instance.elements[index]);
@@ -102,7 +109,12 @@ const relinkSlots = (draft: GrabStore): void => {
     }
   }
   for (const box of draft.grabbedBoxes) {
-    if (box.element) box.element = relinkElement(box.element);
+    if (box.element) {
+      box.element = relinkElement(box.element);
+      if (box.textNode) {
+        box.textNode = resolveLiveTextNode(box.textNode, box.element) ?? box.textNode;
+      }
+    }
   }
 };
 
@@ -159,7 +171,7 @@ interface GrabActions {
   startCopy: () => void;
   completeCopy: () => void;
   finishJustCopied: () => void;
-  enterPromptMode: (position: Position, element: Element) => void;
+  enterPromptMode: (position: Position, element: Element, selectionBounds?: OverlayBounds) => void;
   exitPromptMode: () => void;
   setInputText: (value: string) => void;
   clearInputText: () => void;
@@ -172,7 +184,7 @@ interface GrabActions {
   addFrozenElements: (elements: Element[]) => void;
   setFrozenDragRect: (rect: FrozenDragRect | null) => void;
   relinkLiveElements: () => void;
-  setCopyStart: (position: Position, element: Element) => void;
+  setCopyStart: (position: Position, element: Element, selectionBounds?: OverlayBounds) => void;
   setLastGrabbed: (element: Element | null) => void;
   setWasActivatedByToggle: (value: boolean) => void;
   setPendingCommentMode: (value: boolean) => void;
@@ -432,8 +444,8 @@ const createGrabStore = (input: GrabStoreInput) => {
       }
     },
 
-    enterPromptMode: (position: Position, element: Element) => {
-      const bounds = createElementBounds(element);
+    enterPromptMode: (position: Position, element: Element, selectionBounds?: OverlayBounds) => {
+      const bounds = selectionBounds ?? createElementBounds(element);
       const { x: selectionCenterX } = getBoundsCenter(bounds);
       trackElementAnchor(element);
 
@@ -533,8 +545,8 @@ const createGrabStore = (input: GrabStoreInput) => {
       setStore(produce(relinkSlots));
     },
 
-    setCopyStart: (position: Position, element: Element) => {
-      const bounds = createElementBounds(element);
+    setCopyStart: (position: Position, element: Element, selectionBounds?: OverlayBounds) => {
+      const bounds = selectionBounds ?? createElementBounds(element);
       const { x: selectionCenterX } = getBoundsCenter(bounds);
       setStore("copyStart", position);
       setStore("copyOffsetFromCenterX", position.x - selectionCenterX);
@@ -579,6 +591,7 @@ const createGrabStore = (input: GrabStoreInput) => {
 
     addGrabbedBox: (box: GrabbedBox) => {
       if (box.element) trackElementAnchor(box.element);
+      if (box.textNode) trackTextNodeAnchor(box.textNode);
       setStore("grabbedBoxes", (boxes) => [...boxes, box]);
     },
 
@@ -592,6 +605,7 @@ const createGrabStore = (input: GrabStoreInput) => {
 
     addLabelInstance: (instance: SelectionLabelInstance) => {
       if (instance.element) trackElementAnchor(instance.element);
+      if (instance.textNode) trackTextNodeAnchor(instance.textNode);
       for (const instanceElement of instance.elements ?? []) {
         trackElementAnchor(instanceElement);
       }

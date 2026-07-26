@@ -1178,19 +1178,14 @@ test.describe("Style Panel", () => {
     test("type-to-edit: hover + type m then t → margin-top focused", async ({ reactGrab }) => {
       await reactGrab.activate();
       await reactGrab.hoverUntilSelected(BUTTON_SELECTOR);
-      await reactGrab.page.keyboard.type("mt", { delay: 50 });
+      await reactGrab.page.keyboard.type("m");
       await expect.poll(() => isEditPanelVisible(reactGrab.page)).toBe(true);
-      await reactGrab.page.waitForTimeout(80);
-      const searchValue = await reactGrab.page.evaluate(
-        ({ attrName, inputAttr }) => {
-          const host = document.querySelector(`[${attrName}]`);
-          const shadowRoot = host?.shadowRoot;
-          const input = shadowRoot?.querySelector<HTMLTextAreaElement>(`[${inputAttr}]`);
-          return input?.value ?? null;
-        },
-        { attrName: ATTRIBUTE_NAME, inputAttr: SEARCH_INPUT_ATTR },
-      );
-      expect(searchValue).toBe("mt");
+      const searchInput = reactGrab.page
+        .locator(`[${ATTRIBUTE_NAME}]`)
+        .locator(`[${SEARCH_INPUT_ATTR}]`);
+      await expect(searchInput).toBeFocused();
+      await searchInput.pressSequentially("t");
+      await expect(searchInput).toHaveValue("mt");
       const activeKey = await getActivePropertyKey(reactGrab.page);
       expect(activeKey).toBe("margin-top");
     });
@@ -1200,19 +1195,16 @@ test.describe("Style Panel", () => {
     }) => {
       await reactGrab.activate();
       await reactGrab.hoverUntilSelected(BUTTON_SELECTOR);
-      await reactGrab.page.keyboard.type("mt-", { delay: 50 });
+      await reactGrab.page.keyboard.type("m");
       await expect.poll(() => isEditPanelVisible(reactGrab.page)).toBe(true);
-      await reactGrab.page.waitForTimeout(80);
-      const searchValue = await reactGrab.page.evaluate(
-        ({ attrName, inputAttr }) => {
-          const host = document.querySelector(`[${attrName}]`);
-          const shadowRoot = host?.shadowRoot;
-          const input = shadowRoot?.querySelector<HTMLTextAreaElement>(`[${inputAttr}]`);
-          return input?.value ?? null;
-        },
-        { attrName: ATTRIBUTE_NAME, inputAttr: SEARCH_INPUT_ATTR },
-      );
-      expect(searchValue).toBe("mt-");
+      const searchInput = reactGrab.page
+        .locator(`[${ATTRIBUTE_NAME}]`)
+        .locator(`[${SEARCH_INPUT_ATTR}]`);
+      await searchInput.click();
+      await searchInput.press("t");
+      await expect(searchInput).toHaveValue("mt");
+      await searchInput.press("-");
+      await expect(searchInput).toHaveValue("mt-");
       const activeKey = await getActivePropertyKey(reactGrab.page);
       expect(activeKey).toBe("margin-top");
     });

@@ -1,4 +1,5 @@
 import { test, expect } from "./fixtures.js";
+import { NON_ACTIVATING_KEY_HOLD_DURATION_MS } from "./constants.js";
 
 test.describe("Activation Key Configuration", () => {
   test.describe.configure({ mode: "serial" });
@@ -154,10 +155,12 @@ test.describe("Activation Key Configuration", () => {
     });
 
     test("should not activate without holding long enough", async ({ reactGrab }) => {
+      await reactGrab.reinitialize({
+        keyHoldDuration: NON_ACTIVATING_KEY_HOLD_DURATION_MS,
+      });
       await reactGrab.page.click("body");
       await reactGrab.page.keyboard.down(reactGrab.modifierKey);
       await reactGrab.page.keyboard.down("c");
-      await reactGrab.page.waitForTimeout(50);
       await reactGrab.page.keyboard.up("c");
       await reactGrab.page.keyboard.up(reactGrab.modifierKey);
 
@@ -169,13 +172,8 @@ test.describe("Activation Key Configuration", () => {
     test("should activate in input by default", async ({ reactGrab }) => {
       await reactGrab.page.click("[data-testid='test-input']");
 
-      await reactGrab.page.keyboard.down(reactGrab.modifierKey);
-      await reactGrab.page.keyboard.down("c");
-      await reactGrab.page.waitForTimeout(500);
-      await reactGrab.page.keyboard.up("c");
-      await reactGrab.page.keyboard.up(reactGrab.modifierKey);
-
-      await expect.poll(() => reactGrab.isOverlayVisible(), { timeout: 1000 }).toBe(true);
+      await reactGrab.activateViaKeyboardFromFocusedInput();
+      expect(await reactGrab.isOverlayVisible()).toBe(true);
     });
 
     test("should not activate in input when disabled", async ({ reactGrab }) => {

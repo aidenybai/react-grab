@@ -121,6 +121,7 @@ export const ARROW_LABEL_MARGIN_PX = 16;
 export const ARROW_PANEL_OVERLAP_PX = 1;
 export const LABEL_GAP_PX = 4;
 export const PREVIEW_TEXT_MAX_LENGTH = 100;
+export const TEXT_NODE_LABEL_MAX_LENGTH = 20;
 export const PREVIEW_ATTR_VALUE_MAX_LENGTH = 15;
 export const PREVIEW_PRIORITY_ATTRS: readonly string[] = [
   "id",

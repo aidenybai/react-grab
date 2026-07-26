@@ -529,6 +529,7 @@ export interface SelectionLabelInstance {
   inputValue?: string;
   createdAt: number;
   element?: Element;
+  textNode?: Text;
   elements?: Element[];
   mouseX?: number;
   mouseXOffsetFromCenter?: number;
@@ -631,6 +632,7 @@ export interface GrabbedBox {
   bounds: OverlayBounds;
   createdAt: number;
   element?: Element;
+  textNode?: Text;
 }
 
 export interface Rect {

@@ -1,5 +1,234 @@
-import { test, expect } from "./fixtures.js";
-import { ATTRIBUTE_NAME } from "./constants.js";
+import { test, expect, type ReactGrabPageObject } from "./fixtures.js";
+import { ATTRIBUTE_NAME, POINTER_SETTLE_DELAY_MS } from "./constants.js";
+
+interface MixedTextTarget {
+  paddingPosition: {
+    x: number;
+    y: number;
+  };
+  position: {
+    x: number;
+    y: number;
+  };
+  textBounds: {
+    height: number;
+    width: number;
+    x: number;
+    y: number;
+  };
+  containerWidth: number;
+}
+
+interface WrappedTextTarget {
+  position: {
+    x: number;
+    y: number;
+  };
+  rectCount: number;
+  rectIndex: number;
+  textBounds: {
+    height: number;
+    width: number;
+    x: number;
+    y: number;
+  };
+}
+
+interface WrappedTextLineTarget {
+  position: {
+    x: number;
+    y: number;
+  };
+  textBounds: {
+    height: number;
+    width: number;
+    x: number;
+    y: number;
+  };
+}
+
+const createMixedTextTarget = async (reactGrab: ReactGrabPageObject): Promise<MixedTextTarget> => {
+  return reactGrab.page.evaluate(() => {
+    const container = document.createElement("div");
+    container.id = "mixed-text-target";
+    container.style.cssText =
+      "position:absolute;left:200px;top:240px;width:500px;padding:12px;background:white;color:black;font:16px sans-serif;z-index:2147483000";
+    container.append("Grab this text ");
+
+    const nestedElement = document.createElement("strong");
+    nestedElement.textContent = "not the nested element";
+    container.append(nestedElement);
+    document.body.append(container);
+    document.body.style.minHeight = "2000px";
+
+    const textNode = container.firstChild;
+    if (!(textNode instanceof Text)) throw new Error("Missing text node");
+
+    const range = document.createRange();
+    range.selectNodeContents(textNode);
+    const textBounds = range.getBoundingClientRect();
+    const containerBounds = container.getBoundingClientRect();
+
+    return {
+      paddingPosition: {
+        x: containerBounds.right - 4,
+        y: containerBounds.top + containerBounds.height / 2,
+      },
+      position: {
+        x: textBounds.left + textBounds.width / 2,
+        y: textBounds.top + textBounds.height / 2,
+      },
+      textBounds: {
+        height: textBounds.height,
+        width: textBounds.width,
+        x: textBounds.x,
+        y: textBounds.y,
+      },
+      containerWidth: containerBounds.width,
+    };
+  });
+};
+
+const createWrappedTextTarget = async (
+  reactGrab: ReactGrabPageObject,
+): Promise<WrappedTextTarget> => {
+  return reactGrab.page.evaluate(() => {
+    const container = document.createElement("div");
+    container.id = "wrapped-text-target";
+    container.style.cssText =
+      "position:absolute;left:200px;top:240px;width:180px;padding:12px;background:white;color:black;font:16px/24px sans-serif;z-index:2147483000";
+    container.append("Grab this wrapped direct text across several separate lines before ");
+
+    const nestedElement = document.createElement("strong");
+    nestedElement.textContent = "nested sibling";
+    container.append(nestedElement);
+    document.body.append(container);
+
+    const textNode = container.firstChild;
+    if (!(textNode instanceof Text)) throw new Error("Missing text node");
+
+    const range = document.createRange();
+    range.selectNodeContents(textNode);
+    const rects = Array.from(range.getClientRects());
+    const textBounds = rects[1];
+    if (!textBounds || rects.length < 2) throw new Error("Text did not wrap");
+
+    return {
+      position: {
+        x: textBounds.left + textBounds.width / 2,
+        y: textBounds.top + textBounds.height / 2,
+      },
+      rectCount: rects.length,
+      rectIndex: 1,
+      textBounds: {
+        height: textBounds.height,
+        width: textBounds.width,
+        x: textBounds.x,
+        y: textBounds.y,
+      },
+    };
+  });
+};
+
+const getWrappedTextLineTarget = async (
+  reactGrab: ReactGrabPageObject,
+  rectIndex: number,
+): Promise<WrappedTextLineTarget> => {
+  return reactGrab.page.evaluate((targetRectIndex) => {
+    const container = document.querySelector("#wrapped-text-target");
+    const textNode = container?.firstChild;
+    if (!(textNode instanceof Text)) throw new Error("Missing wrapped text target");
+
+    const range = document.createRange();
+    range.selectNodeContents(textNode);
+    const textBounds = range.getClientRects()[targetRectIndex];
+    if (!textBounds) throw new Error("Missing wrapped text line");
+
+    return {
+      position: {
+        x: textBounds.left + textBounds.width / 2,
+        y: textBounds.top + textBounds.height / 2,
+      },
+      textBounds: {
+        height: textBounds.height,
+        width: textBounds.width,
+        x: textBounds.x,
+        y: textBounds.y,
+      },
+    };
+  }, rectIndex);
+};
+
+const reflowWrappedTextTarget = async (
+  reactGrab: ReactGrabPageObject,
+  target: WrappedTextTarget,
+): Promise<WrappedTextTarget["textBounds"]> => {
+  return reactGrab.page.evaluate(
+    ({ previousRectCount, previousRectIndex }) => {
+      const container = document.querySelector("#wrapped-text-target");
+      const textNode = container?.firstChild;
+      if (!(container instanceof HTMLElement) || !(textNode instanceof Text)) {
+        throw new Error("Missing wrapped text target");
+      }
+
+      container.style.width = "110px";
+      const range = document.createRange();
+      range.selectNodeContents(textNode);
+      const rects = Array.from(range.getClientRects());
+      const previousMaximumIndex = Math.max(0, previousRectCount - 1);
+      const currentMaximumIndex = rects.length - 1;
+      const normalizedRectIndex =
+        previousMaximumIndex === 0 ? 0 : previousRectIndex / previousMaximumIndex;
+      const currentRectIndex = Math.round(normalizedRectIndex * currentMaximumIndex);
+      const bounds = rects[currentRectIndex];
+      if (!bounds || rects.length === previousRectCount) {
+        throw new Error("Text did not reflow");
+      }
+
+      return {
+        height: bounds.height,
+        width: bounds.width,
+        x: bounds.x,
+        y: bounds.y,
+      };
+    },
+    {
+      previousRectCount: target.rectCount,
+      previousRectIndex: target.rectIndex,
+    },
+  );
+};
+
+const replaceMixedTextNode = async (
+  reactGrab: ReactGrabPageObject,
+  textContent: string,
+): Promise<MixedTextTarget["textBounds"]> => {
+  return reactGrab.page.evaluate((replacementText) => {
+    const container = document.querySelector("#mixed-text-target");
+    const previousTextNode = container?.firstChild;
+    if (!container || !(previousTextNode instanceof Text)) {
+      throw new Error("Missing mixed text target");
+    }
+
+    const textNode = document.createTextNode(replacementText);
+    previousTextNode.replaceWith(textNode);
+    const range = document.createRange();
+    range.selectNodeContents(textNode);
+    const bounds = range.getBoundingClientRect();
+    return {
+      height: bounds.height,
+      width: bounds.width,
+      x: bounds.x,
+      y: bounds.y,
+    };
+  }, textContent);
+};
+
+const getSelectionArrowCenterX = async (reactGrab: ReactGrabPageObject): Promise<number | null> => {
+  const labelBounds = await reactGrab.getSelectionLabelBounds();
+  const arrowBounds = labelBounds?.arrow;
+  return arrowBounds ? arrowBounds.x + arrowBounds.width / 2 : null;
+};
 
 test.describe("Element Selection", () => {
   test("should show selection box when hovering over element while active", async ({
@@ -36,6 +265,462 @@ test.describe("Element Selection", () => {
 
     await reactGrab.clickElement("[data-testid='todo-list'] h1");
     await expect.poll(() => reactGrab.getClipboardContent()).toContain("Todo List");
+  });
+
+  test("should grab direct text nodes inside mixed-content elements", async ({ reactGrab }) => {
+    const target = await createMixedTextTarget(reactGrab);
+
+    await reactGrab.setupCallbackTracking();
+    await reactGrab.activate();
+    await reactGrab.page.mouse.move(target.position.x, target.position.y);
+
+    await expect
+      .poll(async () => (await reactGrab.getSelectionLabelInfo()).tagName)
+      .toContain("Grab this text");
+
+    const callbackHistory = await reactGrab.getCallbackHistory();
+    const selectionBoxCall = callbackHistory.findLast(
+      (callback) => callback.name === "onSelectionBox" && callback.args[0] === true,
+    );
+    expect(selectionBoxCall?.args[1]).toEqual(
+      expect.objectContaining({
+        width: target.textBounds.width,
+      }),
+    );
+    expect(target.textBounds.width).toBeLessThan(target.containerWidth);
+
+    await reactGrab.page.mouse.click(target.position.x, target.position.y);
+    await expect
+      .poll(
+        async () => {
+          const callbackHistory = await reactGrab.getCallbackHistory();
+          const copySuccessCall = callbackHistory.findLast(
+            (callback) => callback.name === "onCopySuccess",
+          );
+          const copiedContent = copySuccessCall?.args[1];
+          return (
+            typeof copiedContent === "string" &&
+            copiedContent.includes('"Grab this text"') &&
+            !copiedContent.includes("not the nested element")
+          );
+        },
+        { timeout: 10_000 },
+      )
+      .toBe(true);
+
+    const grabbedBoxBeforeScroll = await reactGrab.getGrabbedBoxInfo();
+    const initialGrabbedBoxY = grabbedBoxBeforeScroll.boxes[0]?.bounds.y;
+    if (initialGrabbedBoxY === undefined) throw new Error("Missing grabbed box");
+
+    const scrollYBefore = await reactGrab.page.evaluate(() => window.scrollY);
+    await reactGrab.scrollPage(60);
+    const scrollYAfter = await reactGrab.page.evaluate(() => window.scrollY);
+    const scrollDeltaY = scrollYAfter - scrollYBefore;
+    expect(scrollDeltaY).toBeGreaterThan(0);
+
+    await expect
+      .poll(async () => (await reactGrab.getGrabbedBoxInfo()).boxes[0]?.bounds.y)
+      .toBeCloseTo(initialGrabbedBoxY - scrollDeltaY, 0);
+  });
+
+  test("should edit the parent element of a direct text node", async ({ reactGrab }) => {
+    const target = await createMixedTextTarget(reactGrab);
+
+    await reactGrab.activate();
+    await reactGrab.page.mouse.move(target.position.x, target.position.y);
+    await expect
+      .poll(async () => (await reactGrab.getSelectionLabelInfo()).tagName)
+      .toContain("Grab this text");
+
+    await reactGrab.rightClickAtPosition(target.position.x, target.position.y);
+    await expect
+      .poll(async () => (await reactGrab.getContextMenuInfo()).tagBadgeText)
+      .toContain("Grab this text");
+
+    await reactGrab.clickContextMenuItem("Style");
+    await expect
+      .poll(() =>
+        reactGrab.page.evaluate((attrName) => {
+          const host = document.querySelector(`[${attrName}]`);
+          const panel = host?.shadowRoot?.querySelector("[data-react-grab-edit-panel]");
+          return panel?.textContent?.trim() ?? null;
+        }, ATTRIBUTE_NAME),
+      )
+      .toMatch(/^div/);
+  });
+
+  test("should clear a text target when shift-dragging a multi-selection", async ({
+    reactGrab,
+  }) => {
+    const target = await createMixedTextTarget(reactGrab);
+
+    await reactGrab.activate();
+    await reactGrab.page.mouse.move(target.position.x, target.position.y);
+    await expect
+      .poll(async () => (await reactGrab.getSelectionLabelInfo()).tagName)
+      .toContain("Grab this text");
+
+    await reactGrab.page.keyboard.down("Shift");
+    await reactGrab.dragSelect(
+      "[data-testid='todo-list'] li:first-child",
+      "[data-testid='todo-list'] li:nth-child(2)",
+    );
+
+    const labelTexts = await reactGrab.page.evaluate(() => {
+      const host = document.querySelector("[data-react-grab]");
+      const labels = host?.shadowRoot?.querySelectorAll("[data-react-grab-selection-label]");
+      return Array.from(labels ?? []).map((label) => label.textContent?.trim() ?? "");
+    });
+
+    expect(labelTexts.length).toBeGreaterThanOrEqual(2);
+    expect(labelTexts.join(" ")).not.toContain("Grab this text");
+
+    await reactGrab.page.keyboard.up("Shift");
+  });
+
+  test("should use element bounds when a click misses its direct text", async ({ reactGrab }) => {
+    const target = await createMixedTextTarget(reactGrab);
+
+    await reactGrab.setupCallbackTracking();
+    await reactGrab.activate();
+    await reactGrab.page.mouse.move(target.position.x, target.position.y);
+    await expect
+      .poll(async () => (await reactGrab.getSelectionLabelInfo()).tagName)
+      .toContain("Grab this text");
+
+    await reactGrab.page.mouse.click(target.paddingPosition.x, target.paddingPosition.y);
+    await expect
+      .poll(async () => {
+        const callbackHistory = await reactGrab.getCallbackHistory();
+        const copySuccessCall = callbackHistory.findLast(
+          (callback) => callback.name === "onCopySuccess",
+        );
+        return copySuccessCall?.args[1];
+      })
+      .toContain("selector: #mixed-text-target");
+    await expect
+      .poll(async () => (await reactGrab.getGrabbedBoxInfo()).boxes[0]?.bounds.width)
+      .toBeCloseTo(target.containerWidth, 0);
+  });
+
+  test("should select only the hovered line of wrapped direct text", async ({ reactGrab }) => {
+    const target = await createWrappedTextTarget(reactGrab);
+
+    await reactGrab.setupCallbackTracking();
+    await reactGrab.activate();
+    await reactGrab.page.mouse.move(target.position.x, target.position.y);
+
+    await expect
+      .poll(async () => {
+        const callbackHistory = await reactGrab.getCallbackHistory();
+        const selectionBoxCall = callbackHistory.findLast(
+          (callback) => callback.name === "onSelectionBox" && callback.args[0] === true,
+        );
+        return selectionBoxCall?.args[1];
+      })
+      .toEqual(expect.objectContaining(target.textBounds));
+  });
+
+  test("should update selection when hovering another line of the same text", async ({
+    reactGrab,
+  }) => {
+    const target = await createWrappedTextTarget(reactGrab);
+    const firstLineTarget = await getWrappedTextLineTarget(reactGrab, 0);
+
+    await reactGrab.setupCallbackTracking();
+    await reactGrab.activate();
+    await reactGrab.page.mouse.move(target.position.x, target.position.y);
+    await expect
+      .poll(async () => {
+        const callbackHistory = await reactGrab.getCallbackHistory();
+        const selectionBoxCall = callbackHistory.findLast(
+          (callback) => callback.name === "onSelectionBox" && callback.args[0] === true,
+        );
+        return selectionBoxCall?.args[1];
+      })
+      .toEqual(expect.objectContaining(target.textBounds));
+
+    await reactGrab.page.waitForTimeout(POINTER_SETTLE_DELAY_MS);
+    await reactGrab.page.mouse.move(firstLineTarget.position.x, firstLineTarget.position.y);
+    await expect
+      .poll(async () => {
+        const callbackHistory = await reactGrab.getCallbackHistory();
+        const selectionBoxCall = callbackHistory.findLast(
+          (callback) => callback.name === "onSelectionBox" && callback.args[0] === true,
+        );
+        return selectionBoxCall?.args[1];
+      })
+      .toEqual(expect.objectContaining(firstLineTarget.textBounds));
+  });
+
+  test("should keep the hovered wrapped line targeted after reflow", async ({ reactGrab }) => {
+    const target = await createWrappedTextTarget(reactGrab);
+
+    await reactGrab.setupCallbackTracking();
+    await reactGrab.activate();
+    await reactGrab.page.mouse.move(target.position.x, target.position.y);
+    await expect
+      .poll(async () => {
+        const callbackHistory = await reactGrab.getCallbackHistory();
+        const selectionBoxCall = callbackHistory.findLast(
+          (callback) => callback.name === "onSelectionBox" && callback.args[0] === true,
+        );
+        return selectionBoxCall?.args[1];
+      })
+      .toEqual(expect.objectContaining(target.textBounds));
+
+    const reflowedBounds = await reflowWrappedTextTarget(reactGrab, target);
+    await expect
+      .poll(async () => {
+        const callbackHistory = await reactGrab.getCallbackHistory();
+        const selectionBoxCall = callbackHistory.findLast(
+          (callback) => callback.name === "onSelectionBox" && callback.args[0] === true,
+        );
+        return selectionBoxCall?.args[1];
+      })
+      .toEqual(expect.objectContaining(reflowedBounds));
+  });
+
+  test("should keep prompt cursor aligned with grabbed text", async ({ reactGrab }) => {
+    const target = await createMixedTextTarget(reactGrab);
+
+    await reactGrab.setupCallbackTracking();
+    await reactGrab.registerCommentAction();
+    await reactGrab.activate();
+    await reactGrab.page.mouse.move(target.position.x, target.position.y);
+    await expect
+      .poll(async () => (await reactGrab.getSelectionLabelInfo()).tagName)
+      .toContain("Grab this text");
+
+    await reactGrab.rightClickAtPosition(target.position.x, target.position.y);
+    await expect
+      .poll(async () => {
+        const callbackHistory = await reactGrab.getCallbackHistory();
+        const selectionBoxCall = callbackHistory.findLast(
+          (callback) => callback.name === "onSelectionBox" && callback.args[0] === true,
+        );
+        return selectionBoxCall?.args[1];
+      })
+      .toEqual(expect.objectContaining(target.textBounds));
+
+    await reactGrab.clickContextMenuItem("Comment");
+    await expect.poll(() => reactGrab.isPromptModeActive()).toBe(true);
+
+    await expect
+      .poll(async () => {
+        const arrowCenterX = await getSelectionArrowCenterX(reactGrab);
+        return arrowCenterX === null
+          ? Number.POSITIVE_INFINITY
+          : Math.abs(arrowCenterX - target.position.x);
+      })
+      .toBeLessThan(2);
+  });
+
+  test("should keep toolbar comment cursor aligned with grabbed text", async ({ reactGrab }) => {
+    const target = await createMixedTextTarget(reactGrab);
+
+    await reactGrab.clickToolbarAction("comment");
+    await reactGrab.page.mouse.move(target.position.x, target.position.y);
+    await expect
+      .poll(async () => (await reactGrab.getSelectionLabelInfo()).tagName)
+      .toContain("Grab this text");
+
+    await reactGrab.page.mouse.click(target.position.x, target.position.y);
+    await expect.poll(() => reactGrab.isPromptModeActive()).toBe(true);
+    await expect
+      .poll(async () => {
+        const arrowCenterX = await getSelectionArrowCenterX(reactGrab);
+        return arrowCenterX === null
+          ? Number.POSITIVE_INFINITY
+          : Math.abs(arrowCenterX - target.position.x);
+      })
+      .toBeLessThan(2);
+  });
+
+  test("should keep text targeting when entering comment mode with Enter", async ({
+    reactGrab,
+  }) => {
+    const target = await createMixedTextTarget(reactGrab);
+
+    await reactGrab.setupCallbackTracking();
+    await reactGrab.registerCommentAction();
+    await reactGrab.activate();
+    await reactGrab.page.mouse.move(target.position.x, target.position.y);
+    await expect
+      .poll(async () => (await reactGrab.getSelectionLabelInfo()).tagName)
+      .toContain("Grab this text");
+
+    await reactGrab.pressEnter();
+    await expect.poll(() => reactGrab.isPromptModeActive()).toBe(true);
+    await reactGrab.typeInInput("Update this copy");
+    await reactGrab.submitInput();
+
+    await expect
+      .poll(async () => {
+        const callbackHistory = await reactGrab.getCallbackHistory();
+        const copySuccessCall = callbackHistory.findLast(
+          (callback) => callback.name === "onCopySuccess",
+        );
+        const copiedContent = copySuccessCall?.args[1];
+        return (
+          typeof copiedContent === "string" &&
+          copiedContent.includes('"Grab this text"') &&
+          !copiedContent.includes("not the nested element")
+        );
+      })
+      .toBe(true);
+  });
+
+  test("should keep text targeting while prompt text is disconnected", async ({ reactGrab }) => {
+    const target = await createMixedTextTarget(reactGrab);
+
+    await reactGrab.setupCallbackTracking();
+    await reactGrab.registerCommentAction();
+    await reactGrab.activate();
+    await reactGrab.page.mouse.move(target.position.x, target.position.y);
+    await expect
+      .poll(async () => (await reactGrab.getSelectionLabelInfo()).tagName)
+      .toContain("Grab this text");
+
+    await reactGrab.pressEnter();
+    await expect.poll(() => reactGrab.isPromptModeActive()).toBe(true);
+
+    await reactGrab.page.evaluate(() => {
+      const textNode = document.querySelector("#mixed-text-target")?.firstChild;
+      if (!(textNode instanceof Text)) throw new Error("Missing mixed text target");
+      textNode.remove();
+      window.dispatchEvent(new Event("resize"));
+    });
+
+    await expect
+      .poll(async () => {
+        const callbackHistory = await reactGrab.getCallbackHistory();
+        return callbackHistory.findLast(
+          (callback) => callback.name === "onSelectionBox" && callback.args[0] === true,
+        )?.args[1];
+      })
+      .toEqual(expect.objectContaining(target.textBounds));
+
+    await reactGrab.typeInInput("Update this copy");
+    await reactGrab.submitInput();
+
+    await expect
+      .poll(async () => {
+        const callbackHistory = await reactGrab.getCallbackHistory();
+        const copySuccessCall = callbackHistory.findLast(
+          (callback) => callback.name === "onCopySuccess",
+        );
+        const copiedContent = copySuccessCall?.args[1];
+        return (
+          typeof copiedContent === "string" &&
+          copiedContent.includes('"Grab this text"') &&
+          copiedContent.includes("selector: #mixed-text-target") &&
+          !copiedContent.includes("not the nested element")
+        );
+      })
+      .toBe(true);
+  });
+
+  test("should clear text targeting when the hovered tree is disconnected", async ({
+    reactGrab,
+  }) => {
+    const target = await createMixedTextTarget(reactGrab);
+
+    await reactGrab.activate();
+    await reactGrab.page.mouse.move(target.position.x, target.position.y);
+    await expect
+      .poll(async () => (await reactGrab.getSelectionLabelInfo()).tagName)
+      .toContain("Grab this text");
+
+    await reactGrab.page.evaluate(() => {
+      document.querySelector("#mixed-text-target")?.remove();
+      window.dispatchEvent(new Event("resize"));
+    });
+
+    await expect
+      .poll(async () => (await reactGrab.getSelectionLabelInfo()).tagName)
+      .not.toContain("Grab this text");
+  });
+
+  test("should relink grabbed text after its DOM node is replaced", async ({ reactGrab }) => {
+    const target = await createMixedTextTarget(reactGrab);
+
+    await reactGrab.setupCallbackTracking();
+    await reactGrab.registerCommentAction();
+    await reactGrab.activate();
+    await reactGrab.page.mouse.move(target.position.x, target.position.y);
+    await expect
+      .poll(async () => (await reactGrab.getSelectionLabelInfo()).tagName)
+      .toContain("Grab this text");
+
+    await reactGrab.pressEnter();
+    await expect.poll(() => reactGrab.isPromptModeActive()).toBe(true);
+
+    const replacementBounds = await replaceMixedTextNode(reactGrab, "Grab replacement text ");
+    await expect
+      .poll(async () => {
+        const callbackHistory = await reactGrab.getCallbackHistory();
+        const selectionBoxCall = callbackHistory.findLast(
+          (callback) => callback.name === "onSelectionBox" && callback.args[0] === true,
+        );
+        return selectionBoxCall?.args[1];
+      })
+      .toEqual(expect.objectContaining(replacementBounds));
+
+    await reactGrab.typeInInput("Update this copy");
+    await reactGrab.submitInput();
+    await expect
+      .poll(async () => {
+        const callbackHistory = await reactGrab.getCallbackHistory();
+        const copySuccessCall = callbackHistory.findLast(
+          (callback) => callback.name === "onCopySuccess",
+        );
+        return copySuccessCall?.args[1];
+      })
+      .toContain('"Grab replacement text"');
+
+    const postCopyBounds = await replaceMixedTextNode(reactGrab, "Short replacement ");
+    await expect
+      .poll(async () => (await reactGrab.getGrabbedBoxInfo()).boxes[0]?.bounds)
+      .toEqual(expect.objectContaining(postCopyBounds));
+  });
+
+  test("should keep text targeting when opening the context menu from the keyboard", async ({
+    reactGrab,
+  }) => {
+    const target = await createMixedTextTarget(reactGrab);
+
+    await reactGrab.activate();
+    await reactGrab.page.mouse.move(target.position.x, target.position.y);
+    await expect
+      .poll(async () => (await reactGrab.getSelectionLabelInfo()).tagName)
+      .toContain("Grab this text");
+
+    await reactGrab.pressKey("ContextMenu");
+    await expect.poll(() => reactGrab.isContextMenuVisible()).toBe(true);
+
+    const copyPayloadPromise = reactGrab.captureNextClipboardWrites();
+    await reactGrab.clickContextMenuItem("Copy");
+    const copyPayload = await copyPayloadPromise;
+
+    expect(copyPayload["text/plain"]).toContain('"Grab this text"');
+    expect(copyPayload["text/plain"]).not.toContain("not the nested element");
+  });
+
+  test("should keep text-only elements as element targets", async ({ reactGrab }) => {
+    await reactGrab.page.evaluate(() => {
+      const target = document.createElement("div");
+      target.id = "text-only-target";
+      target.textContent = "Text-only target";
+      target.style.cssText =
+        "position:fixed;left:40px;top:40px;padding:12px;background:white;color:black;font:16px sans-serif;z-index:2147483000";
+      document.body.append(target);
+    });
+
+    await reactGrab.activate();
+    await reactGrab.hoverUntilSelected("#text-only-target");
+
+    await expect.poll(async () => (await reactGrab.getSelectionLabelInfo()).tagName).toBe("div");
   });
 
   test("should write React Grab clipboard metadata on copy", async ({ reactGrab }) => {

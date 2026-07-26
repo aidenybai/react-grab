@@ -113,7 +113,12 @@ test.describe("Touch Mode", () => {
 
       await reactGrab.activate();
 
-      await reactGrab.page.waitForTimeout(100);
+      await reactGrab.page.evaluate(
+        () =>
+          new Promise<void>((resolve) => {
+            requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+          }),
+      );
 
       expect(await reactGrab.isSelectionBoxVisible()).toBe(false);
     });
