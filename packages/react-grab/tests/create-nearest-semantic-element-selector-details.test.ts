@@ -5,9 +5,14 @@ import {
 } from "../src/utils/create-element-selector.js";
 import { createNearestSemanticElementSelectorDetails } from "../src/utils/create-nearest-semantic-element-selector-details.js";
 import { registerElementAdapter } from "../src/core/element-adapter.js";
+import { getComposedParentElement } from "../src/utils/get-composed-parent-element.js";
 
 vi.mock("../src/utils/create-element-selector.js", () => ({
   createSemanticElementSelectorDetails: vi.fn(),
+}));
+
+vi.mock("../src/utils/get-composed-parent-element.js", () => ({
+  getComposedParentElement: vi.fn(),
 }));
 
 interface SelectorTargetTestElementOptions {
@@ -43,6 +48,7 @@ const createSelectorTargetTestElement = (
 
 beforeEach(() => {
   vi.resetAllMocks();
+  vi.mocked(getComposedParentElement).mockImplementation((element) => element.parentElement);
 });
 
 describe("createNearestSemanticElementSelectorDetails", () => {
@@ -191,6 +197,30 @@ describe("createNearestSemanticElementSelectorDetails", () => {
     );
     expect(createSemanticElementSelectorDetails).toHaveBeenNthCalledWith(1, genericControl);
     expect(createSemanticElementSelectorDetails).toHaveBeenNthCalledWith(2, semanticAncestor);
+  });
+
+  it("continues across a composed-tree boundary to a semantic host", () => {
+    const semanticHost = createSelectorTargetTestElement({
+      hasSelectorIdentifier: true,
+      isSelectorTarget: true,
+    });
+    const selectedElement = createSelectorTargetTestElement();
+    const expectedSelectorDetails: ElementSelectorDetails = {
+      selector: '[aria-label="Chart controls"]',
+      isSemantic: true,
+    };
+    vi.mocked(getComposedParentElement).mockImplementation((element) =>
+      element === selectedElement ? semanticHost : element.parentElement,
+    );
+    vi.mocked(createSemanticElementSelectorDetails).mockImplementation((candidate) =>
+      candidate === semanticHost ? expectedSelectorDetails : null,
+    );
+
+    expect(createNearestSemanticElementSelectorDetails(selectedElement)).toBe(
+      expectedSelectorDetails,
+    );
+    expect(createSemanticElementSelectorDetails).toHaveBeenCalledOnce();
+    expect(createSemanticElementSelectorDetails).toHaveBeenCalledWith(semanticHost);
   });
 
   it("does not replace a selected descendant with a broad semantic ancestor", () => {

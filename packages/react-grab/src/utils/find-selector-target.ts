@@ -1,5 +1,6 @@
 import { BROAD_SELECTOR_TARGET_DESCENDANT_RATIO } from "../constants.js";
 import { ACTIONABLE_SELECTOR_ROLES } from "./actionable-selector-roles.js";
+import { getComposedParentElement } from "./get-composed-parent-element.js";
 import { isStableElementId } from "./is-stable-element-id.js";
 import { PREFERRED_SELECTOR_ATTRIBUTE_NAMES } from "./preferred-selector-attribute-names.js";
 
@@ -51,7 +52,7 @@ export const findSelectorTarget = (
       if (!hasSelectorIdentifier(currentElement) && currentElement === element)
         return currentElement;
     }
-    currentElement = currentElement.parentElement;
+    currentElement = getComposedParentElement(currentElement);
   }
   return element;
 };
