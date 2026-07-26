@@ -417,10 +417,16 @@ interface ResolvedElementContextBase {
 
 export interface ResolvedElementContext extends ResolvedElementContextBase {
   elementInfo: string;
+  selector: string | null;
 }
 
 export interface ResolvedElementReferenceContext extends ResolvedElementContextBase {
   referenceContext: string;
+}
+
+interface ComposedElementContext {
+  selector: string | null;
+  text: string;
 }
 
 interface TraceContextResult {
@@ -738,26 +744,25 @@ export const getStackContext = async (
   return traceContext.text;
 };
 
-const composeElementContext = (element: Element, traceContext: TraceContextResult): string => {
+const composeElementContext = (
+  element: Element,
+  traceContext: TraceContextResult,
+): ComposedElementContext => {
   const listItemKey = getNearestListItemKey(element);
   const keyHint = listItemKey !== null ? `\n  key: ${formatListItemKey(listItemKey)}` : "";
   const selectorDetails = traceContext.shouldAppendSelectorHint
     ? createElementSelectorDetails(findSelectorTarget(element))
     : createNearestSemanticElementSelectorDetails(element);
-  const selectorHint =
+  const selector =
     selectorDetails &&
     shouldIncludeElementSelector(traceContext.shouldAppendSelectorHint, selectorDetails)
-      ? `\n  selector: ${selectorDetails.selector}`
-      : "";
-  return `${traceContext.text}${keyHint}${selectorHint}`;
-};
-
-export const getElementReferenceContext = async (
-  element: Element,
-  options: StackContextOptions = {},
-): Promise<string> => {
-  const traceContext = await getTraceContext(element, options);
-  return `${getInlineHTMLPreview(element)}${composeElementContext(element, traceContext).replace(/\n\s+/g, " ")}`;
+      ? selectorDetails.selector
+      : null;
+  const selectorHint = selector ? `\n  selector: ${selector}` : "";
+  return {
+    selector,
+    text: `${traceContext.text}${keyHint}${selectorHint}`,
+  };
 };
 
 export const formatElementInfo = async (
@@ -767,7 +772,7 @@ export const formatElementInfo = async (
   const nearestFiberElement = findNearestFiberElement(element);
   const htmlPreview = getHTMLPreview(nearestFiberElement);
   const traceContext = await getTraceContext(nearestFiberElement, options);
-  return `${htmlPreview}${composeElementContext(nearestFiberElement, traceContext)}`;
+  return `${htmlPreview}${composeElementContext(nearestFiberElement, traceContext).text}`;
 };
 
 const createResolvedElementContextBase = (
@@ -797,9 +802,11 @@ const createResolvedElementContext = (
 ): ResolvedElementContext => {
   const traceContext = createTraceContext(element, options, traceResolution);
   const nearestFiberElement = findNearestFiberElement(element);
+  const composedContext = composeElementContext(nearestFiberElement, traceContext);
   return {
     ...createResolvedElementContextBase(element, traceResolution, traceContext),
-    elementInfo: `${getHTMLPreview(nearestFiberElement)}${composeElementContext(nearestFiberElement, traceContext)}`,
+    elementInfo: `${getHTMLPreview(nearestFiberElement)}${composedContext.text}`,
+    selector: composedContext.selector,
   };
 };
 
@@ -809,9 +816,10 @@ const createResolvedElementReferenceContext = (
   traceResolution: FiberTraceResolution,
 ): ResolvedElementReferenceContext => {
   const traceContext = createTraceContext(element, options, traceResolution);
+  const composedContext = composeElementContext(element, traceContext);
   return {
     ...createResolvedElementContextBase(element, traceResolution, traceContext),
-    referenceContext: `${getInlineHTMLPreview(element)}${composeElementContext(element, traceContext).replace(/\n\s+/g, " ")}`,
+    referenceContext: `${getInlineHTMLPreview(element)}${composedContext.text.replace(/\n\s+/g, " ")}`,
   };
 };
 

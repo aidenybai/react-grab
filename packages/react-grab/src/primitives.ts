@@ -84,7 +84,6 @@ export const getElementSelector = (element: Element): string =>
 export const getElementContext = async (element: Element): Promise<ReactGrabElementContext> => {
   const resolvedContext = await resolveElementContext(element);
   const htmlPreview = getHTMLPreview(element);
-  const selector = getElementSelector(element);
   const styles = extractElementCss(element);
 
   return {
@@ -98,7 +97,7 @@ export const getElementContext = async (element: Element): Promise<ReactGrabElem
     lineNumber: resolvedContext.source?.lineNumber ?? null,
     columnNumber: resolvedContext.source?.columnNumber ?? null,
     fiber: resolvedContext.fiber,
-    selector,
+    selector: resolvedContext.selector,
     styles,
   };
 };
