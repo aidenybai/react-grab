@@ -34,7 +34,6 @@ import { shouldIncludeElementSelector } from "../utils/should-include-element-se
 import { createFiberRevision, type FiberRevision } from "../utils/create-fiber-revision.js";
 import { formatListItemKey } from "../utils/format-list-item-key.js";
 import { deleteCacheEntryIfCurrent } from "../utils/delete-cache-entry-if-current.js";
-import { createSupersedablePromise } from "../utils/create-supersedable-promise.js";
 import { resolveCurrentRevisionValue } from "../utils/resolve-current-revision-value.js";
 import type { SourceLocation } from "../types.js";
 import { getElementAdapter, getReactFiberForElement } from "./element-adapter.js";
@@ -111,7 +110,6 @@ interface FiberContextCacheEntry<Result> {
   controller: AbortController;
   promise: Promise<Result>;
   revision: FiberRevision;
-  supersedeWith: (replacementPromise: Promise<Result>) => void;
 }
 
 interface FiberContextRevisionSnapshot {
@@ -218,18 +216,13 @@ const getStackForRevision = (
   const controller = new AbortController();
   const stackResolution = fetchStackForFiber(snapshot.fiber, controller.signal);
   if (!isFiberContextRevisionCurrent(snapshot.element, snapshot)) return stackResolution;
-  const stackPromise = createSupersedablePromise(stackResolution);
   const cacheEntry: FiberContextCacheEntry<StackFrame[] | null> = {
     controller,
-    promise: stackPromise.promise,
+    promise: stackResolution,
     revision: snapshot.revision,
-    supersedeWith: stackPromise.supersedeWith,
   };
   stackCache.set(snapshot.element, cacheEntry);
-  if (cachedStack) {
-    cachedStack.supersedeWith(cacheEntry.promise);
-    cachedStack.controller.abort();
-  }
+  cachedStack?.controller.abort();
   void cacheEntry.promise.then((stack) => {
     if (stack === null) deleteCacheEntryIfCurrent(stackCache, snapshot.element, cacheEntry);
   });
@@ -319,18 +312,13 @@ const getCachedFiberSourceForRevision = (
   const controller = new AbortController();
   const fiberSourceResolution = getFiberSourceForFiber(snapshot.fiber, controller.signal);
   if (!isFiberContextRevisionCurrent(snapshot.element, snapshot)) return fiberSourceResolution;
-  const fiberSourcePromise = createSupersedablePromise(fiberSourceResolution);
   const cacheEntry: FiberContextCacheEntry<ResolvedSource | null> = {
     controller,
-    promise: fiberSourcePromise.promise,
+    promise: fiberSourceResolution,
     revision: snapshot.revision,
-    supersedeWith: fiberSourcePromise.supersedeWith,
   };
   fiberSourceCache.set(snapshot.element, cacheEntry);
-  if (cachedFiberSource) {
-    cachedFiberSource.supersedeWith(cacheEntry.promise);
-    cachedFiberSource.controller.abort();
-  }
+  cachedFiberSource?.controller.abort();
   void cacheEntry.promise.then((source) => {
     if (!source) deleteCacheEntryIfCurrent(fiberSourceCache, snapshot.element, cacheEntry);
   });

@@ -166,6 +166,33 @@ describe("createNearestSemanticElementSelectorDetails", () => {
     expect(createSemanticElementSelectorDetails).toHaveBeenCalledWith(genericControl);
   });
 
+  it("continues through an intermediate generic control to a semantic ancestor", () => {
+    const semanticAncestor = createSelectorTargetTestElement({
+      hasSelectorIdentifier: true,
+      isSelectorTarget: true,
+    });
+    const genericControl = createSelectorTargetTestElement({
+      isSelectorTarget: true,
+      parentElement: semanticAncestor,
+    });
+    const selectedElement = createSelectorTargetTestElement({
+      parentElement: genericControl,
+    });
+    const expectedSelectorDetails: ElementSelectorDetails = {
+      selector: '[data-testid="icon-button-group"]',
+      isSemantic: true,
+    };
+    vi.mocked(createSemanticElementSelectorDetails).mockImplementation((candidate) =>
+      candidate === semanticAncestor ? expectedSelectorDetails : null,
+    );
+
+    expect(createNearestSemanticElementSelectorDetails(selectedElement)).toBe(
+      expectedSelectorDetails,
+    );
+    expect(createSemanticElementSelectorDetails).toHaveBeenNthCalledWith(1, genericControl);
+    expect(createSemanticElementSelectorDetails).toHaveBeenNthCalledWith(2, semanticAncestor);
+  });
+
   it("does not replace a selected descendant with a broad semantic ancestor", () => {
     const broadSemanticAncestor = createSelectorTargetTestElement({
       hasSelectorIdentifier: true,

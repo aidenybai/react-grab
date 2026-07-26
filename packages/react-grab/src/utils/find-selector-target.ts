@@ -48,7 +48,8 @@ export const findSelectorTarget = (
       if (currentElementIsBroadTarget && currentElement !== element) return element;
       if (!isCandidateAccepted || isCandidateAccepted(currentElement)) return currentElement;
       if (currentElementIsBroadTarget) return currentElement;
-      if (!hasSelectorIdentifier(currentElement)) return currentElement;
+      if (!hasSelectorIdentifier(currentElement) && currentElement === element)
+        return currentElement;
     }
     currentElement = currentElement.parentElement;
   }
