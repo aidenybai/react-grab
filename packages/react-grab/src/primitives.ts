@@ -6,13 +6,7 @@ import {
 import { FreezeError, RecoverableError } from "./errors.js";
 import { freezeUpdatesOrThrow } from "./utils/freeze-updates.js";
 import { reportRecoverableError } from "./utils/report-recoverable-error.js";
-import {
-  getComponentDisplayName,
-  getStack,
-  getStackContext,
-  formatElementInfo,
-  resolveSource,
-} from "./core/context.js";
+import { resolveElementContext } from "./core/context.js";
 import { getHTMLPreview } from "./core/html-preview.js";
 import type { Fiber } from "bippy";
 import type { StackFrame } from "bippy/source";
@@ -26,7 +20,6 @@ import { createElementBounds } from "./utils/create-element-bounds.js";
 import { getUnfilteredElementsAtPoint } from "./utils/get-unfiltered-elements-at-point.js";
 import { matchesElementAtPointOptions } from "./utils/matches-element-at-point-options.js";
 import type { ElementAtPointOptions, ElementBounds } from "./types.js";
-import { getReactFiberForElement } from "./core/element-adapter.js";
 import { resolveThreeElementAtPoint } from "./core/three-selection.js";
 
 export {
@@ -89,29 +82,22 @@ export const getElementSelector = (element: Element): string =>
  * ctx.lineNumber;    // 12
  */
 export const getElementContext = async (element: Element): Promise<ReactGrabElementContext> => {
-  const [snippet, source, stack] = await Promise.all([
-    formatElementInfo(element),
-    resolveSource(element),
-    getStack(element).then((result) => result ?? []),
-  ]);
-  const stackString = await getStackContext(element);
+  const resolvedContext = await resolveElementContext(element);
   const htmlPreview = getHTMLPreview(element);
-  const componentName = getComponentDisplayName(element);
-  const fiber = getReactFiberForElement(element);
   const selector = getElementSelector(element);
   const styles = extractElementCss(element);
 
   return {
     element,
-    snippet,
+    snippet: resolvedContext.elementInfo,
     htmlPreview,
-    stackString,
-    stack,
-    componentName,
-    filePath: source?.filePath ?? null,
-    lineNumber: source?.lineNumber ?? null,
-    columnNumber: source?.columnNumber ?? null,
-    fiber,
+    stackString: resolvedContext.stackContext,
+    stack: resolvedContext.stack,
+    componentName: resolvedContext.componentName,
+    filePath: resolvedContext.source?.filePath ?? null,
+    lineNumber: resolvedContext.source?.lineNumber ?? null,
+    columnNumber: resolvedContext.source?.columnNumber ?? null,
+    fiber: resolvedContext.fiber,
     selector,
     styles,
   };

@@ -156,7 +156,7 @@ const isFiberContextRevisionCurrent = (
 
 const resolveCurrentFiberRevisionValue = <Value>(
   element: Element,
-  fallbackValue: Value,
+  createFallbackValue: () => Value,
   resolveSnapshot: (snapshot: FiberContextRevisionSnapshot) => Promise<Value>,
 ): Promise<Value> =>
   resolveCurrentRevisionValue(() => {
@@ -166,7 +166,7 @@ const resolveCurrentFiberRevisionValue = <Value>(
       isCurrent: () => isFiberContextRevisionCurrent(element, snapshot),
       valuePromise: resolveSnapshot(snapshot),
     };
-  }, fallbackValue);
+  }, createFallbackValue);
 
 // Bundle/source-map fetches that bippy makes on react-grab's behalf. Routing
 // them through our own fetch lets us mark them high priority (so they jump the
@@ -237,7 +237,7 @@ const getStackForRevision = (
 
 export const getStack = (element: Element): Promise<StackFrame[] | null> => {
   if (!isInstrumentationActive()) return Promise.resolve([]);
-  return resolveCurrentFiberRevisionValue(element, null, getStackForRevision);
+  return resolveCurrentFiberRevisionValue(element, () => null, getStackForRevision);
 };
 
 export const getNearestComponentName = async (element: Element): Promise<string | null> => {
@@ -336,6 +336,16 @@ const getCachedFiberSourceForRevision = (
   return cacheEntry.promise;
 };
 
+const getFiberTraceResolutionForRevision = async (
+  snapshot: FiberContextRevisionSnapshot,
+): Promise<FiberTraceResolution> => {
+  const [fiberSource, stack] = await Promise.all([
+    getCachedFiberSourceForRevision(snapshot),
+    getStackForRevision(snapshot),
+  ]);
+  return { fiberSource, stack };
+};
+
 export const selectResolvedSource = (
   fiberSource: ResolvedSource | null,
   stack: StackFrame[],
@@ -388,13 +398,17 @@ export const resolveSource = async (element: Element): Promise<ResolvedSource | 
     if (solidSourceLocation) return { ...solidSourceLocation, origin: "app" };
   }
 
-  return resolveCurrentFiberRevisionValue(element, null, async (snapshot) => {
-    const fiberSource = await getCachedFiberSourceForRevision(snapshot);
-    if (fiberSource?.origin === "app" && isTrustedAppSourcePath(fiberSource.filePath)) {
-      return fiberSource;
-    }
-    return selectResolvedSource(fiberSource, (await getStackForRevision(snapshot)) ?? []);
-  });
+  return resolveCurrentFiberRevisionValue(
+    element,
+    () => null,
+    async (snapshot) => {
+      const fiberSource = await getCachedFiberSourceForRevision(snapshot);
+      if (fiberSource?.origin === "app" && isTrustedAppSourcePath(fiberSource.filePath)) {
+        return fiberSource;
+      }
+      return selectResolvedSource(fiberSource, (await getStackForRevision(snapshot)) ?? []);
+    },
+  );
 };
 
 export const getComponentDisplayName = (element: Element): string | null =>
@@ -402,6 +416,16 @@ export const getComponentDisplayName = (element: Element): string | null =>
 
 export interface StackContextOptions {
   maxLines?: number;
+}
+
+export interface ResolvedElementContext {
+  componentName: string | null;
+  elementInfo: string;
+  fiber: Fiber | null;
+  referenceContext: string;
+  source: ResolvedSource | null;
+  stack: StackFrame[];
+  stackContext: string;
 }
 
 interface TraceContextResult {
@@ -674,21 +698,11 @@ const appendFiberAncestorNames = (
   };
 };
 
-const getTraceContext = async (
+const createTraceContext = (
   element: Element,
-  options: StackContextOptions = {},
-): Promise<TraceContextResult> => {
-  const traceResolution = await resolveCurrentFiberRevisionValue<FiberTraceResolution>(
-    element,
-    { fiberSource: null, stack: [] },
-    async (snapshot) => {
-      const [fiberSource, stack] = await Promise.all([
-        getCachedFiberSourceForRevision(snapshot),
-        getStackForRevision(snapshot),
-      ]);
-      return { fiberSource, stack };
-    },
-  );
+  options: StackContextOptions,
+  traceResolution: FiberTraceResolution,
+): TraceContextResult => {
   const resolvedStack = traceResolution.stack ?? [];
   const leadingSource = resolveLeadingSource(traceResolution.fiberSource, resolvedStack);
 
@@ -709,6 +723,17 @@ const getTraceContext = async (
     remainingHardLineCapacity: Math.max(0, hardMaxLines - componentNames.length),
   };
 };
+
+const getTraceContext = (
+  element: Element,
+  options: StackContextOptions = {},
+): Promise<TraceContextResult> =>
+  resolveCurrentFiberRevisionValue(
+    element,
+    () => createTraceContext(element, options, { fiberSource: null, stack: [] }),
+    async (snapshot) =>
+      createTraceContext(element, options, await getFiberTraceResolutionForRevision(snapshot)),
+  );
 
 export const getStackContext = async (
   element: Element,
@@ -749,3 +774,42 @@ export const formatElementInfo = async (
   const traceContext = await getTraceContext(nearestFiberElement, options);
   return `${htmlPreview}${composeElementContext(nearestFiberElement, traceContext)}`;
 };
+
+const createResolvedElementContext = (
+  element: Element,
+  options: StackContextOptions,
+  traceResolution: FiberTraceResolution,
+): ResolvedElementContext => {
+  const traceContext = createTraceContext(element, options, traceResolution);
+  const nearestFiberElement = findNearestFiberElement(element);
+  const resolvedStack = traceResolution.stack ?? [];
+  const solidSourceLocation =
+    process.env.REACT_GRAB_SOURCE_LOCATIONS === "true" ? resolveSolidSourceLocation(element) : null;
+  const source: ResolvedSource | null = solidSourceLocation
+    ? { ...solidSourceLocation, origin: "app" }
+    : selectResolvedSource(traceResolution.fiberSource, resolvedStack);
+  return {
+    componentName: getComponentDisplayName(element),
+    elementInfo: `${getHTMLPreview(nearestFiberElement)}${composeElementContext(nearestFiberElement, traceContext)}`,
+    fiber: getReactFiberForElement(element),
+    referenceContext: `${getInlineHTMLPreview(element)}${composeElementContext(element, traceContext).replace(/\n\s+/g, " ")}`,
+    source,
+    stack: resolvedStack,
+    stackContext: traceContext.text,
+  };
+};
+
+export const resolveElementContext = (
+  element: Element,
+  options: StackContextOptions = {},
+): Promise<ResolvedElementContext> =>
+  resolveCurrentFiberRevisionValue(
+    element,
+    () => createResolvedElementContext(element, options, { fiberSource: null, stack: [] }),
+    async (snapshot) =>
+      createResolvedElementContext(
+        element,
+        options,
+        await getFiberTraceResolutionForRevision(snapshot),
+      ),
+  );

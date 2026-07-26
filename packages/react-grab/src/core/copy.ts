@@ -1,4 +1,4 @@
-import { getElementReferenceContext, getStack, getStackContext, resolveSource } from "./context.js";
+import { resolveElementContext } from "./context.js";
 import { copyContent } from "../utils/copy-content.js";
 import { normalizeError } from "../utils/normalize-error.js";
 import { getTagName } from "../utils/get-tag-name.js";
@@ -48,20 +48,14 @@ const buildElementPayloadEntry = async (
   element: Element,
   maxContextLines?: number,
 ): Promise<ReactGrabEntry> => {
-  const stackOptions = { maxLines: maxContextLines };
-  const [referenceContext, stackContext, source, stack] = await Promise.all([
-    getElementReferenceContext(element, stackOptions),
-    getStackContext(element, stackOptions),
-    resolveSource(element),
-    getStack(element),
-  ]);
+  const elementContext = await resolveElementContext(element, { maxLines: maxContextLines });
   return {
     tagName: getTagName(element),
-    componentName: source?.componentName ?? undefined,
-    content: `[${referenceContext}]`,
-    source,
-    stackContext,
-    frames: (stack ?? []).map(formatStackFramePayload),
+    componentName: elementContext.source?.componentName ?? undefined,
+    content: `[${elementContext.referenceContext}]`,
+    source: elementContext.source,
+    stackContext: elementContext.stackContext,
+    frames: elementContext.stack.map(formatStackFramePayload),
   };
 };
 

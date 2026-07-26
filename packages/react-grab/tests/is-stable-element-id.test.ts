@@ -11,6 +11,8 @@ describe("isStableElementId", () => {
     expect(isStableElementId("mui-dialog")).toBe(true);
     expect(isStableElementId("radix-settings")).toBe(true);
     expect(isStableElementId("react-aria-calendar")).toBe(true);
+    expect(isStableElementId("settings:account")).toBe(true);
+    expect(isStableElementId("namespace:item:label")).toBe(true);
   });
 
   it("rejects React-generated identifiers", () => {
