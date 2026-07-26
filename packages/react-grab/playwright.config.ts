@@ -26,6 +26,7 @@ const TANSTACK_PRODUCTION_URL = "http://localhost:5179";
 const VITE_PLUS_PRODUCTION_URL = "http://localhost:5180";
 const VITE_UPSTREAM_DEVELOPMENT_URL = "http://localhost:5181";
 const VITE_UPSTREAM_PRODUCTION_URL = "http://localhost:5182";
+const PLAYWRIGHT_WORKER_COUNT = 4;
 
 const NEXT_DEVELOPMENT_SPEC_PATTERN = /next-(?!production-).*\.spec\.ts/;
 const VITE_PLUS_PRODUCTION_SPEC_PATTERN = /framework-production\.spec\.ts/;
@@ -290,7 +291,7 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 2 : 1,
-  workers: process.env.CI ? 4 : undefined,
+  workers: PLAYWRIGHT_WORKER_COUNT,
   // Deep profiler, render-trace, and DOM-breakpoint replays add extra passes.
   // The V8 sampler can sporadically wedge the headless renderer for minutes
   // (see perf-recorder.ts), so these modes receive enough headroom to recover.

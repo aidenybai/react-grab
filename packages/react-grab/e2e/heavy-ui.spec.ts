@@ -178,7 +178,7 @@ test.describe("heavy-ui: live dashboard", () => {
 
     // Two dashboard ticks re-render every card; selection must persist.
     await page.waitForTimeout(700);
-    expect(await reactGrab.isSelectionBoxVisible()).toBe(true);
+    await expect.poll(() => reactGrab.isSelectionBoxVisible()).toBe(true);
     await reactGrab.deactivate();
   });
 

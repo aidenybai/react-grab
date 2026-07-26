@@ -1,5 +1,9 @@
 import { test as base, expect, Page, Locator } from "@playwright/test";
-import { ATTRIBUTE_NAME, KEYBOARD_ACTIVATION_SETTLE_DELAY_MS } from "./constants.js";
+import {
+  ATTRIBUTE_NAME,
+  KEYBOARD_ACTIVATION_SETTLE_DELAY_MS,
+  UI_STATE_TIMEOUT_MS,
+} from "./constants.js";
 import { COVERAGE_RAW_DIR } from "./coverage-config.js";
 
 const COVERAGE_ENABLED = Boolean(process.env.COVERAGE);
@@ -258,7 +262,7 @@ const createReactGrabPageObject = (
         return api?.isActive() === expected;
       },
       expectedState,
-      { timeout: 5000 },
+      { timeout: UI_STATE_TIMEOUT_MS },
     );
   };
 
@@ -285,7 +289,7 @@ const createReactGrabPageObject = (
     await page.waitForFunction(
       () => (window as { __REACT_GRAB__?: unknown }).__REACT_GRAB__ !== undefined,
       undefined,
-      { timeout: 5000 },
+      { timeout: UI_STATE_TIMEOUT_MS },
     );
     await page.waitForFunction(
       () => {
@@ -301,7 +305,7 @@ const createReactGrabPageObject = (
         return api?.isActive() === true;
       },
       undefined,
-      { timeout: 5000 },
+      { timeout: UI_STATE_TIMEOUT_MS },
     );
   };
 
@@ -453,7 +457,7 @@ const createReactGrabPageObject = (
         return api?.getState()?.selectionFilePath !== null;
       },
       undefined,
-      { timeout: 5000 },
+      { timeout: UI_STATE_TIMEOUT_MS },
     );
   };
 
@@ -511,7 +515,7 @@ const createReactGrabPageObject = (
         return expectedVisible ? menuItem !== null : menuItem === null;
       },
       { attrName: ATTRIBUTE_NAME, expectedVisible: visible },
-      { timeout: 5000 },
+      { timeout: UI_STATE_TIMEOUT_MS },
     );
   };
 
@@ -665,7 +669,7 @@ const createReactGrabPageObject = (
         return api?.getState()?.isPromptMode === expected;
       },
       active,
-      { timeout: 5000 },
+      { timeout: UI_STATE_TIMEOUT_MS },
     );
   };
 
@@ -675,6 +679,9 @@ const createReactGrabPageObject = (
     await rightClickElement(selector);
     await clickContextMenuItem("Comment");
     await waitForPromptMode(true);
+    const promptInput = page.locator("textarea[data-react-grab-input]");
+    await promptInput.waitFor({ state: "visible", timeout: UI_STATE_TIMEOUT_MS });
+    await promptInput.focus();
   };
 
   const isPromptModeActive = async (): Promise<boolean> => {

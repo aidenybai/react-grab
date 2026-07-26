@@ -39,6 +39,7 @@ import { getTagDisplay } from "../../utils/get-tag-display.js";
 import { createPointerMovePromptHandoff } from "../../utils/create-pointer-move-prompt-handoff.js";
 import { isEventFromOverlay } from "../../utils/is-event-from-overlay.js";
 import { isKeyboardEventComposing } from "../../utils/is-keyboard-event-composing.js";
+import { isTypeToEditKey } from "../../utils/is-type-to-edit-key.js";
 import { ignoreRealInput } from "../../utils/runtime-mode.js";
 import { registerOverlayDismiss } from "../../utils/register-overlay-dismiss.js";
 import { suppressMenuEvent } from "../../utils/suppress-menu-event.js";
@@ -354,6 +355,39 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     () => isCompact() && searchQuery() !== "" && autoApply.isInlineNumericEdit(),
   );
 
+  const updateSearchQuery = (nextSearchQuery: string) => {
+    if (autoApply.tryApplyNumericValue(nextSearchQuery)) {
+      keepInlineNumericSearchQuery();
+      setSearchQuery(nextSearchQuery);
+      queueInlineNumericReplacementForQuery(nextSearchQuery);
+      ensureSearchFocused();
+      return;
+    }
+    cancelInlineNumericReplacement();
+    if (autoApply.isInlineNumericDraft(nextSearchQuery)) {
+      keepInlineNumericSearchQuery();
+      setSearchQuery(nextSearchQuery);
+      ensureSearchFocused();
+      return;
+    }
+    setSearchQuery(nextSearchQuery);
+    setInlineNumericSearchQuery(null);
+    setActiveIndex(nextSearchQuery.trim() === "" ? firstNumericActiveIndex() : 0);
+    expandPanel();
+    autoApply.applyTailwindClass(nextSearchQuery);
+  };
+
+  const tryAppendUnfocusedSearchKey = (event: KeyboardEvent): boolean => {
+    if (event.metaKey || event.ctrlKey || event.altKey || !isTypeToEditKey(event.key)) return false;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    const nextSearchQuery = `${searchQuery()}${event.key}`;
+    if (searchInputRef) searchInputRef.value = nextSearchQuery;
+    updateSearchQuery(nextSearchQuery);
+    ensureSearchFocused();
+    return true;
+  };
+
   const handleSubmit = () => {
     discardConfirmation.hide();
     pointerMovePromptHandoff.clear();
@@ -514,6 +548,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
     const handleWindowKeyDown = ignoreRealInput((event: KeyboardEvent) => {
       if (isEventFromOverlay(event, REACT_GRAB_INPUT_ATTRIBUTE)) return;
       if (tryReplaceInlineNumericFromKey(event)) return;
+      if (tryAppendUnfocusedSearchKey(event)) return;
       handleSearchKeyDown(event);
     });
     const handleWindowKeyUp = ignoreRealInput((event: KeyboardEvent) => {
@@ -700,25 +735,7 @@ const EditPanelBody: Component<EditPanelBodyProps> = (props) => {
                 if (nextSearchQuery !== event.currentTarget.value) {
                   event.currentTarget.value = nextSearchQuery;
                 }
-                if (autoApply.tryApplyNumericValue(nextSearchQuery)) {
-                  keepInlineNumericSearchQuery();
-                  setSearchQuery(nextSearchQuery);
-                  queueInlineNumericReplacementForQuery(nextSearchQuery);
-                  ensureSearchFocused();
-                  return;
-                }
-                cancelInlineNumericReplacement();
-                if (autoApply.isInlineNumericDraft(nextSearchQuery)) {
-                  keepInlineNumericSearchQuery();
-                  setSearchQuery(nextSearchQuery);
-                  ensureSearchFocused();
-                  return;
-                }
-                setSearchQuery(nextSearchQuery);
-                setInlineNumericSearchQuery(null);
-                setActiveIndex(nextSearchQuery.trim() === "" ? firstNumericActiveIndex() : 0);
-                expandPanel();
-                autoApply.applyTailwindClass(nextSearchQuery);
+                updateSearchQuery(nextSearchQuery);
               }}
               onKeyDown={handleSearchKeyDown}
               placeholder={

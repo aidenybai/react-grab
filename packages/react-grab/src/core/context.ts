@@ -121,6 +121,7 @@ interface FiberContextRevisionSnapshot {
 }
 
 interface FiberTraceResolution {
+  fiber: Fiber | null;
   fiberSource: ResolvedSource | null;
   stack: StackFrame[] | null;
 }
@@ -343,7 +344,7 @@ const getFiberTraceResolutionForRevision = async (
     getCachedFiberSourceForRevision(snapshot),
     getStackForRevision(snapshot),
   ]);
-  return { fiberSource, stack };
+  return { fiber: snapshot.fiber, fiberSource, stack };
 };
 
 export const selectResolvedSource = (
@@ -736,7 +737,7 @@ const getTraceContext = (
 ): Promise<TraceContextResult> =>
   resolveCurrentFiberRevisionValue(
     element,
-    () => createTraceContext(element, options, { fiberSource: null, stack: [] }),
+    () => createTraceContext(element, options, { fiber: null, fiberSource: null, stack: [] }),
     async (snapshot) =>
       createTraceContext(element, options, await getFiberTraceResolutionForRevision(snapshot)),
   );
@@ -794,7 +795,7 @@ const createResolvedElementContextBase = (
     : selectResolvedSource(traceResolution.fiberSource, resolvedStack);
   return {
     componentName: getComponentDisplayName(element),
-    fiber: getReactFiberForElement(element),
+    fiber: traceResolution.fiber,
     source,
     stack: resolvedStack,
     stackContext: traceContext.text,
@@ -837,7 +838,7 @@ const resolveElementContextValue = <Value>(
 ): Promise<Value> =>
   resolveCurrentFiberRevisionValue(
     element,
-    () => createValue(element, options, { fiberSource: null, stack: [] }),
+    () => createValue(element, options, { fiber: null, fiberSource: null, stack: [] }),
     async (snapshot) =>
       createValue(element, options, await getFiberTraceResolutionForRevision(snapshot)),
   );

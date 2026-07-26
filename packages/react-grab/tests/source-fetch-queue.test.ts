@@ -16,7 +16,10 @@ const createDeferred = <T>() => {
 
 // Yields long enough for the queue's pending microtasks (slot handoff, task
 // start) to settle before a test inspects them.
-const flushMicrotasks = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
+const flushMicrotasks = async (): Promise<void> => {
+  await Promise.resolve();
+  await Promise.resolve();
+};
 
 const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 

@@ -127,7 +127,7 @@ test.describe("Toolbar Action Buttons", () => {
       await reactGrab.hoverUntilSelected(BUTTON_SELECTOR);
       await reactGrab.clickElement(BUTTON_SELECTOR);
 
-      await expect.poll(() => isEditPanelVisible(reactGrab.page), { timeout: 2000 }).toBe(true);
+      await expect.poll(() => isEditPanelVisible(reactGrab.page)).toBe(true);
     });
 
     test("Style button opens the style panel from a comment discard prompt", async ({

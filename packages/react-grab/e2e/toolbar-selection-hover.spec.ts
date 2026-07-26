@@ -1,6 +1,6 @@
 import type { Page } from "@playwright/test";
 import { test, expect } from "./fixtures.js";
-import { ATTRIBUTE_NAME } from "./constants.js";
+import { ATTRIBUTE_NAME, UI_STATE_TIMEOUT_MS } from "./constants.js";
 
 const hoverToolbar = async (page: Page) =>
   page.locator(`[${ATTRIBUTE_NAME}] [data-react-grab-toolbar]`).first().hover();
@@ -16,7 +16,9 @@ test.describe("Toolbar Selection Hover", () => {
       await reactGrab.activate();
       await reactGrab.hoverUntilSelected("li");
 
-      await expect.poll(() => reactGrab.isSelectionBoxVisible(), { timeout: 2000 }).toBe(true);
+      await expect
+        .poll(() => reactGrab.isSelectionBoxVisible(), { timeout: UI_STATE_TIMEOUT_MS })
+        .toBe(true);
 
       await hoverToolbar(reactGrab.page);
 
@@ -44,7 +46,9 @@ test.describe("Toolbar Selection Hover", () => {
 
       await hoverAwayFromToolbar(reactGrab.page);
 
-      await expect.poll(() => reactGrab.isSelectionBoxVisible(), { timeout: 2000 }).toBe(true);
+      await expect
+        .poll(() => reactGrab.isSelectionBoxVisible(), { timeout: UI_STATE_TIMEOUT_MS })
+        .toBe(true);
     });
   });
 

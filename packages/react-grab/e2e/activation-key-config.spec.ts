@@ -1,8 +1,6 @@
 import { test, expect } from "./fixtures.js";
 
 test.describe("Activation Key Configuration", () => {
-  test.describe.configure({ mode: "serial" });
-
   test.describe("Configuration via reinitialize", () => {
     test("should accept activationKey option", async ({ reactGrab }) => {
       await reactGrab.reinitialize({

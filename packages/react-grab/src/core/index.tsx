@@ -165,6 +165,7 @@ import { notifyToolbarStateChangeSubscribers } from "../utils/notify-toolbar-sta
 import { forwardSameOriginFrameEvents } from "../utils/forward-same-origin-frame-events.js";
 import { isHtmlElement } from "../utils/is-html-element.js";
 import { isDocumentAncestorOfElement } from "../utils/is-document-ancestor-of-element.js";
+import { isTypeToEditKey } from "../utils/is-type-to-edit-key.js";
 import { clearGlobalApi } from "../global-api.js";
 import { collectCleanupError } from "../utils/collect-cleanup-error.js";
 import { throwCollectedErrors } from "../utils/throw-collected-errors.js";
@@ -2599,10 +2600,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       });
     };
 
-    const TYPE_TO_EDIT_KEY_PATTERN = /^[a-zA-Z0-9-]$/;
     const tryHandleTypeToEdit = (event: KeyboardEvent): boolean => {
-      if (!event.key || event.key.length !== 1 || !TYPE_TO_EDIT_KEY_PATTERN.test(event.key))
-        return false;
+      if (!isTypeToEditKey(event.key)) return false;
       const element = canDispatchBareKey(event);
       if (!element) return false;
       const opened = editMode.trigger(
