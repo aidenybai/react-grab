@@ -39,6 +39,7 @@ export const findSelectorTarget = (
   element: Element,
   isCandidateAccepted?: (candidate: Element) => boolean,
 ): Element => {
+  const selectorRoot = element.getRootNode();
   let currentElement: Element | null = element;
   while (currentElement) {
     const currentElementIsSelectorTarget = isSelectorTarget(currentElement);
@@ -52,7 +53,8 @@ export const findSelectorTarget = (
       if (!hasSelectorIdentifier(currentElement) && currentElement === element)
         return currentElement;
     }
-    currentElement = getComposedParentElement(currentElement);
+    const parentElement = getComposedParentElement(currentElement);
+    currentElement = parentElement?.getRootNode() === selectorRoot ? parentElement : null;
   }
   return element;
 };

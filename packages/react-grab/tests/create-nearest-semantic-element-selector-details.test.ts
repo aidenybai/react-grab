@@ -6,6 +6,7 @@ import {
 import { createNearestSemanticElementSelectorDetails } from "../src/utils/create-nearest-semantic-element-selector-details.js";
 import { registerElementAdapter } from "../src/core/element-adapter.js";
 import { getComposedParentElement } from "../src/utils/get-composed-parent-element.js";
+import { findSelectorTarget } from "../src/utils/find-selector-target.js";
 
 vi.mock("../src/utils/create-element-selector.js", () => ({
   createSemanticElementSelectorDetails: vi.fn(),
@@ -21,7 +22,15 @@ interface SelectorTargetTestElementOptions {
   isSelectorTarget?: boolean;
   parentElement?: Element | null;
   role?: string;
+  rootNode?: object;
 }
+
+const selectorTargetOwnerDocument = {
+  body: {
+    getElementsByTagName: () => [Object.create(null)],
+  },
+  documentElement: Object.create(null),
+};
 
 const createSelectorTargetTestElement = (
   options: SelectorTargetTestElementOptions = {},
@@ -36,13 +45,9 @@ const createSelectorTargetTestElement = (
       (options.role && selector.split(",").includes(`[role="${options.role}"]`)),
     );
   element.getElementsByTagName = () => (options.isBroadSelectorTarget ? [element] : []);
+  element.getRootNode = () => options.rootNode ?? selectorTargetOwnerDocument;
   element.parentElement = options.parentElement ?? null;
-  element.ownerDocument = {
-    body: {
-      getElementsByTagName: () => [element],
-    },
-    documentElement: Object.create(null),
-  };
+  element.ownerDocument = selectorTargetOwnerDocument;
   return element;
 };
 
@@ -199,28 +204,22 @@ describe("createNearestSemanticElementSelectorDetails", () => {
     expect(createSemanticElementSelectorDetails).toHaveBeenNthCalledWith(2, semanticAncestor);
   });
 
-  it("continues across a composed-tree boundary to a semantic host", () => {
+  it("does not replace the selected element with a semantic boundary host", () => {
     const semanticHost = createSelectorTargetTestElement({
       hasSelectorIdentifier: true,
       isSelectorTarget: true,
     });
-    const selectedElement = createSelectorTargetTestElement();
-    const expectedSelectorDetails: ElementSelectorDetails = {
-      selector: '[aria-label="Chart controls"]',
-      isSemantic: true,
-    };
+    const selectedElement = createSelectorTargetTestElement({
+      rootNode: Object.create(null),
+    });
     vi.mocked(getComposedParentElement).mockImplementation((element) =>
       element === selectedElement ? semanticHost : element.parentElement,
     );
-    vi.mocked(createSemanticElementSelectorDetails).mockImplementation((candidate) =>
-      candidate === semanticHost ? expectedSelectorDetails : null,
-    );
+    vi.mocked(createSemanticElementSelectorDetails).mockReturnValue(null);
 
-    expect(createNearestSemanticElementSelectorDetails(selectedElement)).toBe(
-      expectedSelectorDetails,
-    );
-    expect(createSemanticElementSelectorDetails).toHaveBeenCalledOnce();
-    expect(createSemanticElementSelectorDetails).toHaveBeenCalledWith(semanticHost);
+    expect(findSelectorTarget(selectedElement)).toBe(selectedElement);
+    expect(createNearestSemanticElementSelectorDetails(selectedElement)).toBe(null);
+    expect(createSemanticElementSelectorDetails).not.toHaveBeenCalled();
   });
 
   it("does not replace a selected descendant with a broad semantic ancestor", () => {
