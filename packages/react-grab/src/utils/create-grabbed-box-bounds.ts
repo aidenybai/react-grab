@@ -5,7 +5,7 @@ import { isElementConnected } from "./is-element-connected.js";
 
 export const createGrabbedBoxBounds = (box: GrabbedBox): OverlayBounds => {
   if (box.textNode) {
-    return box.textNode.isConnected ? createTextNodeBounds(box.textNode) : box.bounds;
+    return createTextNodeBounds(box.textNode);
   }
   if (isElementConnected(box.element)) {
     return createElementBounds(box.element);

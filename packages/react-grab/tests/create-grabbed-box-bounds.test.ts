@@ -21,7 +21,7 @@ beforeEach(() => {
 });
 
 describe("create grabbed box bounds", () => {
-  it("keeps stored text bounds while the text node is disconnected", () => {
+  it("uses the last measured text bounds while the text node is disconnected", () => {
     const element: Element = Object.create(null);
     const textNode: Text = Object.create(null);
     Object.defineProperty(textNode, "isConnected", { value: false });
@@ -32,6 +32,14 @@ describe("create grabbed box bounds", () => {
       x: 30,
       y: 40,
     };
+    const lastMeasuredBounds = {
+      borderRadius: "0px",
+      height: 22,
+      width: 124,
+      x: 34,
+      y: 44,
+    };
+    vi.mocked(createTextNodeBounds).mockReturnValue(lastMeasuredBounds);
     vi.mocked(isElementConnected).mockReturnValue(true);
 
     expect(
@@ -42,8 +50,8 @@ describe("create grabbed box bounds", () => {
         id: "text-box",
         textNode,
       }),
-    ).toBe(bounds);
-    expect(createTextNodeBounds).not.toHaveBeenCalled();
+    ).toBe(lastMeasuredBounds);
+    expect(createTextNodeBounds).toHaveBeenCalledWith(textNode);
     expect(createElementBounds).not.toHaveBeenCalled();
   });
 });

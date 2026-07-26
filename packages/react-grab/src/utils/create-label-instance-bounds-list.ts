@@ -7,7 +7,7 @@ export const createLabelInstanceBoundsList = (
   instance: SelectionLabelInstance,
 ): OverlayBounds[] | null => {
   if (instance.textNode) {
-    return instance.textNode.isConnected ? [createTextNodeBounds(instance.textNode)] : null;
+    return [createTextNodeBounds(instance.textNode)];
   }
 
   const liveElements = instance.elements?.filter(isElementConnected) ?? [];

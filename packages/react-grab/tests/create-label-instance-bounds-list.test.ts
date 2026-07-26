@@ -21,21 +21,23 @@ beforeEach(() => {
 });
 
 describe("create label instance bounds list", () => {
-  it("keeps stored text bounds while the text node is disconnected", () => {
+  it("uses the last measured text bounds while the text node is disconnected", () => {
     const element: Element = Object.create(null);
     const textNode: Text = Object.create(null);
     Object.defineProperty(textNode, "isConnected", { value: false });
+    const bounds = {
+      borderRadius: "0px",
+      height: 20,
+      width: 120,
+      x: 30,
+      y: 40,
+    };
+    vi.mocked(createTextNodeBounds).mockReturnValue(bounds);
     vi.mocked(isElementConnected).mockReturnValue(true);
 
     expect(
       createLabelInstanceBoundsList({
-        bounds: {
-          borderRadius: "0px",
-          height: 20,
-          width: 120,
-          x: 30,
-          y: 40,
-        },
+        bounds,
         createdAt: 0,
         element,
         id: "text-label",
@@ -43,8 +45,8 @@ describe("create label instance bounds list", () => {
         tagName: "#text",
         textNode,
       }),
-    ).toBeNull();
-    expect(createTextNodeBounds).not.toHaveBeenCalled();
+    ).toEqual([bounds]);
+    expect(createTextNodeBounds).toHaveBeenCalledWith(textNode);
     expect(createElementBounds).not.toHaveBeenCalled();
   });
 });
