@@ -571,6 +571,55 @@ test.describe("Element Selection", () => {
       .toBe(true);
   });
 
+  test("should keep text targeting while prompt text is disconnected", async ({ reactGrab }) => {
+    const target = await createMixedTextTarget(reactGrab);
+
+    await reactGrab.setupCallbackTracking();
+    await reactGrab.registerCommentAction();
+    await reactGrab.activate();
+    await reactGrab.page.mouse.move(target.position.x, target.position.y);
+    await expect
+      .poll(async () => (await reactGrab.getSelectionLabelInfo()).tagName)
+      .toContain("Grab this text");
+
+    await reactGrab.pressEnter();
+    await expect.poll(() => reactGrab.isPromptModeActive()).toBe(true);
+
+    await reactGrab.page.evaluate(() => {
+      const textNode = document.querySelector("#mixed-text-target")?.firstChild;
+      if (!(textNode instanceof Text)) throw new Error("Missing mixed text target");
+      textNode.remove();
+      window.dispatchEvent(new Event("resize"));
+    });
+
+    await expect
+      .poll(async () => {
+        const callbackHistory = await reactGrab.getCallbackHistory();
+        return callbackHistory.findLast(
+          (callback) => callback.name === "onSelectionBox" && callback.args[0] === true,
+        )?.args[1];
+      })
+      .toEqual(expect.objectContaining(target.textBounds));
+
+    await reactGrab.typeInInput("Update this copy");
+    await reactGrab.submitInput();
+
+    await expect
+      .poll(async () => {
+        const callbackHistory = await reactGrab.getCallbackHistory();
+        const copySuccessCall = callbackHistory.findLast(
+          (callback) => callback.name === "onCopySuccess",
+        );
+        const copiedContent = copySuccessCall?.args[1];
+        return (
+          typeof copiedContent === "string" &&
+          copiedContent.includes('"Grab this text"') &&
+          !copiedContent.includes("not the nested element")
+        );
+      })
+      .toBe(true);
+  });
+
   test("should relink grabbed text after its DOM node is replaced", async ({ reactGrab }) => {
     const target = await createMixedTextTarget(reactGrab);
 

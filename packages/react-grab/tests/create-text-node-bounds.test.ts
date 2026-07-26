@@ -88,6 +88,7 @@ describe("create text node bounds", () => {
     isConnected = false;
     rect = createRect(20);
     performanceNow.mockReturnValue(BOUNDS_CACHE_TTL_MS + 1);
+    invalidateTextNodeBoundsCache();
 
     expect(createTextNodeBounds(textNode).x).toBe(10);
     expect(getBoundingClientRect).toHaveBeenCalledOnce();

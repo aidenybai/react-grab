@@ -510,21 +510,31 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }),
     );
 
+    const isTextNodeTargetForElement = (textNode: Text | null | undefined, element: Element) => {
+      if (!textNode) return false;
+      if (textNode.parentElement === element) return true;
+      return (
+        textNode.isConnected === false &&
+        textNode === frozenTextNode() &&
+        element === store.frozenElement
+      );
+    };
+
     const getTextNodeForElement = (element: Element, preferredTextNode?: Text | null) => {
-      if (preferredTextNode?.parentElement === element) return preferredTextNode;
+      if (preferredTextNode && isTextNodeTargetForElement(preferredTextNode, element)) {
+        return preferredTextNode;
+      }
 
       const frozenNode = frozenTextNode();
-      if (frozenNode?.parentElement === element) return frozenNode;
+      if (frozenNode && isTextNodeTargetForElement(frozenNode, element)) return frozenNode;
 
       const activeNode = activeTextNode();
-      return activeNode?.parentElement === element ? activeNode : null;
+      return activeNode && isTextNodeTargetForElement(activeNode, element) ? activeNode : null;
     };
 
     const getPromptSelectionBounds = (element: Element, preferredTextNode?: Text | null) => {
       const textNode = getTextNodeForElement(element, preferredTextNode);
-      return textNode?.parentElement === element
-        ? createTextNodeBounds(textNode)
-        : createElementBounds(element);
+      return textNode ? createTextNodeBounds(textNode) : createElementBounds(element);
     };
 
     const preparePromptMode = (
@@ -984,7 +994,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         }
         if (
           pluginRegistry.store.theme.grabbedBoxes.enabled &&
-          textNode?.parentElement === element
+          textNode &&
+          isTextNodeTargetForElement(textNode, element)
         ) {
           showTemporaryGrabbedBox(createTextNodeBounds(textNode), element, textNode);
         } else if (pluginRegistry.store.theme.grabbedBoxes.enabled) {
@@ -1120,7 +1131,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const dragRect = passedDragRect ?? store.frozenDragRect;
       const isMultiSelect = allTargetElements.length > 1;
       const selectedTextNode =
-        !isMultiSelect && textNode?.parentElement === element ? textNode : undefined;
+        !isMultiSelect && textNode && isTextNodeTargetForElement(textNode, element)
+          ? textNode
+          : undefined;
 
       // Reuse the live selection-box bounds when copying the currently-selected
       // element: the selectionBounds memo already holds them (computed during the
@@ -1519,7 +1532,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       const frozenElements = store.frozenElements;
       const frozenNode = frozenTextNode();
-      if (frozenElements.length === 1 && frozenNode?.parentElement === frozenElements[0]) {
+      const frozenElement = frozenElements[0];
+      if (
+        frozenElements.length === 1 &&
+        frozenNode &&
+        frozenElement &&
+        isTextNodeTargetForElement(frozenNode, frozenElement)
+      ) {
         return [createTextNodeBounds(frozenNode)];
       }
 
@@ -1907,7 +1926,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
 
       const elements = frozenElements.length > 0 ? frozenElements : [element];
-      const textNode = frozenTextNode()?.parentElement === element ? frozenTextNode() : null;
+      const textNode = getTextNodeForElement(element);
 
       const currentSelectionBounds = textNode
         ? [createTextNodeBounds(textNode)]
@@ -3874,10 +3893,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const contextMenuBounds = createMemo((): OverlayBounds | null => {
       void viewportVersion();
       const textNode = frozenTextNode();
-      if (textNode?.parentElement === store.contextMenuElement) {
+      const element = store.contextMenuElement;
+      if (textNode && element && isTextNodeTargetForElement(textNode, element)) {
         return createTextNodeBounds(textNode);
       }
-      const element = store.contextMenuElement;
       if (!element) return null;
       return createElementBounds(element);
     });
@@ -3891,7 +3910,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const element = store.contextMenuElement;
       if (!element) return undefined;
       const textNode = frozenTextNode();
-      if (textNode?.parentElement === element) return formatTextNodeLabel(textNode);
+      if (textNode && isTextNodeTargetForElement(textNode, element)) {
+        return formatTextNodeLabel(textNode);
+      }
       const frozenCount = store.frozenElements.length;
       if (frozenCount > 1) {
         return `${frozenCount} elements`;
@@ -4039,7 +4060,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         clearPendingToolbarSelection();
         onBeforeCopy?.();
         const activeNode = activeTextNode();
-        const textNode = activeNode?.parentElement === element ? activeNode : null;
+        const textNode = getTextNodeForElement(element, activeNode);
         performCopyWithLabel({
           element,
           cursorX: position.x,

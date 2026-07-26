@@ -137,7 +137,11 @@ test.describe("Prompt Mode", () => {
       await reactGrab.registerCommentAction();
       await reactGrab.enterPromptMode("li:first-child");
 
-      await reactGrab.pressEscape();
+      const promptInput = reactGrab.page.getByRole("textbox", {
+        name: "Add context for selected element",
+      });
+      await promptInput.click();
+      await promptInput.press("Escape");
 
       await expect.poll(() => reactGrab.isPromptModeActive()).toBe(false);
     });

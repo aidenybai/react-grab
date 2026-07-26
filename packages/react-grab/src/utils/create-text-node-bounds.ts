@@ -12,6 +12,7 @@ interface TextNodeBoundsAnchor {
 }
 
 let textNodeBoundsCache = new WeakMap<Text, CachedTextNodeBounds>();
+const lastConnectedTextNodeBounds = new WeakMap<Text, OverlayBounds>();
 const boundsAnchorByTextNode = new WeakMap<Text, TextNodeBoundsAnchor>();
 
 export const invalidateTextNodeBoundsCache = () => {
@@ -44,7 +45,10 @@ export const transferTextNodeBoundsRectIndex = (
 export const createTextNodeBounds = (textNode: Text): OverlayBounds => {
   const now = performance.now();
   const cached = textNodeBoundsCache.get(textNode);
-  if (cached && (textNode.isConnected === false || now - cached.timestamp < BOUNDS_CACHE_TTL_MS)) {
+  if (textNode.isConnected === false) {
+    const disconnectedBounds = cached?.bounds ?? lastConnectedTextNodeBounds.get(textNode);
+    if (disconnectedBounds) return disconnectedBounds;
+  } else if (cached && now - cached.timestamp < BOUNDS_CACHE_TTL_MS) {
     return cached.bounds;
   }
 
@@ -74,5 +78,6 @@ export const createTextNodeBounds = (textNode: Text): OverlayBounds => {
   };
 
   textNodeBoundsCache.set(textNode, { bounds, timestamp: now });
+  if (textNode.isConnected !== false) lastConnectedTextNodeBounds.set(textNode, bounds);
   return bounds;
 };
