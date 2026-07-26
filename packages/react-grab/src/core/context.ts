@@ -36,6 +36,7 @@ import { shouldIncludeElementSelector } from "../utils/should-include-element-se
 import { createFiberRevision, type FiberRevision } from "../utils/create-fiber-revision.js";
 import { formatListItemKey } from "../utils/format-list-item-key.js";
 import { deleteCacheEntryIfCurrent } from "../utils/delete-cache-entry-if-current.js";
+import { createSupersedablePromise } from "../utils/create-supersedable-promise.js";
 import type { SourceLocation } from "../types.js";
 import { getElementAdapter, getReactFiberForElement } from "./element-adapter.js";
 
@@ -111,6 +112,7 @@ interface FiberContextCacheEntry<Result> {
   controller: AbortController;
   promise: Promise<Result>;
   revision: FiberRevision;
+  supersedeWith: (replacementPromise: Promise<Result>) => void;
 }
 
 const stackCache = new WeakMap<Element, FiberContextCacheEntry<StackFrame[] | null>>();
@@ -165,24 +167,29 @@ export const getStack = (element: Element): Promise<StackFrame[] | null> => {
   const currentFiber = getLatestFiber(fiber);
   const cachedStack = stackCache.get(nearestFiberElement);
   if (cachedStack?.revision.matches(currentFiber)) return cachedStack.promise;
-  cachedStack?.controller.abort();
 
   // Evict failed or timed-out resolutions (null) so a later grab can retry once
   // the page's own fetches free a connection, while still deduping concurrent
   // in-flight lookups. A resolved empty array is a real "no frames" answer and
   // stays cached. Mirrors getCachedFiberSource.
   const controller = new AbortController();
-  const stackPromise = fetchStackForElement(nearestFiberElement, controller.signal);
+  const stackResolution = fetchStackForElement(nearestFiberElement, controller.signal);
+  const stackPromise = createSupersedablePromise(stackResolution);
   const cacheEntry: FiberContextCacheEntry<StackFrame[] | null> = {
     controller,
-    promise: stackPromise,
+    promise: stackPromise.promise,
     revision: createFiberRevision(currentFiber),
+    supersedeWith: stackPromise.supersedeWith,
   };
   stackCache.set(nearestFiberElement, cacheEntry);
-  void stackPromise.then((stack) => {
+  if (cachedStack) {
+    cachedStack.supersedeWith(cacheEntry.promise);
+    cachedStack.controller.abort();
+  }
+  void cacheEntry.promise.then((stack) => {
     if (stack === null) deleteCacheEntryIfCurrent(stackCache, nearestFiberElement, cacheEntry);
   });
-  return stackPromise;
+  return cacheEntry.promise;
 };
 
 export const getNearestComponentName = async (element: Element): Promise<string | null> => {
@@ -260,22 +267,27 @@ const getCachedFiberSource = (element: Element): Promise<ResolvedSource | null> 
   const currentFiber = getLatestFiber(fiber);
   const cachedFiberSource = fiberSourceCache.get(nearestFiberElement);
   if (cachedFiberSource?.revision.matches(currentFiber)) return cachedFiberSource.promise;
-  cachedFiberSource?.controller.abort();
 
   // Evict null resolutions so a later grab can retry once the fiber's source
   // metadata is attached, while still deduping concurrent in-flight lookups.
   const controller = new AbortController();
-  const fiberSourcePromise = getFiberSourceForElement(nearestFiberElement, controller.signal);
+  const fiberSourceResolution = getFiberSourceForElement(nearestFiberElement, controller.signal);
+  const fiberSourcePromise = createSupersedablePromise(fiberSourceResolution);
   const cacheEntry: FiberContextCacheEntry<ResolvedSource | null> = {
     controller,
-    promise: fiberSourcePromise,
+    promise: fiberSourcePromise.promise,
     revision: createFiberRevision(currentFiber),
+    supersedeWith: fiberSourcePromise.supersedeWith,
   };
   fiberSourceCache.set(nearestFiberElement, cacheEntry);
-  void fiberSourcePromise.then((source) => {
+  if (cachedFiberSource) {
+    cachedFiberSource.supersedeWith(cacheEntry.promise);
+    cachedFiberSource.controller.abort();
+  }
+  void cacheEntry.promise.then((source) => {
     if (!source) deleteCacheEntryIfCurrent(fiberSourceCache, nearestFiberElement, cacheEntry);
   });
-  return fiberSourcePromise;
+  return cacheEntry.promise;
 };
 
 export const selectResolvedSource = (

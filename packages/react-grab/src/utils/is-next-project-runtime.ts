@@ -9,6 +9,9 @@ const hasNextAssetScript = (): boolean => {
   });
 };
 
+const hasNextFlightDataScript = (): boolean =>
+  Array.from(document.scripts).some((script) => script.textContent?.includes("self.__next_f.push"));
+
 export const isNextProjectRuntime = (shouldRevalidate?: boolean): boolean => {
   if (shouldRevalidate) {
     cachedIsNextProject = undefined;
@@ -18,7 +21,8 @@ export const isNextProjectRuntime = (shouldRevalidate?: boolean): boolean => {
     Boolean(
       document.getElementById("__NEXT_DATA__") ||
       document.querySelector("nextjs-portal") ||
-      hasNextAssetScript(),
+      hasNextAssetScript() ||
+      hasNextFlightDataScript(),
     );
   return cachedIsNextProject;
 };
