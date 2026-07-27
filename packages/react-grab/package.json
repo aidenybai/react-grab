@@ -88,7 +88,7 @@
     "build:profiling": "pnpm run prebuild && NODE_ENV=profiling REACT_GRAB_NO_MINIFY=true REACT_GRAB_SOURCEMAP=true vp pack",
     "build:coverage": "pnpm run prebuild && NODE_ENV=production REACT_GRAB_NO_MINIFY=true REACT_GRAB_SOURCEMAP=true vp pack",
     "dev": "concurrently \"pnpm:css:watch\" \"vp pack --watch\"",
-    "test": "vp test run tests && playwright test",
+    "test": "vp test run tests && playwright test --grep-invert @perf && E2E_ENVIRONMENT=vite-plus-development playwright test --grep @perf --workers=1",
     "test:unit": "vp test run tests",
     "pretest:coverage": "pnpm --filter @react-grab/playwright-coverage build",
     "test:coverage": "COVERAGE=1 playwright test",

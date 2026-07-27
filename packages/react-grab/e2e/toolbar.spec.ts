@@ -1,4 +1,5 @@
 import { test, expect } from "./fixtures.js";
+import { UI_STATE_TIMEOUT_MS } from "./constants.js";
 
 test.describe("Toolbar", () => {
   test.describe("Visibility", () => {
@@ -19,7 +20,9 @@ test.describe("Toolbar", () => {
         { timeout: 10000 },
       );
 
-      await expect.poll(() => reactGrab.isToolbarVisible(), { timeout: 3000 }).toBe(true);
+      await expect
+        .poll(() => reactGrab.isToolbarVisible(), { timeout: UI_STATE_TIMEOUT_MS })
+        .toBe(true);
 
       await reactGrab.setViewportSize(1280, 720);
     });
@@ -457,7 +460,9 @@ test.describe("Toolbar", () => {
 
       await reactGrab.page.reload();
       await reactGrab.page.waitForLoadState("domcontentloaded");
-      await expect.poll(() => reactGrab.isToolbarVisible(), { timeout: 2000 }).toBe(true);
+      await expect
+        .poll(() => reactGrab.isToolbarVisible(), { timeout: UI_STATE_TIMEOUT_MS })
+        .toBe(true);
 
       const positionAfterReload = await reactGrab.getToolbarInfo();
 
@@ -474,7 +479,9 @@ test.describe("Toolbar", () => {
 
       await reactGrab.page.reload();
       await reactGrab.page.waitForLoadState("domcontentloaded");
-      await expect.poll(() => reactGrab.isToolbarVisible(), { timeout: 2000 }).toBe(true);
+      await expect
+        .poll(() => reactGrab.isToolbarVisible(), { timeout: UI_STATE_TIMEOUT_MS })
+        .toBe(true);
 
       await expect.poll(() => reactGrab.isToolbarCollapsed(), { timeout: 2000 }).toBe(true);
     });
@@ -487,7 +494,9 @@ test.describe("Toolbar", () => {
       });
       await reactGrab.page.reload();
       await reactGrab.page.waitForLoadState("domcontentloaded");
-      await expect.poll(() => reactGrab.isToolbarVisible(), { timeout: 3000 }).toBe(true);
+      await expect
+        .poll(() => reactGrab.isToolbarVisible(), { timeout: UI_STATE_TIMEOUT_MS })
+        .toBe(true);
       // HACK: Wait for toolbar fade-in animation to complete
       await reactGrab.page.waitForTimeout(600);
     });
@@ -697,7 +706,9 @@ test.describe("Toolbar", () => {
 
     test("should allow toggle activation in vertical mode", async ({ reactGrab }) => {
       await seedVerticalState(reactGrab.page, "right");
-      await expect.poll(() => reactGrab.isToolbarVisible(), { timeout: 3000 }).toBe(true);
+      await expect
+        .poll(() => reactGrab.isToolbarVisible(), { timeout: UI_STATE_TIMEOUT_MS })
+        .toBe(true);
 
       await reactGrab.clickToolbarToggle();
       const isActive = await reactGrab.isOverlayVisible();

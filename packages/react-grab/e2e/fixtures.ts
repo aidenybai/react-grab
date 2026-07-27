@@ -1,11 +1,13 @@
 import { test as base, expect, Page, Locator } from "@playwright/test";
-import { ATTRIBUTE_NAME } from "./constants.js";
+import {
+  ATTRIBUTE_NAME,
+  KEYBOARD_ACTIVATION_SETTLE_DELAY_MS,
+  UI_STATE_TIMEOUT_MS,
+} from "./constants.js";
 import { COVERAGE_RAW_DIR } from "./coverage-config.js";
 
 const COVERAGE_ENABLED = Boolean(process.env.COVERAGE);
 
-const DEFAULT_KEY_HOLD_DURATION_MS = 200;
-const ACTIVATION_BUFFER_MS = 200;
 const PAGE_SETUP_MAX_ATTEMPTS = 2;
 const PAGE_SETUP_NAVIGATION_TIMEOUT_MS = 8_000;
 const PAGE_SETUP_API_TIMEOUT_MS = 15_000;
@@ -104,10 +106,12 @@ export interface ReactGrabPageObject {
   feedbackModifierKey: ModifierKey;
   activate: () => Promise<void>;
   activateViaKeyboard: () => Promise<void>;
+  activateViaKeyboardFrom: (selector: string) => Promise<void>;
   deactivate: () => Promise<void>;
   isOverlayVisible: () => Promise<boolean>;
   getOverlayHost: () => Locator;
   hoverElement: (selector: string) => Promise<void>;
+  hoverUntilTargetSelected: (selector: string) => Promise<void>;
   hoverUntilSelected: (selector: string) => Promise<void>;
   clickElement: (selector: string) => Promise<void>;
   rightClickElement: (selector: string) => Promise<void>;
@@ -258,22 +262,34 @@ const createReactGrabPageObject = (
         return api?.isActive() === expected;
       },
       expectedState,
-      { timeout: 5000 },
+      { timeout: UI_STATE_TIMEOUT_MS },
     );
   };
 
-  const holdToActivate = async (durationMs = DEFAULT_KEY_HOLD_DURATION_MS) => {
-    await page.click("body");
+  const activateViaKeyboardFrom = async (selector: string) => {
+    await page.click(selector);
     await page.keyboard.down(activationModifierKey);
     await page.keyboard.down("c");
-    await page.waitForTimeout(durationMs + ACTIVATION_BUFFER_MS);
+    try {
+      await page.evaluate(
+        (settleDelayMs) =>
+          new Promise<void>((resolve) => {
+            window.setTimeout(resolve, settleDelayMs);
+          }),
+        KEYBOARD_ACTIVATION_SETTLE_DELAY_MS,
+      );
+    } finally {
+      await page.keyboard.up("c");
+      await page.keyboard.up(activationModifierKey);
+    }
+    await waitForActive(true);
   };
 
   const activate = async () => {
     await page.waitForFunction(
       () => (window as { __REACT_GRAB__?: unknown }).__REACT_GRAB__ !== undefined,
       undefined,
-      { timeout: 5000 },
+      { timeout: UI_STATE_TIMEOUT_MS },
     );
     await page.waitForFunction(
       () => {
@@ -289,15 +305,12 @@ const createReactGrabPageObject = (
         return api?.isActive() === true;
       },
       undefined,
-      { timeout: 5000 },
+      { timeout: UI_STATE_TIMEOUT_MS },
     );
   };
 
   const activateViaKeyboard = async () => {
-    await holdToActivate();
-    await page.keyboard.up("c");
-    await page.keyboard.up(activationModifierKey);
-    await waitForActive(true);
+    await activateViaKeyboardFrom("body");
   };
 
   const deactivate = async () => {
@@ -405,6 +418,32 @@ const createReactGrabPageObject = (
     }
   };
 
+  const hoverUntilTargetSelected = async (selector: string) => {
+    for (let attempt = 1; attempt <= SELECTION_HOVER_ATTEMPTS; attempt++) {
+      if (attempt > 1) await page.mouse.move(0, 0);
+      await hoverElement(selector);
+      try {
+        await page.waitForFunction(
+          (targetSelector) => {
+            const api = window.__REACT_GRAB__;
+            const expectedTarget = document.querySelector(targetSelector);
+            const selectedTarget = api?.getState().targetElement;
+            return Boolean(
+              expectedTarget &&
+              selectedTarget &&
+              (selectedTarget === expectedTarget || expectedTarget.contains(selectedTarget)),
+            );
+          },
+          selector,
+          { timeout: SELECTION_HOVER_TIMEOUT_MS },
+        );
+        return;
+      } catch (error) {
+        if (attempt === SELECTION_HOVER_ATTEMPTS) throw error;
+      }
+    }
+  };
+
   const waitForSelectionSource = async () => {
     await page.waitForFunction(
       () => {
@@ -418,7 +457,7 @@ const createReactGrabPageObject = (
         return api?.getState()?.selectionFilePath !== null;
       },
       undefined,
-      { timeout: 5000 },
+      { timeout: UI_STATE_TIMEOUT_MS },
     );
   };
 
@@ -476,7 +515,7 @@ const createReactGrabPageObject = (
         return expectedVisible ? menuItem !== null : menuItem === null;
       },
       { attrName: ATTRIBUTE_NAME, expectedVisible: visible },
-      { timeout: 5000 },
+      { timeout: UI_STATE_TIMEOUT_MS },
     );
   };
 
@@ -630,7 +669,7 @@ const createReactGrabPageObject = (
         return api?.getState()?.isPromptMode === expected;
       },
       active,
-      { timeout: 5000 },
+      { timeout: UI_STATE_TIMEOUT_MS },
     );
   };
 
@@ -640,6 +679,9 @@ const createReactGrabPageObject = (
     await rightClickElement(selector);
     await clickContextMenuItem("Comment");
     await waitForPromptMode(true);
+    const promptInput = page.locator("textarea[data-react-grab-input]");
+    await promptInput.waitFor({ state: "visible", timeout: UI_STATE_TIMEOUT_MS });
+    await promptInput.focus();
   };
 
   const isPromptModeActive = async (): Promise<boolean> => {
@@ -1059,7 +1101,7 @@ const createReactGrabPageObject = (
         if (spanText.includes("elements")) {
           const match = spanText.match(/(\d+)\s*elements/);
           elementsCount = match ? parseInt(match[1], 10) : null;
-        } else if (spanText.includes(".")) {
+        } else if (spanText.includes(".") && !spanText.startsWith(".")) {
           const parts = spanText.split(".");
           componentName = parts[0] ?? null;
           tagName = parts[1] ?? null;
@@ -1705,10 +1747,12 @@ const createReactGrabPageObject = (
     feedbackModifierKey,
     activate,
     activateViaKeyboard,
+    activateViaKeyboardFrom,
     deactivate,
     isOverlayVisible,
     getOverlayHost,
     hoverElement,
+    hoverUntilTargetSelected,
     hoverUntilSelected,
     clickElement,
     rightClickElement,

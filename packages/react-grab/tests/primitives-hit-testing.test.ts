@@ -2,13 +2,17 @@ import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import {
   getElementAtPoint,
   getElementBounds,
+  getElementContext,
   getElementSelector,
   getElementsAtPoint,
   getElementsAtPosition,
   isElementGrabbable,
 } from "../src/primitives.js";
+import { resolveElementContext } from "../src/core/context.js";
+import { getHTMLPreview } from "../src/core/html-preview.js";
 import { createElementBounds } from "../src/utils/create-element-bounds.js";
 import { createElementSelector } from "../src/utils/create-element-selector.js";
+import { extractElementCss } from "../src/utils/extract-element-css.js";
 import { findSelectorTarget } from "../src/utils/find-selector-target.js";
 import { getComposedParentElement } from "../src/utils/get-composed-parent-element.js";
 import { getDeepElementsAtPoint } from "../src/utils/get-deep-elements-at-point.js";
@@ -22,8 +26,20 @@ vi.mock("../src/utils/create-element-bounds.js", () => ({
   createElementBounds: vi.fn(),
 }));
 
+vi.mock("../src/core/context.js", () => ({
+  resolveElementContext: vi.fn(),
+}));
+
+vi.mock("../src/core/html-preview.js", () => ({
+  getHTMLPreview: vi.fn(),
+}));
+
 vi.mock("../src/utils/create-element-selector.js", () => ({
   createElementSelector: vi.fn(),
+}));
+
+vi.mock("../src/utils/extract-element-css.js", () => ({
+  extractElementCss: vi.fn(),
 }));
 
 vi.mock("../src/utils/find-selector-target.js", () => ({
@@ -168,5 +184,47 @@ describe("element inspection primitives", () => {
 
     expect(getElementSelector(element)).toBe("[data-testid=button]");
     expect(createElementSelector).toHaveBeenCalledWith(selectorTargetElement);
+  });
+
+  it("returns the selector included in the resolved snippet", async () => {
+    const element = createElement();
+    vi.mocked(resolveElementContext).mockResolvedValue({
+      componentName: "IconLink",
+      elementInfo: '<a href="/docs">\n  selector: [aria-label="Documentation"]',
+      fiber: null,
+      selector: '[aria-label="Documentation"]',
+      source: null,
+      stack: [],
+      stackContext: "",
+    });
+    vi.mocked(getHTMLPreview).mockReturnValue('<a href="/docs">');
+    vi.mocked(extractElementCss).mockReturnValue("display: inline;");
+
+    const context = await getElementContext(element);
+
+    expect(context.selector).toBe('[aria-label="Documentation"]');
+    expect(context.snippet).toContain('selector: [aria-label="Documentation"]');
+    expect(createElementSelector).not.toHaveBeenCalled();
+  });
+
+  it("omits the selector when the resolved snippet omits it", async () => {
+    const element = createElement();
+    vi.mocked(resolveElementContext).mockResolvedValue({
+      componentName: "Documentation",
+      elementInfo: '<article class="documentation">',
+      fiber: null,
+      selector: null,
+      source: null,
+      stack: [],
+      stackContext: "",
+    });
+    vi.mocked(getHTMLPreview).mockReturnValue('<article class="documentation">');
+    vi.mocked(extractElementCss).mockReturnValue("display: block;");
+
+    const context = await getElementContext(element);
+
+    expect(context.selector).toBeNull();
+    expect(context.snippet).not.toContain("selector:");
+    expect(createElementSelector).not.toHaveBeenCalled();
   });
 });

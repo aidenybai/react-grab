@@ -11,7 +11,6 @@ interface LifecycleWindow {
   initReactGrab?: () => ReactGrabAPI;
 }
 
-const HOST_ATTACHMENT_RECHECK_WAIT_MS = 1_100;
 const COPY_CANCELLATION_CASES: CopyCancellationCase[] = [
   { method: "deactivate", label: "deactivation" },
   { method: "dispose", label: "disposal" },
@@ -529,11 +528,11 @@ test.describe("API Methods", () => {
         document.dispatchEvent(new Event("DOMContentLoaded"));
       });
 
-      await reactGrab.page.waitForTimeout(HOST_ATTACHMENT_RECHECK_WAIT_MS);
-      const hostCount = await reactGrab.page.evaluate(
-        () => document.querySelectorAll("[data-react-grab]").length,
-      );
-      expect(hostCount).toBe(1);
+      await expect
+        .poll(() =>
+          reactGrab.page.evaluate(() => document.querySelectorAll("[data-react-grab]").length),
+        )
+        .toBe(1);
     });
 
     test("should recheck a host reused by a replacement", async ({ reactGrab }) => {
@@ -548,11 +547,11 @@ test.describe("API Methods", () => {
         document.querySelector("[data-react-grab]")?.remove();
       });
 
-      await reactGrab.page.waitForTimeout(HOST_ATTACHMENT_RECHECK_WAIT_MS);
-      const hostCount = await reactGrab.page.evaluate(
-        () => document.querySelectorAll("[data-react-grab]").length,
-      );
-      expect(hostCount).toBe(1);
+      await expect
+        .poll(() =>
+          reactGrab.page.evaluate(() => document.querySelectorAll("[data-react-grab]").length),
+        )
+        .toBe(1);
     });
   });
 

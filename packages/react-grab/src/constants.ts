@@ -40,6 +40,7 @@ export const SYMBOLICATION_TIMEOUT_MS = 5000;
 // un-cancelable bundle fetch is stuck behind a saturated connection pool, and
 // exists to free the queue slot rather than to bound normal latency.
 export const SOURCE_FETCH_TIMEOUT_MS = 8000;
+export const FIBER_CONTEXT_REVISION_MAX_ATTEMPTS = 2;
 // Cap on react-grab's own concurrent source-resolution fetches.
 //
 // Resolving a grabbed element's source location fetches its JS bundle and source
@@ -122,6 +123,9 @@ export const ARROW_PANEL_OVERLAP_PX = 1;
 export const LABEL_GAP_PX = 4;
 export const PREVIEW_TEXT_MAX_LENGTH = 100;
 export const PREVIEW_ATTR_VALUE_MAX_LENGTH = 15;
+export const PREVIEW_IDENTIFYING_ATTR_VALUE_MAX_LENGTH_CHARS = 120;
+export const PREVIEW_ATTRIBUTE_MAX_COUNT = 8;
+export const LIST_ITEM_KEY_MAX_LENGTH_CHARS = 120;
 export const PREVIEW_PRIORITY_ATTRS: readonly string[] = [
   "id",
   "class",
@@ -155,7 +159,16 @@ export const PREVIEW_IDENTIFYING_ATTRS = new Set([
   "open",
 ]);
 
-export const PREVIEW_DESCENDANT_TEXT_TAGS = new Set(["a", "code", "pre"]);
+export const PREVIEW_DESCENDANT_TEXT_TAGS = new Set([
+  "a",
+  "button",
+  "code",
+  "label",
+  "option",
+  "pre",
+  "summary",
+  "text",
+]);
 export const PREVIEW_SKIPPED_TEXT_TAGS = new Set(["script", "style", "template", "noscript"]);
 
 export const MODIFIER_KEYS: readonly string[] = ["Meta", "Control", "Shift", "Alt"];

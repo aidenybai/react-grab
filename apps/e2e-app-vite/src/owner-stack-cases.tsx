@@ -89,13 +89,57 @@ const SuspenseOwner = () => (
   </Suspense>
 );
 
+const DuplicateContextOwner = () => (
+  <div>
+    <button className="duplicate-context-target" type="button">
+      <span>Repeated action</span>
+    </button>
+    <button className="duplicate-context-target" type="button">
+      <span>Repeated action</span>
+    </button>
+  </div>
+);
+
+const GeneratedIdOwner = () => (
+  <>
+    <button className="generated-id-only-target" id=":r0:" type="button">
+      Generated ID target
+    </button>
+    <button
+      data-testid="generated-id-semantic-target"
+      id="550e8400-e29b-41d4-a716-446655440000"
+      type="button"
+    >
+      Generated ID with semantic attribute
+    </button>
+    <button data-testid="semantic-ancestor-target" type="button">
+      <span id=":r2:">
+        <span className="nested-generated-id-target">Nested generated ID target</span>
+      </span>
+    </button>
+    <button aria-label="Unique semantic ancestor" type="button">
+      <span data-testid="repeated-semantic-candidate">
+        <span className="nested-repeated-semantic-target">Nested repeated semantic target</span>
+      </span>
+    </button>
+    <button aria-label="Other semantic ancestor" type="button">
+      <span data-testid="repeated-semantic-candidate">Other repeated semantic target</span>
+    </button>
+    <div data-testid="generic-control-semantic-ancestor">
+      <button type="button">
+        <span className="generic-control-nested-target">Nested generic control target</span>
+      </button>
+    </div>
+  </>
+);
+
 const ProductionIconLink = () => (
   <a
     aria-label="Production GitHub link"
     data-testid="production-icon-link"
     href="https://github.com/aidenybai/react-grab"
   >
-    <svg aria-hidden="true" height="24" viewBox="0 0 24 24" width="24">
+    <svg height="24" role="img" viewBox="0 0 24 24" width="24">
       <g>
         <path d="M12 1a11 11 0 1 0 0 22 11 11 0 0 0 0-22Z" />
       </g>
@@ -114,6 +158,8 @@ export const OwnerStackCases = () => (
       <MemoLeaf />
       <FragmentOwner />
       <SuspenseOwner />
+      <DuplicateContextOwner />
+      <GeneratedIdOwner />
       <ProductionIconLink />
       {[
         <button data-testid="single-key-target" key="only" type="button">
@@ -129,8 +175,18 @@ export const OwnerStackCases = () => (
         </button>,
       ]}
       {[
+        <button data-testid="escaped-key-target" key={'item:"two"\nnext'} type="button">
+          Escaped key target
+        </button>,
+        <button key="escaped-key-sibling" type="button">
+          Escaped key sibling
+        </button>,
+      ]}
+      {[
         <Fragment key="fragment-first">
-          <button type="button">First fragment keyed target</button>
+          <button className="structural-selector-target" type="button">
+            First fragment keyed target
+          </button>
         </Fragment>,
         <Fragment key="fragment-second">
           <button data-testid="fragment-key-target" type="button">

@@ -1,8 +1,6 @@
 import { test, expect } from "./fixtures.js";
 
 test.describe("Activation Key Configuration", () => {
-  test.describe.configure({ mode: "serial" });
-
   test.describe("Configuration via reinitialize", () => {
     test("should accept activationKey option", async ({ reactGrab }) => {
       await reactGrab.reinitialize({
@@ -167,15 +165,8 @@ test.describe("Activation Key Configuration", () => {
 
   test.describe("Input field interaction", () => {
     test("should activate in input by default", async ({ reactGrab }) => {
-      await reactGrab.page.click("[data-testid='test-input']");
-
-      await reactGrab.page.keyboard.down(reactGrab.modifierKey);
-      await reactGrab.page.keyboard.down("c");
-      await reactGrab.page.waitForTimeout(500);
-      await reactGrab.page.keyboard.up("c");
-      await reactGrab.page.keyboard.up(reactGrab.modifierKey);
-
-      await expect.poll(() => reactGrab.isOverlayVisible(), { timeout: 1000 }).toBe(true);
+      await reactGrab.activateViaKeyboardFrom("[data-testid='test-input']");
+      expect(await reactGrab.isOverlayVisible()).toBe(true);
     });
 
     test("should not activate in input when disabled", async ({ reactGrab }) => {

@@ -32,6 +32,7 @@ const NEXT_INTERNAL_COMPONENT_NAMES = new Set([
   "InnerScrollAndFocusHandlerOld",
   "InnerScrollAndMaybeFocusHandler",
   "InnerScrollHandlerNew",
+  "LinkComponent",
   "LoadableComponent",
   "LoadingBoundary",
   "LoadingBoundaryProvider",
@@ -80,9 +81,9 @@ const LIBRARY_INTERNAL_COMPONENT_SUFFIXES = [
   "ProviderProvider",
 ];
 
-export const isInternalComponentName = (name: string): boolean => {
+export const isInternalComponentName = (name: string, isNextProject = false): boolean => {
   if (PLACEHOLDER_COMPONENT_NAMES.has(name)) return true;
-  if (NEXT_INTERNAL_COMPONENT_NAMES.has(name)) return true;
+  if (isNextProject && NEXT_INTERNAL_COMPONENT_NAMES.has(name)) return true;
   if (REACT_INTERNAL_COMPONENT_NAMES.has(name)) return true;
   if (LIBRARY_INTERNAL_COMPONENT_NAMES.has(name)) return true;
   for (const suffix of LIBRARY_INTERNAL_COMPONENT_SUFFIXES) {
@@ -94,8 +95,8 @@ export const isInternalComponentName = (name: string): boolean => {
   return false;
 };
 
-export const isUsefulComponentName = (name: string): boolean => {
+export const isUsefulComponentName = (name: string, isNextProject = false): boolean => {
   if (!name) return false;
-  if (isInternalComponentName(name)) return false;
+  if (isInternalComponentName(name, isNextProject)) return false;
   return true;
 };
