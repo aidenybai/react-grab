@@ -17,6 +17,7 @@ import { captureAnimationSchedulingControls } from "./perf-animation-controls.js
 import {
   PERF_ANIMATION_CONTROL_TEST_TIMEOUT_MS,
   PERF_COPY_COMPLETION_TIMEOUT_MS,
+  PERF_DENSE_ANIMATION_TEST_TIMEOUT_MS,
   PERF_PLAYWRIGHT_SUITE_MODE,
 } from "./perf-constants.js";
 import { idleFrame, recordScenario } from "./perf-recorder.js";
@@ -656,6 +657,7 @@ test.describe("@perf benchmarks", () => {
   });
 
   test("activate-deactivate-dense-animations @perf", async ({ page, perfDom }, testInfo) => {
+    test.setTimeout(PERF_DENSE_ANIMATION_TEST_TIMEOUT_MS);
     // Dense variant of activate-with-many-animations: 4000 CSS-animated divs.
     // Isolates the freeze path's UNSCOPED document.getAnimations() walk
     // (freeze-animations.ts) — it is O(total running animations on the page)
