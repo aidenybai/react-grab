@@ -4,6 +4,7 @@ import { fileURLToPath } from "url";
 import { PERF_DEEP_TEST_TIMEOUT_MS, PERF_DEFAULT_TEST_TIMEOUT_MS } from "./e2e/perf-constants.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const isCI = Boolean(process.env.CI);
 
 // COVERAGE wires a sourcemapped/unminified build, the per-test V8 capture
 // fixture, and globalSetup/globalTeardown that clear the raw dir and write the
@@ -289,8 +290,8 @@ const environmentConfig = requestedEnvironment
 export default defineConfig({
   testDir: "./e2e",
   fullyParallel: true,
-  forbidOnly: Boolean(process.env.CI),
-  retries: process.env.CI ? 2 : 1,
+  forbidOnly: isCI,
+  retries: isCI ? 2 : 1,
   workers: PLAYWRIGHT_WORKER_COUNT,
   // Deep profiler, render-trace, and DOM-breakpoint replays add extra passes.
   // The V8 sampler can sporadically wedge the headless renderer for minutes
@@ -298,6 +299,8 @@ export default defineConfig({
   timeout: isDeepPerfRun ? PERF_DEEP_TEST_TIMEOUT_MS : PERF_DEFAULT_TEST_TIMEOUT_MS,
   reporter: "html",
   use: {
+    // Use Chrome preinstalled on GitHub Actions runners.
+    channel: isCI ? "chrome" : undefined,
     trace: process.env.PERF_RENDER_TRACE === "1" ? "off" : "on-first-retry",
     permissions: ["clipboard-read", "clipboard-write"],
   },
