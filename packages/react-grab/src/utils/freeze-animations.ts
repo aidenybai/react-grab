@@ -1,7 +1,10 @@
 import { FROZEN_ELEMENT_ATTRIBUTE, WAAPI_GLOBAL_FREEZE_MAX_ANIMATIONS } from "../constants.js";
 import { areArraysShallowEqual } from "./are-arrays-shallow-equal.js";
 import { createStyleElement } from "./create-style-element.js";
-import { freezeGsap, unfreezeGsap } from "./freeze-gsap.js";
+import {
+  freezeAnimationFrameLoops,
+  unfreezeAnimationFrameLoops,
+} from "./freeze-animation-frame-loops.js";
 import { isElementNode } from "./is-element-node.js";
 import { isReactGrabHost } from "./is-react-grab-host.js";
 import { isShadowRoot } from "./is-shadow-root.js";
@@ -389,7 +392,7 @@ export const applyGlobalAnimationFreeze = (snapshots: GlobalAnimationSnapshot[])
   if (hasGlobalAnimationFreeze()) return;
 
   for (const snapshot of snapshots) applyDocumentAnimationFreeze(snapshot);
-  freezeGsap();
+  freezeAnimationFrameLoops();
 };
 
 export const unfreezeGlobalAnimations = (): void => {
@@ -400,7 +403,7 @@ export const unfreezeGlobalAnimations = (): void => {
     cleanupErrors.push(...unfreezeDocumentAnimations(targetDocument));
   }
   try {
-    unfreezeGsap();
+    unfreezeAnimationFrameLoops();
   } catch (error) {
     cleanupErrors.push(error);
   }

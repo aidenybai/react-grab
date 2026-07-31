@@ -87,7 +87,7 @@ The module [utils/freeze-animations.ts](../src/utils/freeze-animations.ts) handl
 
 **Web Animations API (WAAPI) instances** are collected from `element.getAnimations({ subtree: true })` and paused individually.
 
-**GSAP** is handled by a separate module [utils/freeze-gsap.ts](../src/utils/freeze-gsap.ts) that pauses the global GSAP timeline if GSAP is present on the page.
+**Animation-frame loops** are handled by [utils/freeze-animation-frame-loops.ts](../src/utils/freeze-animation-frame-loops.ts). The wrapper recognizes callbacks that reschedule themselves, allowing recurring Three.js, GSAP, and hand-written render loops to pause while leaving one-shot layout callbacks running.
 
 On unfreeze, animations are `finish()`ed rather than resumed. This is deliberate: resuming a paused animation from the mid-point would cause visual jumps - for example, a dropdown that was mid-way through its entry animation would suddenly snap through the remaining frames. Finishing advances the animation to its end state, and the interim `transition: none` rule prevents any visual flash during cleanup. Shadow-root animations are excluded from the global freeze because the injected CSS only affects main-document elements; calling `finish()` on animations that were never actually paused would break react-grab's own toolbar and label animations.
 

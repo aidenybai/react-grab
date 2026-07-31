@@ -1,5 +1,4 @@
 import { useEffect, useRef } from "react";
-import * as ReactGrabPrimitives from "react-grab/primitives";
 import {
   AmbientLight,
   BoxGeometry,
@@ -8,9 +7,7 @@ import {
   Mesh,
   MeshStandardMaterial,
   PerspectiveCamera,
-  Raycaster,
   Scene,
-  Vector2,
   WebGLRenderer,
 } from "three";
 import {
@@ -22,7 +19,14 @@ import {
   THREE_DIRECTIONAL_LIGHT_POSITION,
   THREE_LEFT_BOX_POSITION,
   THREE_RIGHT_BOX_POSITION,
+  THREE_ROTATION_RADIANS_PER_FRAME,
 } from "./three-fixture-constants";
+
+declare global {
+  interface Window {
+    __REACT_GRAB_THREE_JS_FRAME_COUNT__?: number;
+  }
+}
 
 const createTestBox = (
   name: string,
@@ -46,7 +50,7 @@ export const ThreeJsFixture = (): React.JSX.Element => {
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas || typeof ReactGrabPrimitives.registerThreeScene !== "function") return;
+    if (!canvas) return;
 
     const renderer = new WebGLRenderer({ antialias: true, canvas });
     const scene = new Scene();
@@ -56,8 +60,6 @@ export const ThreeJsFixture = (): React.JSX.Element => {
       canvas.clientWidth / canvas.clientHeight,
     );
     camera.position.z = THREE_CAMERA_POSITION_Z_UNITS;
-    const raycaster = new Raycaster();
-    const pointer = new Vector2();
     const leftBox = createTestBox(
       "three-js-left-cube",
       new Color("#a3e635"),
@@ -78,6 +80,10 @@ export const ThreeJsFixture = (): React.JSX.Element => {
     );
 
     const renderScene = (): void => {
+      leftBox.rotation.x += THREE_ROTATION_RADIANS_PER_FRAME;
+      leftBox.rotation.y += THREE_ROTATION_RADIANS_PER_FRAME;
+      rightBox.rotation.x += THREE_ROTATION_RADIANS_PER_FRAME;
+      rightBox.rotation.y += THREE_ROTATION_RADIANS_PER_FRAME;
       const width = canvas.clientWidth;
       const height = canvas.clientHeight;
       if (width === 0 || height === 0) return;
@@ -85,20 +91,15 @@ export const ThreeJsFixture = (): React.JSX.Element => {
       camera.aspect = width / height;
       camera.updateProjectionMatrix();
       renderer.render(scene, camera);
+      window.__REACT_GRAB_THREE_JS_FRAME_COUNT__ =
+        (window.__REACT_GRAB_THREE_JS_FRAME_COUNT__ ?? 0) + 1;
     };
     const resizeObserver = new ResizeObserver(renderScene);
     resizeObserver.observe(canvas);
-    renderScene();
-    const unregisterScene = ReactGrabPrimitives.registerThreeScene({
-      camera,
-      pointer,
-      raycaster,
-      renderer,
-      scene,
-    });
+    renderer.setAnimationLoop(renderScene);
 
     return () => {
-      unregisterScene();
+      renderer.setAnimationLoop(null);
       resizeObserver.disconnect();
       leftBox.geometry.dispose();
       leftBox.material.dispose();

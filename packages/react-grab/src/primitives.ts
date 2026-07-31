@@ -22,12 +22,6 @@ import { matchesElementAtPointOptions } from "./utils/matches-element-at-point-o
 import type { ElementAtPointOptions, ElementBounds } from "./types.js";
 import { resolveThreeElementAtPoint } from "./core/three-selection.js";
 
-export {
-  registerThreeScene,
-  type ThreeSceneRegistration,
-  type ThreeSceneRenderingControls,
-} from "./core/three-selection.js";
-
 export type { ElementAtPointOptions, ElementBounds } from "./types.js";
 
 export { OpenFileError } from "./errors.js";
