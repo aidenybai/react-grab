@@ -1,6 +1,12 @@
 import type { Page } from "@playwright/test";
 import { test, expect } from "./fixtures.js";
-import { ATTRIBUTE_NAME } from "./constants.js";
+import {
+  ATTRIBUTE_NAME,
+  FINITE_RAF_SEQUENCE_FRAME_COUNT,
+  FINITE_RAF_SEQUENCE_REPETITION_COUNT,
+  FINITE_RAF_SEQUENCE_TIMEOUT_MS,
+  RAF_LOOP_SETTLE_MS,
+} from "./constants.js";
 
 const simulateGsapPresence = (page: Page): Promise<void> =>
   page.evaluate(() => {
@@ -365,6 +371,43 @@ test.describe("Freeze Animations", () => {
       expect(wasReleasedAfterUnfreeze).toBe(true);
     });
 
+    test("should hold a stack-detected callback across freeze cycles", async ({ page }) => {
+      await navigateAndWaitForReactGrab(page);
+      await simulateGsapPresence(page);
+      await activateViaApi(page);
+
+      const didStayFrozen = await page.evaluate(
+        ({ settleMs }) =>
+          new Promise<boolean>((resolve) => {
+            let executionCount = 0;
+            const animationCallback = (): void => {
+              executionCount += 1;
+            };
+            const _tick = (): void => {
+              window.requestAnimationFrame(animationCallback);
+            };
+
+            _tick();
+            window.setTimeout(() => {
+              (
+                window as unknown as { __REACT_GRAB__: { deactivate: () => void } }
+              ).__REACT_GRAB__.deactivate();
+              window.setTimeout(() => {
+                (
+                  window as unknown as { __REACT_GRAB__: { activate: () => void } }
+                ).__REACT_GRAB__.activate();
+                window.requestAnimationFrame(animationCallback);
+                window.setTimeout(() => resolve(executionCount === 1), settleMs);
+              }, settleMs);
+            }, settleMs);
+          }),
+        { settleMs: RAF_LOOP_SETTLE_MS },
+      );
+
+      expect(didStayFrozen).toBe(true);
+      await deactivateViaApi(page);
+    });
+
     test("should cancel held callbacks via cancelAnimationFrame", async ({ reactGrab }) => {
       await simulateGsapPresence(reactGrab.page);
       await reactGrab.activate();
@@ -485,20 +528,17 @@ test.describe("Freeze Animations", () => {
     });
   });
 
-  test.describe("rAF Tick Loop Interception (ESM without window.gsap)", () => {
-    test("should stop a _tick loop scheduled before freeze via rAF guard", async ({ page }) => {
+  test.describe("Recurring rAF Loop Interception", () => {
+    test("should stop a recurring loop scheduled before freeze", async ({ page }) => {
       await navigateAndWaitForReactGrab(page);
-      await simulateGsapPresence(page);
 
       await page.evaluate(() => {
         (window as unknown as Record<string, number>).__RAF_TICK_COUNT__ = 0;
-        // HACK: function named _tick simulates GSAP's internal tick,
-        // detected via stack trace inspection in the rAF wrapper
-        const _tick = (): void => {
+        const runFrame = (): void => {
           (window as unknown as Record<string, number>).__RAF_TICK_COUNT__++;
-          window.requestAnimationFrame(_tick);
+          window.requestAnimationFrame(runFrame);
         };
-        window.requestAnimationFrame(_tick);
+        window.requestAnimationFrame(runFrame);
       });
 
       await page.waitForTimeout(200);
@@ -521,19 +561,16 @@ test.describe("Freeze Animations", () => {
       expect(tickCountAfterWaiting).toBe(tickCountAtFreeze);
     });
 
-    test("should resume _tick loop after unfreeze", async ({ page }) => {
+    test("should resume a recurring loop after unfreeze", async ({ page }) => {
       await navigateAndWaitForReactGrab(page);
-      await simulateGsapPresence(page);
 
       await page.evaluate(() => {
         (window as unknown as Record<string, number>).__RAF_TICK_COUNT__ = 0;
-        // HACK: function named _tick simulates GSAP's internal tick,
-        // detected via stack trace inspection in the rAF wrapper
-        const _tick = (): void => {
+        const runFrame = (): void => {
           (window as unknown as Record<string, number>).__RAF_TICK_COUNT__++;
-          window.requestAnimationFrame(_tick);
+          window.requestAnimationFrame(runFrame);
         };
-        window.requestAnimationFrame(_tick);
+        window.requestAnimationFrame(runFrame);
       });
 
       await page.waitForTimeout(200);
@@ -551,6 +588,47 @@ test.describe("Freeze Animations", () => {
       );
 
       expect(tickCountLater).toBeGreaterThan(tickCountAfterUnfreeze);
+    });
+
+    test("should allow a reused finite frame sequence during freeze", async ({ page }) => {
+      await navigateAndWaitForReactGrab(page);
+      await activateViaApi(page);
+
+      const didComplete = await page.evaluate(
+        ({ frameCount, repetitionCount, timeoutMs }) =>
+          new Promise<boolean>((resolve) => {
+            let completedSequences = 0;
+            let remainingFrames = frameCount;
+            const timeoutIdentifier = window.setTimeout(() => resolve(false), timeoutMs);
+
+            const runFrame = (): void => {
+              remainingFrames -= 1;
+
+              if (remainingFrames === 0) {
+                completedSequences += 1;
+                if (completedSequences === repetitionCount) {
+                  window.clearTimeout(timeoutIdentifier);
+                  resolve(true);
+                  return;
+                }
+                remainingFrames = frameCount;
+                window.setTimeout(() => window.requestAnimationFrame(runFrame));
+                return;
+              }
+
+              window.requestAnimationFrame(runFrame);
+            };
+
+            window.requestAnimationFrame(runFrame);
+          }),
+        {
+          frameCount: FINITE_RAF_SEQUENCE_FRAME_COUNT,
+          repetitionCount: FINITE_RAF_SEQUENCE_REPETITION_COUNT,
+          timeoutMs: FINITE_RAF_SEQUENCE_TIMEOUT_MS,
+        },
+      );
+
+      expect(didComplete).toBe(true);
     });
   });
 });

@@ -185,6 +185,7 @@ export const SAME_ORIGIN_FRAME_ATTRIBUTE = "data-react-grab-same-origin-frame";
 // one batched `*`-selector recalc wins. Real apps sit far below this; the
 // threshold only guards pathological animation-heavy pages.
 export const WAAPI_GLOBAL_FREEZE_MAX_ANIMATIONS = 200;
+export const ANIMATION_FRAME_LOOP_MIN_SELF_SCHEDULES = 4;
 
 // Theme-detection thresholds (see detect-app-theme.ts). A background below
 // this relative luminance reads as a dark theme.

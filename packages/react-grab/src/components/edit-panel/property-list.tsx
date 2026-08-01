@@ -3,6 +3,7 @@ import type { EditableProperty } from "../../types.js";
 import { createMenuHighlight } from "../../utils/create-menu-highlight.js";
 import { getShadowActiveElement } from "../../utils/get-shadow-active-element.js";
 import { formatDisplayValue } from "../../utils/format-css-value.js";
+import { nativeCancelAnimationFrame, nativeRequestAnimationFrame } from "../../utils/native-raf.js";
 import { ActivePropertyControl } from "./active-property-control.js";
 import { narrowColor, narrowEnum, narrowNumeric } from "./narrow-property.js";
 
@@ -100,9 +101,9 @@ export const PropertyList: Component<PropertyListProps> = (props) => {
     }
     updateHighlight(element);
     if (pendingHighlightFrame !== undefined) {
-      cancelAnimationFrame(pendingHighlightFrame);
+      nativeCancelAnimationFrame(pendingHighlightFrame);
     }
-    pendingHighlightFrame = requestAnimationFrame(() => {
+    pendingHighlightFrame = nativeRequestAnimationFrame(() => {
       pendingHighlightFrame = undefined;
       const refreshed = itemElements[activeIndex];
       if (refreshed) updateHighlight(refreshed);
@@ -115,7 +116,7 @@ export const PropertyList: Component<PropertyListProps> = (props) => {
     }
   });
   onCleanup(() => {
-    if (pendingHighlightFrame !== undefined) cancelAnimationFrame(pendingHighlightFrame);
+    if (pendingHighlightFrame !== undefined) nativeCancelAnimationFrame(pendingHighlightFrame);
   });
 
   return (
