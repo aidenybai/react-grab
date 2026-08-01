@@ -226,6 +226,23 @@ export type EditableProperty =
   | ColorEditableProperty
   | EnumEditableProperty;
 
+// A parsed natural-language comparative command ("make it much bigger",
+// "less padding"). `dimensionCandidates` are the css property keys implied by
+// a comparative adjective (tried in order); `subject` is an explicit property
+// noun that overrides them when it resolves. `magnitude` is the intensity.
+export interface ComparativeIntent {
+  subject: string | null;
+  dimensionCandidates: readonly string[] | null;
+  direction: 1 | -1;
+  magnitude: number;
+}
+
+export interface ComparativeResolution {
+  targets: EditableProperty[];
+  direction: 1 | -1;
+  magnitude: number;
+}
+
 interface NumericPendingEdit {
   kind: "numeric";
   key: string;

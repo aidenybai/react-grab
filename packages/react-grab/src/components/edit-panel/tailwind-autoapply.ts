@@ -7,6 +7,9 @@ import type {
   NumericEditableProperty,
 } from "../../types.js";
 import { clampToRange } from "../../utils/clamp-to-range.js";
+import { parseComparativeIntent } from "../../utils/comparative-intent.js";
+import { computeComparativeValue } from "../../utils/compute-comparative-value.js";
+import { resolveComparativeTargets } from "../../utils/resolve-comparative-target.js";
 import { expandAggregateLonghands } from "../../utils/expand-aggregate-longhands.js";
 import { roundEditableNumericValue } from "../../utils/format-css-value.js";
 import { isNumericDraftQuery } from "../../utils/is-numeric-draft-query.js";
@@ -332,7 +335,27 @@ export const createTailwindAutoApply = (
     return findEnum(initialProperties, propertyKey) !== null;
   };
 
+  const applyComparativeIntent = (rawQuery: string): boolean => {
+    const intent = parseComparativeIntent(rawQuery);
+    if (!intent) return false;
+    const resolution = resolveComparativeTargets(intent, initialProperties);
+    if (!resolution) return false;
+    setIsCompact(true);
+    batch(() => {
+      for (const target of resolution.targets) {
+        const nextValue = computeComparativeValue(
+          target,
+          resolution.direction,
+          resolution.magnitude,
+        );
+        if (nextValue !== null) commit(target, nextValue, { shouldCompact: true });
+      }
+    });
+    return true;
+  };
+
   const applyTailwindClass = (rawQuery: string) => {
+    if (applyComparativeIntent(rawQuery)) return;
     const strippedClassAttribute = rawQuery
       .trim()
       .replace(/^class\s*=\s*["']/, "")
