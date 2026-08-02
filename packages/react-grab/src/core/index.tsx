@@ -1793,6 +1793,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       setPendingToolbarActionId(null);
     };
 
+    const setPendingToolbarSelection = (actionId: string) => {
+      pendingDefaultActionId = actionId;
+      setPendingToolbarActionId(actionId);
+      setIsPendingContextMenuSelect(true);
+    };
+
     const runActionForCurrentSelection = (actionId: string): boolean => {
       const element = store.frozenElement || targetElement();
       if (!element) return false;
@@ -1836,18 +1842,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             return;
           }
           actions.setPendingCommentMode(false);
-          pendingDefaultActionId = actionId;
-          setPendingToolbarActionId(actionId);
-          setIsPendingContextMenuSelect(true);
+          setPendingToolbarSelection(actionId);
           return;
         }
         deactivateRenderer();
         return;
       }
       if (!isEnabled()) return;
-      pendingDefaultActionId = actionId;
-      setPendingToolbarActionId(actionId);
-      setIsPendingContextMenuSelect(true);
+      setPendingToolbarSelection(actionId);
       toggleActivate();
     };
 
@@ -3912,6 +3914,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const handleSetDefaultAction = (actionId: string) => {
       updateToolbarState({ defaultAction: actionId });
+      if (isPendingContextMenuSelect()) setPendingToolbarSelection(actionId);
     };
 
     const handleShowContextMenuInstance = (instanceId: string) => {

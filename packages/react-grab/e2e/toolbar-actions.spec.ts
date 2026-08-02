@@ -73,6 +73,18 @@ test.describe("Toolbar Action Buttons", () => {
       await expect.poll(() => reactGrab.isPromptModeActive(), { timeout: 2000 }).toBe(true);
     });
 
+    test("updates the armed action when the default changes", async ({ reactGrab }) => {
+      await waitForToolbar(reactGrab);
+      await reactGrab.clickToolbarAction("copy");
+      await reactGrab.rightClickToolbarToggle();
+      await reactGrab.clickToolbarMenuItem("comment");
+
+      expect(await reactGrab.getToolbarActionPressed("comment")).toBe(true);
+      await reactGrab.hoverUntilSelected(BUTTON_SELECTOR);
+      await reactGrab.clickElement(BUTTON_SELECTOR);
+      await expect.poll(() => reactGrab.isPromptModeActive(), { timeout: 2000 }).toBe(true);
+    });
+
     test("Escape resets the Copy button to unpressed", async ({ reactGrab }) => {
       await waitForToolbar(reactGrab);
       await reactGrab.clickToolbarAction("copy");
