@@ -1811,7 +1811,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         actions.clearInputText();
         actions.exitPromptMode();
         clearPendingToolbarSelection();
-        handleSetDefaultAction(DEFAULT_ACTION_ID);
         openContextMenu(element, position);
         return true;
       }
@@ -1889,7 +1888,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         (registeredAction) => registeredAction.id === actionId,
       );
       if (!action) {
-        handleSetDefaultAction(DEFAULT_ACTION_ID);
         openContextMenu(element, position);
         return;
       }

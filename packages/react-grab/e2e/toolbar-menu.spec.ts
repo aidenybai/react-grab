@@ -144,6 +144,16 @@ test.describe("Toolbar Menu", () => {
         )
         .toBe("custom-action");
 
+      await reactGrab.clickToolbarAction("custom-action");
+      await reactGrab.hoverUntilSelected("li:first-child");
+      await reactGrab.clickElement("li:first-child");
+      await expect.poll(() => reactGrab.isContextMenuVisible(), { timeout: 2000 }).toBe(true);
+      await expect
+        .poll(() =>
+          reactGrab.page.evaluate(() => window.__REACT_GRAB__?.getToolbarState()?.defaultAction),
+        )
+        .toBe("custom-action");
+
       await reactGrab.page.evaluate(() => {
         window.__REACT_GRAB__?.registerPlugin({
           name: "custom-action",
