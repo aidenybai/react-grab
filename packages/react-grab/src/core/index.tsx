@@ -4022,8 +4022,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 toolbarVisible={pluginRegistry.store.theme.toolbar.enabled}
                 isActive={isActivated()}
                 onToggleActive={handleToggleActive}
-                onActivateAction={handleActivateAction}
-                activeActionId={toolbarActiveActionId()}
+                isCopyActionActive={toolbarActiveActionId() === DEFAULT_ACTION_ID}
                 enabled={isEnabled()}
                 shakeCount={toolbarShakeCount()}
                 onToolbarStateChange={(state) => {

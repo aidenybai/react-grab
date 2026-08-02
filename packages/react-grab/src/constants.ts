@@ -204,7 +204,7 @@ export const TOOLBAR_COLLAPSED_LONG_PX = 30;
 // can flip true mid-fade-in and start a dim transition on the outer
 // container while the inner content is still materializing.
 export const TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS = 260;
-export const TOOLBAR_DEFAULT_WIDTH_PX = 58;
+export const TOOLBAR_DEFAULT_WIDTH_PX = 38;
 export const TOOLBAR_DEFAULT_HEIGHT_PX = 28;
 export const TOOLBAR_DEFAULT_POSITION_RATIO = 0.5;
 export const DEFAULT_ACTION_ID = "copy";

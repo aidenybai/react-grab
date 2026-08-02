@@ -474,8 +474,7 @@ export interface ReactGrabRendererProps {
   toolbarVisible?: boolean;
   isActive?: boolean;
   onToggleActive?: () => void;
-  onActivateAction?: (actionId: string) => void;
-  activeActionId?: string | null;
+  isCopyActionActive?: boolean;
   enabled?: boolean;
   shakeCount?: number;
   onToolbarStateChange?: (state: ToolbarState) => void;

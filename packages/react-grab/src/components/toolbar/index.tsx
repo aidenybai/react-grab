@@ -3,7 +3,6 @@ import type { Position } from "../../types.js";
 import { cn } from "../../utils/cn.js";
 import { loadToolbarState, saveToolbarState, type SnapEdge, type ToolbarState } from "./state.js";
 import { IconSelect } from "../icons/icon-select.jsx";
-import { IconComment } from "../icons/icon-comment.jsx";
 import { ToolbarActionButton } from "./toolbar-action-button.jsx";
 import {
   TOOLBAR_SNAP_MARGIN_PX,
@@ -16,7 +15,6 @@ import {
   SELECT_ICON_NATURAL_POINT_ANGLE_DEG,
   SELECT_ICON_POINT_MIN_DISTANCE_PX,
   DEFAULT_ACTION_ID,
-  COMMENT_ACTION_ID,
 } from "../../constants.js";
 import { freezeUpdates } from "../../utils/freeze-updates.js";
 import {
@@ -42,8 +40,7 @@ interface ToolbarProps {
   isActive?: boolean;
   isContextMenuOpen?: boolean;
   onToggle?: () => void;
-  onActivateAction?: (actionId: string) => void;
-  activeActionId?: string | null;
+  isCopyActionActive?: boolean;
   enabled?: boolean;
   shakeCount?: number;
   onStateChange?: (state: ToolbarState) => void;
@@ -121,13 +118,11 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
 
   const buttonSpacingClass = () => (isVertical() ? "mb-1.5" : "mr-1.5");
 
-  const isActionActive = (actionId: string) => props.activeActionId === actionId;
   // Activation paths that bypass the toolbar buttons (keyboard hold, api.activate,
-  // post-copy reactivation) never set activeActionId, so a null id while active
-  // means the implicit default copy/select flow - keep the select icon's
-  // cursor-follow rotation and pressed state working for those paths too.
-  const isCopyActive = () =>
-    Boolean(props.isActive) && (props.activeActionId ?? DEFAULT_ACTION_ID) === DEFAULT_ACTION_ID;
+  // post-copy reactivation) use the implicit default copy/select flow. Keep the
+  // select icon's cursor-follow rotation and pressed state working for those
+  // paths while leaving it unpressed when another default action is active.
+  const isCopyActive = () => Boolean(props.isActive) && (props.isCopyActionActive ?? true);
 
   const isTooltipVisible = (actionId: string) =>
     hoveredActionId() === actionId &&
@@ -289,9 +284,6 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   };
 
   const handleToggle = drag.createDragAwareHandler(() => props.onToggle?.());
-  const handleComment = drag.createDragAwareHandler(() =>
-    props.onActivateAction?.(COMMENT_ACTION_ID),
-  );
   const actionButtonClass =
     "group contain-layout flex items-center justify-center cursor-pointer interactive-scale a11y-hitbox";
   const actionButtonWrapperClass = () =>
@@ -337,7 +329,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   // Both directions need to refresh their cached dimensions: collapsing
   // updates collapsedDimensions for the next expand-from-collapsed offset
   // calculation, and expanding updates expandedDimensions so handleResize
-  // and getExpandedFromCollapsed don't keep using the 78x28 default that
+  // and getExpandedFromCollapsed don't keep using the fallback dimensions that
   // got cached when the toolbar mounted with savedState.collapsed=true and
   // an unmeasurable rect.
   const captureDimensionsAfterAnimation = () => {
@@ -732,50 +724,33 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
           }
         }}
         actionButtons={
-          <>
-            <ToolbarActionButton
-              actionId={DEFAULT_ACTION_ID}
-              isToggle
-              ref={(element) => (selectButtonRef = element)}
-              label={isCopyActive() ? "Stop selecting element" : "Copy element"}
-              isActive={isCopyActive()}
-              class={actionButtonClass}
-              wrapperClass={actionButtonWrapperClass()}
-              onClick={handleToggle}
-              onContextMenu={(event) => {
-                event.preventDefault();
-                event.stopPropagation();
-                setHoveredActionId(null);
-                props.onToggleToolbarMenu?.();
-              }}
-              {...createFreezeHandlers(DEFAULT_ACTION_ID)}
-              icon={
-                <IconSelect
-                  size={14}
-                  rotationDeg={selectIconRotationDeg()}
-                  class={actionIconClass(isCopyActive())}
-                />
-              }
-              tooltipVisible={isTooltipVisible(DEFAULT_ACTION_ID)}
-              tooltipPosition={tooltipPosition()}
-              tooltip="Copy"
-            />
-            <ToolbarActionButton
-              actionId={COMMENT_ACTION_ID}
-              label="Comment on element"
-              isActive={isActionActive(COMMENT_ACTION_ID)}
-              class={actionButtonClass}
-              wrapperClass={actionButtonWrapperClass()}
-              onClick={handleComment}
-              {...createFreezeHandlers(COMMENT_ACTION_ID)}
-              icon={
-                <IconComment size={14} class={actionIconClass(isActionActive(COMMENT_ACTION_ID))} />
-              }
-              tooltipVisible={isTooltipVisible(COMMENT_ACTION_ID)}
-              tooltipPosition={tooltipPosition()}
-              tooltip="Comment"
-            />
-          </>
+          <ToolbarActionButton
+            actionId={DEFAULT_ACTION_ID}
+            isToggle
+            ref={(element) => (selectButtonRef = element)}
+            label={isCopyActive() ? "Stop selecting element" : "Copy element"}
+            isActive={isCopyActive()}
+            class={actionButtonClass}
+            wrapperClass={actionButtonWrapperClass()}
+            onClick={handleToggle}
+            onContextMenu={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              setHoveredActionId(null);
+              props.onToggleToolbarMenu?.();
+            }}
+            {...createFreezeHandlers(DEFAULT_ACTION_ID)}
+            icon={
+              <IconSelect
+                size={14}
+                rotationDeg={selectIconRotationDeg()}
+                class={actionIconClass(isCopyActive())}
+              />
+            }
+            tooltipVisible={isTooltipVisible(DEFAULT_ACTION_ID)}
+            tooltipPosition={tooltipPosition()}
+            tooltip="Copy"
+          />
         }
       />
     </div>
