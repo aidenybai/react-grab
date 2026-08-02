@@ -1,9 +1,6 @@
 import { Component, useState } from "react";
 
-export class FixtureErrorBoundary extends Component<
-  FixtureErrorBoundaryProps,
-  FixtureErrorBoundaryState
-> {
+class FixtureErrorBoundary extends Component<FixtureErrorBoundaryProps, FixtureErrorBoundaryState> {
   state: FixtureErrorBoundaryState = { didError: false };
 
   static getDerivedStateFromError = (): FixtureErrorBoundaryState => ({ didError: true });

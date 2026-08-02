@@ -73,7 +73,7 @@ interface GrabDemoController {
   syncPointer: () => void;
   /** Container-relative center of an element. */
   centerOf: (element: Element) => GrabDemoPoint;
-  /** The currently open React Grab comment/edit input, if any. */
+  /** The currently open React Grab comment input, if any. */
   getInput: () => GrabDemoInput | null;
   wait: (durationMs: number) => Promise<void>;
   /** Abort any in-flight move/pulse/wait and resolve its promise. */

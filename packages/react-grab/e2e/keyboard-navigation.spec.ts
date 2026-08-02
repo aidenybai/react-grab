@@ -1,5 +1,4 @@
 import { expect, test, type ReactGrabPageObject } from "./fixtures.js";
-import { isEditPanelVisible } from "./edit-panel-helpers.js";
 import { ATTRIBUTE_NAME } from "./constants.js";
 
 const clickSelectionDiscardButton = async (
@@ -343,37 +342,6 @@ test.describe("Keyboard Navigation", () => {
     await expect.poll(() => reactGrab.getClipboardContent(), { timeout: 5000 }).not.toBe("");
     expect(await reactGrab.isPromptModeActive()).toBe(false);
     expect(await reactGrab.isPendingDismissVisible()).toBe(false);
-  });
-
-  test("S should continue through the discard-selection prompt", async ({ reactGrab }) => {
-    await showKeyboardSelectionDiscardPrompt(reactGrab);
-    await reactGrab.page.locator("[data-react-grab-discard-copy]").focus();
-
-    await reactGrab.pressKey("s");
-
-    await expect.poll(() => isEditPanelVisible(reactGrab.page)).toBe(true);
-    expect(await reactGrab.isPendingDismissVisible()).toBe(false);
-  });
-
-  test("Enter on the focused Copy button copies without opening the Style panel", async ({
-    reactGrab,
-  }) => {
-    await reactGrab.page.evaluate(() => navigator.clipboard.writeText(""));
-    await reactGrab.activate();
-    await reactGrab.hoverUntilSelected("[data-testid='todo-list'] li:first-child");
-
-    await reactGrab.page.keyboard.press("ArrowUp");
-    await reactGrab.waitForSelectionBox();
-    await reactGrab.page.mouse.move(10, 10);
-    await expect.poll(() => reactGrab.isPendingDismissVisible()).toBe(true);
-
-    await reactGrab.page.locator("[data-react-grab-discard-copy]").focus();
-    await reactGrab.page.keyboard.press("Enter");
-
-    // Enter on Copy must copy, not fall through to the Enter-to-expand
-    // shortcut that would open the Style panel.
-    await expect.poll(() => reactGrab.getClipboardContent(), { timeout: 5000 }).not.toBe("");
-    expect(await isEditPanelVisible(reactGrab.page)).toBe(false);
   });
 
   test("Enter on the focused Yes button discards without copying", async ({ reactGrab }) => {

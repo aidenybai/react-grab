@@ -1105,7 +1105,7 @@ const createReactGrabPageObject = (
           const parts = spanText.split(".");
           componentName = parts[0] ?? null;
           tagName = parts[1] ?? null;
-        } else if (spanText && !spanText.includes("Editing") && !tagName) {
+        } else if (spanText && !tagName) {
           tagName = spanText;
         }
       }

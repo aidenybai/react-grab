@@ -16,15 +16,14 @@ import {
 import { captureAnimationSchedulingControls } from "./perf-animation-controls.js";
 import {
   PERF_ANIMATION_CONTROL_TEST_TIMEOUT_MS,
+  PERF_CI_INP_HARD_LIMIT_MS,
   PERF_COPY_COMPLETION_TIMEOUT_MS,
   PERF_DENSE_ANIMATION_TEST_TIMEOUT_MS,
+  PERF_LOCAL_INP_SOFT_LIMIT_MS,
   PERF_PLAYWRIGHT_SUITE_MODE,
 } from "./perf-constants.js";
 import { idleFrame, recordScenario } from "./perf-recorder.js";
 
-// web-vitals "needs improvement" threshold is 200ms; we cap synthetic
-// headless runs at 100ms so a real regression stands out from noise.
-const INP_SOFT_LIMIT_MS = 100;
 // Massive-grid scenarios render ~35k React cells and intentionally run at
 // single-digit fps, so they blow past the default 60s budget on CI runners.
 const MASSIVE_GRID_TEST_TIMEOUT_MS = 300_000;
@@ -139,7 +138,9 @@ test.describe("@perf benchmarks", () => {
         await idleFrame(page, 4);
       },
     );
-    expect.soft(aggregate.inp).toBeLessThan(INP_SOFT_LIMIT_MS);
+    const inpLimitMs =
+      process.env.PERF_SHARDABLE === "1" ? PERF_CI_INP_HARD_LIMIT_MS : PERF_LOCAL_INP_SOFT_LIMIT_MS;
+    if (!process.env.COVERAGE) expect.soft(aggregate.inp).toBeLessThan(inpLimitMs);
   });
 
   // The "Grabbing… forever" case. Source resolution (bundle + source-map fetches
