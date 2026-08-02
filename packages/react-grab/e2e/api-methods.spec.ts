@@ -361,18 +361,16 @@ test.describe("API Methods", () => {
   });
 
   test.describe("Toolbar state", () => {
-    test("falls back when an external state references an unregistered action", async ({
-      reactGrab,
-    }) => {
+    test("preserves unregistered actions in externally applied state", async ({ reactGrab }) => {
       const defaultAction = await reactGrab.page.evaluate(() => {
         const api = (window as LifecycleWindow).__REACT_GRAB__;
         if (!api) throw new Error("React Grab API unavailable");
 
-        api.setToolbarState({ defaultAction: "removed-action" });
+        api.setToolbarState({ defaultAction: "custom-action" });
         return api.getToolbarState()?.defaultAction;
       });
 
-      expect(defaultAction).toBe("copy");
+      expect(defaultAction).toBe("custom-action");
     });
 
     test("preserves registered actions in externally applied state", async ({ reactGrab }) => {

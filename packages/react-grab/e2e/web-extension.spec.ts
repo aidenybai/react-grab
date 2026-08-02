@@ -124,3 +124,68 @@ test("extension hydration never saves a removed page default action", async ({ r
     )
     .toEqual(["copy"]);
 });
+
+test("extension hydration preserves a custom default until its plugin registers", async ({
+  reactGrab,
+}) => {
+  await reactGrab.page.evaluate(() => {
+    const targetWindow = window as ExtensionTestWindow;
+    targetWindow.__REACT_GRAB__?.dispose();
+    targetWindow.savedToolbarStates = [];
+
+    window.addEventListener("message", (event) => {
+      if (event.source !== window) return;
+      if (event.data?.type === "__REACT_GRAB_QUERY_STATE__") {
+        window.postMessage(
+          {
+            type: "__REACT_GRAB_STATE_RESPONSE__",
+            enabled: true,
+            toolbarState: {
+              edge: "bottom",
+              ratio: 0.5,
+              collapsed: false,
+              enabled: true,
+              defaultAction: "custom-action",
+            },
+          },
+          "*",
+        );
+      }
+      if (event.data?.type === "__REACT_GRAB_TOOLBAR_STATE_SAVE__") {
+        targetWindow.savedToolbarStates?.push(event.data.state);
+      }
+    });
+  });
+
+  await reactGrab.page.addScriptTag({ type: "module", url: EXTENSION_CONTENT_SCRIPT_URL });
+
+  await expect
+    .poll(() =>
+      reactGrab.page.evaluate(
+        () => (window as ExtensionTestWindow).__REACT_GRAB__?.getToolbarState()?.defaultAction,
+      ),
+    )
+    .toBe("custom-action");
+  expect(
+    await reactGrab.page.evaluate(() =>
+      (window as ExtensionTestWindow).savedToolbarStates?.map((state) => state.defaultAction),
+    ),
+  ).not.toContain("copy");
+
+  await reactGrab.page.evaluate(() => {
+    window.__REACT_GRAB__?.registerPlugin({
+      name: "custom-action",
+      actions: [
+        {
+          id: "custom-action",
+          label: "Custom",
+          showInToolbarMenu: true,
+          onAction: () => {},
+        },
+      ],
+    });
+  });
+  await expect(
+    reactGrab.page.locator('[data-react-grab-toolbar-action="custom-action"]'),
+  ).toHaveAttribute("aria-label", "Custom element");
+});

@@ -92,10 +92,10 @@ import {
   TOOLBAR_DEFAULT_POSITION_RATIO,
   DEFAULT_ACTION_ID,
   COMMENT_ACTION_ID,
-  LEGACY_STYLE_ACTION_ID,
   REACT_GRAB_INPUT_ATTRIBUTE,
 } from "../constants.js";
 import { getBoundsCenter } from "../utils/get-bounds-center.js";
+import { normalizeToolbarDefaultActionId } from "../utils/normalize-toolbar-default-action-id.js";
 import { hideFromThirdParties } from "../utils/hide-from-third-parties.js";
 import { detectCspNonce } from "../utils/detect-csp-nonce.js";
 import { isCLikeKey } from "../utils/is-c-like-key.js";
@@ -363,10 +363,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const [currentToolbarState, setCurrentToolbarState] = createSignal<ToolbarState | null>(
       initialToolbarState,
     );
-    const resolveDefaultActionId = (actionId: string): string =>
-      pluginRegistry.store.actions.some((action) => action.id === actionId)
-        ? actionId
-        : DEFAULT_ACTION_ID;
     const [isToolbarSelectHovered, setIsToolbarSelectHovered] = createSignal(false);
     const isShiftKeyHeld = createModifierTracker((event) => event.shiftKey);
     const [toolbarMenuPosition, setToolbarMenuPosition] = createSignal<DropdownAnchor | null>(null);
@@ -1833,19 +1829,16 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         // While still choosing an element, clicking a different action switches
         // the pending action in place instead of tearing down selection mode;
         // clicking the already-active action toggles selection off.
-        if (toolbarActiveActionId() !== actionId && isPromptMode()) {
-          if (runActionForCurrentSelection(actionId)) return;
-        }
-        if (toolbarActiveActionId() !== actionId && store.pendingCommentMode) {
+        if (toolbarActiveActionId() !== actionId) {
+          if (isPromptMode()) {
+            if (runActionForCurrentSelection(actionId)) return;
+            deactivateRenderer();
+            return;
+          }
           actions.setPendingCommentMode(false);
           pendingDefaultActionId = actionId;
           setPendingToolbarActionId(actionId);
           setIsPendingContextMenuSelect(true);
-          return;
-        }
-        if (toolbarActiveActionId() !== actionId && isPendingContextMenuSelect()) {
-          pendingDefaultActionId = actionId;
-          setPendingToolbarActionId(actionId);
           return;
         }
         deactivateRenderer();
@@ -4135,7 +4128,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           ratio: state.ratio ?? currentState?.ratio ?? TOOLBAR_DEFAULT_POSITION_RATIO,
           collapsed: resolvedCollapsed,
           enabled: state.enabled ?? !resolvedCollapsed,
-          defaultAction: resolveDefaultActionId(requestedDefaultAction),
+          defaultAction: normalizeToolbarDefaultActionId(requestedDefaultAction),
         };
         saveToolbarState(newState);
         setCurrentToolbarState(newState);
@@ -4229,8 +4222,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (disposed) return;
       const toolbarState = currentToolbarState();
       if (!toolbarState) return;
-      if (toolbarState.defaultAction !== LEGACY_STYLE_ACTION_ID) return;
-      updateToolbarState({ defaultAction: DEFAULT_ACTION_ID });
+      const defaultAction = normalizeToolbarDefaultActionId(
+        toolbarState.defaultAction ?? DEFAULT_ACTION_ID,
+      );
+      if (defaultAction === toolbarState.defaultAction) return;
+      updateToolbarState({ defaultAction });
     });
 
     setTimeout(() => {
