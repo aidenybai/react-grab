@@ -20,7 +20,7 @@ export default SmallInput
 `,
 };
 
-export const PierreDiff = () => (
+const PierreDiff = () => (
   <MultiFileDiff
     oldFile={OLD_FILE}
     newFile={NEW_FILE}
