@@ -74,6 +74,26 @@ test.describe("Toolbar Menu", () => {
         .toBe("comment");
     });
 
+    test("preserves the default action when toolbar state changes", async ({ reactGrab }) => {
+      await reactGrab.page.evaluate(() => {
+        window.__REACT_GRAB__?.setToolbarState({ defaultAction: "comment" });
+      });
+
+      await reactGrab.clickToolbarCollapse();
+
+      const defaultActions = () =>
+        reactGrab.page.evaluate(() => {
+          const persistedState = JSON.parse(
+            localStorage.getItem("react-grab-toolbar-state") ?? "null",
+          );
+          return {
+            api: window.__REACT_GRAB__?.getToolbarState()?.defaultAction,
+            persisted: persistedState?.defaultAction,
+          };
+        });
+      await expect.poll(defaultActions).toEqual({ api: "comment", persisted: "comment" });
+    });
+
     test("normalizes an unregistered persisted default action", async ({ reactGrab }) => {
       await reactGrab.page.evaluate(() => {
         localStorage.setItem(

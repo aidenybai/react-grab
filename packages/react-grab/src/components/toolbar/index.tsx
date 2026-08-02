@@ -442,8 +442,12 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   };
 
   const saveAndNotify = (state: ToolbarState) => {
-    saveToolbarState(state);
-    props.onStateChange?.(state);
+    const stateWithDefaultAction: ToolbarState = {
+      ...state,
+      defaultAction: currentActionId(),
+    };
+    saveToolbarState(stateWithDefaultAction);
+    props.onStateChange?.(stateWithDefaultAction);
   };
 
   onMount(() => {
