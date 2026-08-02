@@ -22,9 +22,11 @@ import {
 } from "./perf-constants.js";
 import { idleFrame, recordScenario } from "./perf-recorder.js";
 
-// web-vitals "needs improvement" threshold is 200ms; we cap synthetic
-// headless runs at 100ms so a real regression stands out from noise.
+// web-vitals "needs improvement" threshold is 200ms; local runs cap synthetic
+// headless INP at 100ms. CI uses the paired baseline-vs-current diff because
+// absolute INP on shared runners is noisy.
 const INP_SOFT_LIMIT_MS = 100;
+const SHOULD_ASSERT_INP = process.env.PERF_SHARDABLE !== "1" && !process.env.COVERAGE;
 // Massive-grid scenarios render ~35k React cells and intentionally run at
 // single-digit fps, so they blow past the default 60s budget on CI runners.
 const MASSIVE_GRID_TEST_TIMEOUT_MS = 300_000;
@@ -139,7 +141,7 @@ test.describe("@perf benchmarks", () => {
         await idleFrame(page, 4);
       },
     );
-    expect.soft(aggregate.inp).toBeLessThan(INP_SOFT_LIMIT_MS);
+    if (SHOULD_ASSERT_INP) expect.soft(aggregate.inp).toBeLessThan(INP_SOFT_LIMIT_MS);
   });
 
   // The "Grabbing… forever" case. Source resolution (bundle + source-map fetches
