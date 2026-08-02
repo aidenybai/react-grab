@@ -92,6 +92,7 @@ import {
   TOOLBAR_DEFAULT_POSITION_RATIO,
   DEFAULT_ACTION_ID,
   COMMENT_ACTION_ID,
+  LEGACY_STYLE_ACTION_ID,
   REACT_GRAB_INPUT_ATTRIBUTE,
 } from "../constants.js";
 import { getBoundsCenter } from "../utils/get-bounds-center.js";
@@ -4228,9 +4229,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (disposed) return;
       const toolbarState = currentToolbarState();
       if (!toolbarState) return;
-      const defaultAction = resolveDefaultActionId(toolbarState.defaultAction ?? DEFAULT_ACTION_ID);
-      if (defaultAction === toolbarState.defaultAction) return;
-      updateToolbarState({ defaultAction });
+      if (toolbarState.defaultAction !== LEGACY_STYLE_ACTION_ID) return;
+      updateToolbarState({ defaultAction: DEFAULT_ACTION_ID });
     });
 
     setTimeout(() => {

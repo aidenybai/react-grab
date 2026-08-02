@@ -94,7 +94,7 @@ test.describe("Toolbar Menu", () => {
       await expect.poll(defaultActions).toEqual({ api: "comment", persisted: "comment" });
     });
 
-    test("normalizes an unregistered persisted default action", async ({ reactGrab }) => {
+    test("normalizes the removed Style action persisted as the default", async ({ reactGrab }) => {
       await reactGrab.page.evaluate(() => {
         localStorage.setItem(
           "react-grab-toolbar-state",
@@ -103,7 +103,7 @@ test.describe("Toolbar Menu", () => {
             ratio: 0.5,
             collapsed: false,
             enabled: true,
-            defaultAction: "removed-action",
+            defaultAction: "edit",
           }),
         );
       });
@@ -121,6 +121,45 @@ test.describe("Toolbar Menu", () => {
         apiDefaultAction: "copy",
         persistedDefaultAction: "copy",
       });
+    });
+
+    test("preserves a custom default until its plugin registers", async ({ reactGrab }) => {
+      await reactGrab.page.evaluate(() => {
+        localStorage.setItem(
+          "react-grab-toolbar-state",
+          JSON.stringify({
+            edge: "bottom",
+            ratio: 0.5,
+            collapsed: false,
+            enabled: true,
+            defaultAction: "custom-action",
+          }),
+        );
+      });
+      await reactGrab.page.reload();
+
+      await expect
+        .poll(() =>
+          reactGrab.page.evaluate(() => window.__REACT_GRAB__?.getToolbarState()?.defaultAction),
+        )
+        .toBe("custom-action");
+
+      await reactGrab.page.evaluate(() => {
+        window.__REACT_GRAB__?.registerPlugin({
+          name: "custom-action",
+          actions: [
+            {
+              id: "custom-action",
+              label: "Custom",
+              showInToolbarMenu: true,
+              onAction: () => {},
+            },
+          ],
+        });
+      });
+      await expect(
+        reactGrab.page.locator('[data-react-grab-toolbar-action="custom-action"]'),
+      ).toHaveAttribute("aria-label", "Custom element");
     });
   });
 

@@ -223,6 +223,7 @@ export const TOOLBAR_DEFAULT_HEIGHT_PX = 28;
 export const TOOLBAR_DEFAULT_POSITION_RATIO = 0.5;
 export const DEFAULT_ACTION_ID = "copy";
 export const COMMENT_ACTION_ID = "comment";
+export const LEGACY_STYLE_ACTION_ID = "edit";
 
 export const TOOLTIP_DELAY_MS = 400;
 export const TOOLTIP_GRACE_PERIOD_MS = 800;
