@@ -19,6 +19,27 @@ test.describe("Toolbar Action Buttons", () => {
       expect(actionIds).toEqual(["copy"]);
       expect(await reactGrab.getToolbarActionPressed("copy")).toBe(false);
     });
+
+    test("represents the selected default action with the single button", async ({ reactGrab }) => {
+      await waitForToolbar(reactGrab);
+      await reactGrab.page.evaluate(() => {
+        window.__REACT_GRAB__?.setToolbarState({ defaultAction: "comment" });
+      });
+
+      await expect
+        .poll(() => reactGrab.getToolbarActionPressed("comment"), { timeout: 2000 })
+        .toBe(false);
+      await expect(
+        reactGrab.page.locator('[data-react-grab-toolbar-action="comment"]'),
+      ).toHaveAttribute("aria-label", "Comment element");
+
+      await reactGrab.clickToolbarAction("comment");
+
+      expect(await reactGrab.getToolbarActionPressed("comment")).toBe(true);
+      await reactGrab.hoverUntilSelected(BUTTON_SELECTOR);
+      await reactGrab.clickElement(BUTTON_SELECTOR);
+      await expect.poll(() => reactGrab.isPromptModeActive(), { timeout: 2000 }).toBe(true);
+    });
   });
 
   test.describe("Active-state attribution", () => {

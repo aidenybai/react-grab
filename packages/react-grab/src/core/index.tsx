@@ -1861,6 +1861,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       handleActivateAction(currentToolbarState()?.defaultAction ?? DEFAULT_ACTION_ID);
     };
 
+    const defaultToolbarActionLabel = () => {
+      const defaultActionId = currentToolbarState()?.defaultAction ?? DEFAULT_ACTION_ID;
+      return (
+        pluginRegistry.store.actions.find((action) => action.id === defaultActionId)?.label ??
+        "Copy"
+      );
+    };
+
     const enterCommentModeForElement = (element: Element, positionX: number, positionY: number) => {
       clearPendingToolbarSelection();
       actions.clearInputText();
@@ -4022,7 +4030,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 toolbarVisible={pluginRegistry.store.theme.toolbar.enabled}
                 isActive={isActivated()}
                 onToggleActive={handleToggleActive}
-                isCopyActionActive={toolbarActiveActionId() === DEFAULT_ACTION_ID}
+                activeActionId={toolbarActiveActionId()}
                 enabled={isEnabled()}
                 shakeCount={toolbarShakeCount()}
                 onToolbarStateChange={(state) => {
@@ -4060,6 +4068,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                   (action) => action.showInToolbarMenu === true,
                 )}
                 defaultActionId={currentToolbarState()?.defaultAction ?? DEFAULT_ACTION_ID}
+                defaultActionLabel={defaultToolbarActionLabel()}
                 onSetDefaultAction={handleSetDefaultAction}
                 onToggleToolbarMenu={handleToggleToolbarMenu}
                 onToolbarMenuDismiss={dismissToolbarMenu}

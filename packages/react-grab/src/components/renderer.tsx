@@ -121,7 +121,9 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           isActive={props.isActive}
           isContextMenuOpen={props.contextMenuPosition !== null}
           onToggle={props.onToggleActive}
-          isCopyActionActive={props.isCopyActionActive}
+          activeActionId={props.activeActionId}
+          defaultActionId={props.defaultActionId}
+          defaultActionLabel={props.defaultActionLabel}
           enabled={props.enabled}
           shakeCount={props.shakeCount}
           onStateChange={props.onToolbarStateChange}

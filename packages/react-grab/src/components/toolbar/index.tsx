@@ -40,7 +40,9 @@ interface ToolbarProps {
   isActive?: boolean;
   isContextMenuOpen?: boolean;
   onToggle?: () => void;
-  isCopyActionActive?: boolean;
+  activeActionId?: string | null;
+  defaultActionId?: string;
+  defaultActionLabel?: string;
   enabled?: boolean;
   shakeCount?: number;
   onStateChange?: (state: ToolbarState) => void;
@@ -48,11 +50,6 @@ interface ToolbarProps {
   onSelectHoverChange?: (isHovered: boolean) => void;
   onContainerRef?: (element: HTMLDivElement) => void;
   onToggleToolbarMenu?: () => void;
-}
-
-interface FreezeHandlersOptions {
-  shouldFreezeInteractions?: boolean;
-  onHoverChange?: (isHovered: boolean) => void;
 }
 
 export const Toolbar: Component<ToolbarProps> = (props) => {
@@ -118,11 +115,12 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
 
   const buttonSpacingClass = () => (isVertical() ? "mb-1.5" : "mr-1.5");
 
-  // Activation paths that bypass the toolbar buttons (keyboard hold, api.activate,
-  // post-copy reactivation) use the implicit default copy/select flow. Keep the
-  // select icon's cursor-follow rotation and pressed state working for those
-  // paths while leaving it unpressed when another default action is active.
-  const isCopyActive = () => Boolean(props.isActive) && (props.isCopyActionActive ?? true);
+  // Activation paths that bypass the toolbar button use the implicit Copy flow,
+  // while toolbar activation tracks the selected default action explicitly.
+  const currentActionId = () => props.defaultActionId ?? DEFAULT_ACTION_ID;
+  const currentActionLabel = () => props.defaultActionLabel ?? "Copy";
+  const isCurrentActionActive = () =>
+    Boolean(props.isActive) && (props.activeActionId ?? DEFAULT_ACTION_ID) === currentActionId();
 
   const isTooltipVisible = (actionId: string) =>
     hoveredActionId() === actionId &&
@@ -150,26 +148,21 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     event.stopImmediatePropagation();
   };
 
-  const createFreezeHandlers = (actionId: string, options?: FreezeHandlersOptions) => ({
+  const createFreezeHandlers = (getActionId: () => string) => ({
     onMouseEnter: (event: MouseEvent) => {
       if (drag.isDragging()) return;
-      setHoveredActionId(actionId);
-      if (options?.shouldFreezeInteractions !== false && !unfreezeUpdatesCallback) {
+      setHoveredActionId(getActionId());
+      if (!unfreezeUpdatesCallback) {
         unfreezeUpdatesCallback = freezeUpdates();
         freezeGlobalInteractions(event.clientX, event.clientY);
       }
-      options?.onHoverChange?.(true);
     },
     onMouseLeave: () => {
+      const actionId = getActionId();
       setHoveredActionId((current) => (current === actionId ? null : current));
-      if (
-        options?.shouldFreezeInteractions !== false &&
-        !props.isActive &&
-        !props.isContextMenuOpen
-      ) {
+      if (!props.isActive && !props.isContextMenuOpen) {
         releaseInteractionFreeze();
       }
-      options?.onHoverChange?.(false);
     },
   });
 
@@ -197,9 +190,9 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
 
   createEffect(
     on(
-      () => isCopyActive(),
-      (isCopyActionActive) => {
-        if (!isCopyActionActive) {
+      () => isCurrentActionActive(),
+      (didCurrentActionBecomeActive) => {
+        if (!didCurrentActionBecomeActive) {
           // The accumulator can drift past ±180° while the user circles the
           // toolbar; resetting to literal 0 would unspin those revolutions
           // through the CSS transition. Snapping to the nearest equivalent
@@ -725,11 +718,13 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
         }}
         actionButtons={
           <ToolbarActionButton
-            actionId={DEFAULT_ACTION_ID}
+            actionId={currentActionId()}
             isToggle
             ref={(element) => (selectButtonRef = element)}
-            label={isCopyActive() ? "Stop selecting element" : "Copy element"}
-            isActive={isCopyActive()}
+            label={
+              isCurrentActionActive() ? "Stop selecting element" : `${currentActionLabel()} element`
+            }
+            isActive={isCurrentActionActive()}
             class={actionButtonClass}
             wrapperClass={actionButtonWrapperClass()}
             onClick={handleToggle}
@@ -739,17 +734,17 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
               setHoveredActionId(null);
               props.onToggleToolbarMenu?.();
             }}
-            {...createFreezeHandlers(DEFAULT_ACTION_ID)}
+            {...createFreezeHandlers(currentActionId)}
             icon={
               <IconSelect
                 size={14}
                 rotationDeg={selectIconRotationDeg()}
-                class={actionIconClass(isCopyActive())}
+                class={actionIconClass(isCurrentActionActive())}
               />
             }
-            tooltipVisible={isTooltipVisible(DEFAULT_ACTION_ID)}
+            tooltipVisible={isTooltipVisible(currentActionId())}
             tooltipPosition={tooltipPosition()}
-            tooltip="Copy"
+            tooltip={currentActionLabel()}
           />
         }
       />
