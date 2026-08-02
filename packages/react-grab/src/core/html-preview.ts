@@ -1,29 +1,48 @@
 import {
   PREVIEW_TEXT_MAX_LENGTH,
   PREVIEW_ATTR_VALUE_MAX_LENGTH,
+  PREVIEW_ATTRIBUTE_MAX_COUNT,
+  PREVIEW_IDENTIFYING_ATTR_VALUE_MAX_LENGTH_CHARS,
   PREVIEW_PRIORITY_ATTRS,
   PREVIEW_IDENTIFYING_ATTRS,
   PREVIEW_DESCENDANT_TEXT_TAGS,
 } from "../constants.js";
+import { escapeHtmlAttribute } from "../utils/escape-html-attribute.js";
+import { escapeHtmlText } from "../utils/escape-html-text.js";
 import { getTagName } from "../utils/get-tag-name.js";
-import { truncateString } from "../utils/truncate-string.js";
+import { truncateEscapedHtml } from "../utils/truncate-escaped-html.js";
 import { isInternalAttribute } from "../utils/strip-internal-attributes.js";
 import { getPreviewTextContent } from "../utils/get-preview-text-content.js";
 import { isElementNode } from "../utils/is-element-node.js";
 import { isHtmlElement } from "../utils/is-html-element.js";
 import { getElementAdapter } from "./element-adapter.js";
 
-const truncateAttrValue = (attributeValue: string): string =>
-  truncateString(attributeValue, PREVIEW_ATTR_VALUE_MAX_LENGTH);
+const formatAttribute = (
+  attributeName: string,
+  attributeValue: string,
+  maxLength: number,
+): string =>
+  `${attributeName}="${truncateEscapedHtml(escapeHtmlAttribute(attributeValue), maxLength)}"`;
 
-const formatPriorityAttrs = (element: Element): string => {
+const getFormattedPriorityAttrs = (element: Element): string[] => {
   const priorityAttrs: string[] = [];
 
   for (const attributeName of PREVIEW_PRIORITY_ATTRS) {
+    if (priorityAttrs.length >= PREVIEW_ATTRIBUTE_MAX_COUNT) break;
     const attributeValue = element.getAttribute(attributeName);
-    if (attributeValue) priorityAttrs.push(`${attributeName}="${attributeValue}"`);
+    if (!attributeValue) continue;
+    const maxLength =
+      attributeName === "class"
+        ? PREVIEW_ATTR_VALUE_MAX_LENGTH
+        : PREVIEW_IDENTIFYING_ATTR_VALUE_MAX_LENGTH_CHARS;
+    priorityAttrs.push(formatAttribute(attributeName, attributeValue, maxLength));
   }
 
+  return priorityAttrs;
+};
+
+const formatPriorityAttrs = (element: Element): string => {
+  const priorityAttrs = getFormattedPriorityAttrs(element);
   return priorityAttrs.length > 0 ? ` ${priorityAttrs.join(" ")}` : "";
 };
 
@@ -31,28 +50,36 @@ const isClassOrStyleAttr = (attributeName: string): boolean =>
   attributeName === "class" || attributeName === "className" || attributeName === "style";
 
 const formatAttrsForPreview = (element: Element): string => {
+  const priorityParts = getFormattedPriorityAttrs(element).map(
+    (formattedAttribute) => ` ${formattedAttribute}`,
+  );
   const identifyingParts: string[] = [];
   const remainingParts: string[] = [];
-  let classAttr = "";
 
   for (const { name: attributeName, value: attributeValue } of element.attributes) {
     if (isInternalAttribute(attributeName)) continue;
-    if (isClassOrStyleAttr(attributeName)) {
-      if (attributeName !== "style" && attributeValue) {
-        classAttr = ` class="${truncateAttrValue(attributeValue)}"`;
-      }
-      continue;
-    }
+    if (PREVIEW_PRIORITY_ATTRS.includes(attributeName)) continue;
+    if (isClassOrStyleAttr(attributeName)) continue;
     if (PREVIEW_IDENTIFYING_ATTRS.has(attributeName)) {
       identifyingParts.push(
-        attributeValue ? ` ${attributeName}="${attributeValue}"` : ` ${attributeName}`,
+        attributeValue
+          ? ` ${formatAttribute(
+              attributeName,
+              attributeValue,
+              PREVIEW_IDENTIFYING_ATTR_VALUE_MAX_LENGTH_CHARS,
+            )}`
+          : ` ${attributeName}`,
       );
     } else if (attributeValue) {
-      remainingParts.push(` ${attributeName}="${truncateAttrValue(attributeValue)}"`);
+      remainingParts.push(
+        ` ${formatAttribute(attributeName, attributeValue, PREVIEW_ATTR_VALUE_MAX_LENGTH)}`,
+      );
     }
   }
 
-  return identifyingParts.join("") + remainingParts.join("") + classAttr;
+  return [...priorityParts, ...identifyingParts, ...remainingParts]
+    .slice(0, PREVIEW_ATTRIBUTE_MAX_COUNT)
+    .join("");
 };
 
 const formatChildElements = (elements: Array<Element>): string => {
@@ -69,15 +96,25 @@ export const getInlineHTMLPreview = (element: Element): string => {
   const tagName = getTagName(element);
 
   if (!isHtmlElement(element)) {
-    return `<${tagName}${formatPriorityAttrs(element)} />`;
+    const attrsText = formatPriorityAttrs(element);
+    const previewText = truncateEscapedHtml(
+      escapeHtmlText(getPreviewTextContent(element, tagName)),
+      PREVIEW_TEXT_MAX_LENGTH,
+    );
+    return previewText
+      ? `<${tagName}${attrsText}>${previewText}</${tagName}>`
+      : `<${tagName}${attrsText} />`;
   }
 
   const attrsText = formatAttrsForPreview(element);
   const previewText = getPreviewTextContent(element, tagName);
-  const truncatedText = truncateString(previewText, PREVIEW_TEXT_MAX_LENGTH);
+  const escapedPreviewText = truncateEscapedHtml(
+    escapeHtmlText(previewText),
+    PREVIEW_TEXT_MAX_LENGTH,
+  );
 
-  if (truncatedText) {
-    return `<${tagName}${attrsText}>${truncatedText}</${tagName}>`;
+  if (escapedPreviewText) {
+    return `<${tagName}${attrsText}>${escapedPreviewText}</${tagName}>`;
   }
   return `<${tagName}${attrsText} />`;
 };
@@ -115,7 +152,7 @@ export const getHTMLPreview = (element: Element): string => {
   const topElementsStr = formatChildElements(topElements);
   if (topElementsStr && !previewSubsumesChildren) content += `\n  ${topElementsStr}`;
   if (previewText) {
-    content += `\n  ${truncateString(previewText, PREVIEW_TEXT_MAX_LENGTH)}`;
+    content += `\n  ${truncateEscapedHtml(escapeHtmlText(previewText), PREVIEW_TEXT_MAX_LENGTH)}`;
   }
   const bottomElementsStr = formatChildElements(bottomElements);
   if (bottomElementsStr && !previewSubsumesChildren) content += `\n  ${bottomElementsStr}`;

@@ -4,7 +4,8 @@ const noopAnimationFrame = (_callback: FrameRequestCallback): number => 0;
 const noopCancelFrame = (_animationFrameId: number): void => {};
 
 // We read requestAnimationFrame from Window.prototype rather than the window
-// instance to bypass the GSAP freeze wrapper installed by freeze-gsap.ts.
+// instance to bypass the animation-loop freeze wrapper installed by
+// freeze-animation-frame-loops.ts.
 // That wrapper does `window.requestAnimationFrame = ...` which creates an own
 // property shadowing the prototype, but the native implementation remains on
 // Window.prototype. Without this, react-grab's own overlay canvas animation

@@ -1,4 +1,4 @@
-import { getElementReferenceContext, getStack, getStackContext, resolveSource } from "./context.js";
+import { resolveElementReferenceContext } from "./context.js";
 import { copyContent } from "../utils/copy-content.js";
 import { normalizeError } from "../utils/normalize-error.js";
 import { getTagName } from "../utils/get-tag-name.js";
@@ -48,20 +48,17 @@ const buildElementPayloadEntry = async (
   element: Element,
   maxContextLines?: number,
 ): Promise<ReactGrabEntry> => {
-  const stackOptions = { maxLines: maxContextLines };
-  const [referenceContext, stackContext, source, stack] = await Promise.all([
-    getElementReferenceContext(element, stackOptions),
-    getStackContext(element, stackOptions),
-    resolveSource(element),
-    getStack(element),
-  ]);
+  const elementContext = await resolveElementReferenceContext(element, {
+    maxLines: maxContextLines,
+  });
   return {
     tagName: getTagName(element),
-    componentName: source?.componentName ?? undefined,
-    content: `[${referenceContext}]`,
-    source,
-    stackContext,
-    frames: (stack ?? []).map(formatStackFramePayload),
+    componentName:
+      elementContext.componentName ?? elementContext.source?.componentName ?? undefined,
+    content: `[${elementContext.referenceContext}]`,
+    source: elementContext.source,
+    stackContext: elementContext.stackContext,
+    frames: elementContext.stack.map(formatStackFramePayload),
   };
 };
 
@@ -69,18 +66,12 @@ const buildClipboardPayload = async (
   elements: Element[],
   maxContextLines?: number,
 ): Promise<CopyPayload | null> => {
+  const uniqueElements = [...new Set(elements)];
   const rawEntries = await Promise.all(
-    elements.map((element) => buildElementPayloadEntry(element, maxContextLines)),
+    uniqueElements.map((element) => buildElementPayloadEntry(element, maxContextLines)),
   );
-  const entriesByContent = new Map<string, ReactGrabEntry>();
-  for (const entry of rawEntries) {
-    if (!entriesByContent.has(entry.content)) {
-      entriesByContent.set(entry.content, entry);
-    }
-  }
-  const entries = [...entriesByContent.values()];
-  return entries.length > 0
-    ? { content: entries.map((entry) => entry.content).join("\n"), entries }
+  return rawEntries.length > 0
+    ? { content: rawEntries.map((entry) => entry.content).join("\n"), entries: rawEntries }
     : null;
 };
 

@@ -88,6 +88,7 @@ test.describe("React Three Fiber selection", () => {
     await expect.poll(() => reactGrab.getClipboardContent()).toContain('<mesh name="left-cube"');
     const clipboardContent = await reactGrab.getClipboardContent();
     expect(clipboardContent).toContain("ThreeGrabBox");
+    expect(clipboardContent).toContain('selector: mesh[name="left-cube"]');
   });
 
   test("distinguishes adjacent meshes", async ({ reactGrab, page }) => {

@@ -1,5 +1,5 @@
 import { expect, test } from "../fixtures.js";
-import { copyFrameworkContext, isProductionProject } from "./framework-helpers.js";
+import { copyFrameworkContext, isNextProject, isProductionProject } from "./framework-helpers.js";
 
 const getOwnerSourcePattern = (projectName: string, targetName: string): RegExp => {
   if (projectName.includes("next")) {
@@ -60,5 +60,21 @@ test.describe("shared owner semantics", () => {
     );
 
     expectOwnerContext(context, testInfo.project.name, "suspense-revealed-target");
+  });
+
+  test("does not show the internal owner for a Next.js link", async ({ reactGrab }, testInfo) => {
+    test.skip(!isNextProject(testInfo.project.name), "Next.js link semantics only");
+
+    await reactGrab.activate();
+    await reactGrab.hoverUntilTargetSelected('[data-testid="component-name-link"]');
+
+    if (isProductionProject(testInfo.project.name)) {
+      expect((await reactGrab.getSelectionLabelInfo()).componentName).not.toBe("LinkComponent");
+      return;
+    }
+
+    await expect
+      .poll(async () => (await reactGrab.getSelectionLabelInfo()).componentName)
+      .toBe("Page");
   });
 });

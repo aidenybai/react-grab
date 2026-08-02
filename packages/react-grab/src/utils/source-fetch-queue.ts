@@ -1,15 +1,32 @@
 import { MAX_CONCURRENT_SOURCE_FETCHES, SOURCE_FETCH_TIMEOUT_MS } from "../constants.js";
 
 let activeFetchCount = 0;
-const waitingForSlot: Array<() => void> = [];
+interface SourceFetchWaiter {
+  abortSignal?: AbortSignal;
+  handleAbort?: () => void;
+  resolve: (didAcquireSlot: boolean) => void;
+}
 
-const acquireSlot = (): Promise<void> => {
+const waitingForSlot: SourceFetchWaiter[] = [];
+
+const acquireSlot = (abortSignal?: AbortSignal): Promise<boolean> => {
+  if (abortSignal?.aborted) return Promise.resolve(false);
   if (activeFetchCount < MAX_CONCURRENT_SOURCE_FETCHES) {
     activeFetchCount += 1;
-    return Promise.resolve();
+    return Promise.resolve(true);
   }
-  return new Promise<void>((resolve) => {
-    waitingForSlot.push(resolve);
+  return new Promise<boolean>((resolve) => {
+    const waiter: SourceFetchWaiter = { abortSignal, resolve };
+    if (abortSignal) {
+      waiter.handleAbort = () => {
+        const waiterIndex = waitingForSlot.indexOf(waiter);
+        if (waiterIndex === -1) return;
+        waitingForSlot.splice(waiterIndex, 1);
+        resolve(false);
+      };
+      abortSignal.addEventListener("abort", waiter.handleAbort, { once: true });
+    }
+    waitingForSlot.push(waiter);
   });
 };
 
@@ -18,7 +35,10 @@ const releaseSlot = (): void => {
   // so the active count stays at the cap while work remains queued.
   const nextWaiter = waitingForSlot.shift();
   if (nextWaiter) {
-    nextWaiter();
+    if (nextWaiter.abortSignal && nextWaiter.handleAbort) {
+      nextWaiter.abortSignal.removeEventListener("abort", nextWaiter.handleAbort);
+    }
+    nextWaiter.resolve(true);
     return;
   }
   activeFetchCount -= 1;
@@ -40,8 +60,10 @@ export const runQueuedSourceFetch = async <T>(
   task: (signal: AbortSignal) => Promise<T>,
   fallback: T,
   timeoutMs: number = SOURCE_FETCH_TIMEOUT_MS,
+  abortSignal?: AbortSignal,
 ): Promise<T> => {
-  await acquireSlot();
+  const didAcquireSlot = await acquireSlot(abortSignal);
+  if (!didAcquireSlot) return fallback;
 
   const controller = new AbortController();
   let timeoutId: ReturnType<typeof setTimeout> | undefined;
@@ -51,15 +73,29 @@ export const runQueuedSourceFetch = async <T>(
       resolve(fallback);
     }, timeoutMs);
   });
+  let handleAbort: (() => void) | undefined;
+  const aborted = new Promise<T>((resolve) => {
+    if (!abortSignal) return;
+    handleAbort = () => {
+      controller.abort();
+      resolve(fallback);
+    };
+    if (abortSignal.aborted) {
+      handleAbort();
+    } else {
+      abortSignal.addEventListener("abort", handleAbort, { once: true });
+    }
+  });
 
   try {
     const taskPromise = task(controller.signal);
     // Swallow a late rejection from a fetch that already lost the timeout race, so
     // an aborted request never surfaces as an unhandled rejection.
     taskPromise.catch(() => {});
-    return await Promise.race([taskPromise, timeout]);
+    return await Promise.race([taskPromise, timeout, aborted]);
   } finally {
     clearTimeout(timeoutId);
+    if (handleAbort) abortSignal?.removeEventListener("abort", handleAbort);
     releaseSlot();
   }
 };
