@@ -1352,10 +1352,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (!pointer) return [];
 
       const drag = calculateDragRectangle(pointer.x, pointer.y);
-      const elements = getElementsInDrag(drag, isValidGrabbableElement);
-      return elements.length > 0
-        ? elements
-        : getElementsInDrag(drag, isValidGrabbableElement, false);
+      return getElementsInDrag(drag, isValidGrabbableElement);
     });
 
     const dragPreviewBounds = createMemo((): OverlayBounds[] => {
@@ -2103,11 +2100,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       hasModifierKeyHeld: boolean,
       isShiftHeld: boolean,
     ) => {
-      const elements = getElementsInDrag(dragSelectionRect, isValidGrabbableElement);
-      const selectedElements =
-        elements.length > 0
-          ? elements
-          : getElementsInDrag(dragSelectionRect, isValidGrabbableElement, false);
+      const selectedElements = getElementsInDrag(dragSelectionRect, isValidGrabbableElement);
 
       if (selectedElements.length === 0) return;
 

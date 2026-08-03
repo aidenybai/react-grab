@@ -1,4 +1,4 @@
-import type { DragRect, Rect } from "../types.js";
+import type { DragRect } from "../types.js";
 import { suspendPointerEventsFreeze, resumePointerEventsFreeze } from "./pointer-events-freeze.js";
 import {
   DRAG_SELECTION_COVERAGE_THRESHOLD,
@@ -7,6 +7,7 @@ import {
   DRAG_SELECTION_MAX_SAMPLES_PER_AXIS,
   DRAG_SELECTION_MAX_TOTAL_SAMPLE_POINTS,
   DRAG_SELECTION_EDGE_INSET_PX,
+  VIEWPORT_COVERAGE_THRESHOLD,
 } from "../constants.js";
 import { isRootElement } from "./is-root-element.js";
 import { isWithinScope } from "./runtime-mode.js";
@@ -18,27 +19,6 @@ import { compareElementDocumentOrder } from "./compare-element-document-order.js
 import { getAccessibleIframeDocument } from "./get-accessible-iframe-document.js";
 import { isIframeElement } from "./is-iframe-element.js";
 import { isShadowRoot } from "./is-shadow-root.js";
-
-const calculateIntersectionArea = (rect1: Rect, rect2: Rect): number => {
-  const intersectionLeft = Math.max(rect1.left, rect2.left);
-  const intersectionTop = Math.max(rect1.top, rect2.top);
-  const intersectionRight = Math.min(rect1.right, rect2.right);
-  const intersectionBottom = Math.min(rect1.bottom, rect2.bottom);
-
-  const intersectionWidth = Math.max(0, intersectionRight - intersectionLeft);
-  const intersectionHeight = Math.max(0, intersectionBottom - intersectionTop);
-
-  return intersectionWidth * intersectionHeight;
-};
-
-const hasIntersection = (rect1: Rect, rect2: Rect): boolean => {
-  return (
-    rect1.left < rect2.right &&
-    rect1.right > rect2.left &&
-    rect1.top < rect2.bottom &&
-    rect1.bottom > rect2.top
-  );
-};
 
 const sortByDocumentOrder = (elements: Element[]): Element[] =>
   elements.sort(compareElementDocumentOrder);
@@ -124,14 +104,11 @@ const createSamplePoints = (dragRect: DragRect): SamplePoint[] => {
 const filterElementsInDrag = (
   dragRect: DragRect,
   isValidGrabbableElement: (element: Element) => boolean,
-  shouldCheckCoverage: boolean,
 ): Element[] => {
-  const dragBounds: Rect = {
-    left: dragRect.x,
-    top: dragRect.y,
-    right: dragRect.x + dragRect.width,
-    bottom: dragRect.y + dragRect.height,
-  };
+  const dragLeft = dragRect.x;
+  const dragTop = dragRect.y;
+  const dragRight = dragRect.x + dragRect.width;
+  const dragBottom = dragRect.y + dragRect.height;
 
   const candidates = new Set<Element>();
   const samplePoints = createSamplePoints(dragRect);
@@ -149,37 +126,88 @@ const filterElementsInDrag = (
   }
 
   const matchingElements: Element[] = [];
+  let nearestFallbackElement: Element | null = null;
+  let nearestFallbackDistanceSquared = Number.POSITIVE_INFINITY;
+  let nearestFallbackArea = Number.POSITIVE_INFINITY;
+  const dragCenterX = dragRect.x + dragRect.width / 2;
+  const dragCenterY = dragRect.y + dragRect.height / 2;
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+  const hasMeasurableViewport = viewportWidth > 0 && viewportHeight > 0;
+  const viewportCoverWidth = viewportWidth * VIEWPORT_COVERAGE_THRESHOLD;
+  const viewportCoverHeight = viewportHeight * VIEWPORT_COVERAGE_THRESHOLD;
   for (const candidateElement of candidates) {
     if (isIframeElement(candidateElement) && getAccessibleIframeDocument(candidateElement)) {
       continue;
     }
-    if (!shouldCheckCoverage && isRootElement(candidateElement)) continue;
+    if (isRootElement(candidateElement)) continue;
     if (!isWithinScope(candidateElement)) continue;
     if (!isValidGrabbableElement(candidateElement)) continue;
 
     const candidateBounds = createElementBounds(candidateElement);
-    if (candidateBounds.width <= 0 || candidateBounds.height <= 0) continue;
-    const bounds: Rect = {
-      left: candidateBounds.x,
-      top: candidateBounds.y,
-      right: candidateBounds.x + candidateBounds.width,
-      bottom: candidateBounds.y + candidateBounds.height,
-    };
-    if (shouldCheckCoverage) {
-      const intersectionArea = calculateIntersectionArea(dragBounds, bounds);
-      const candidateArea = candidateBounds.width * candidateBounds.height;
-      const hasMajorityCoverage =
-        intersectionArea / candidateArea >= DRAG_SELECTION_COVERAGE_THRESHOLD;
+    if (
+      !Number.isFinite(candidateBounds.x) ||
+      !Number.isFinite(candidateBounds.y) ||
+      !Number.isFinite(candidateBounds.width) ||
+      !Number.isFinite(candidateBounds.height) ||
+      candidateBounds.width <= 0 ||
+      candidateBounds.height <= 0
+    ) {
+      continue;
+    }
 
-      if (hasMajorityCoverage) {
-        matchingElements.push(candidateElement);
-      }
-    } else if (hasIntersection(bounds, dragBounds)) {
+    const candidateLeft = candidateBounds.x;
+    const candidateTop = candidateBounds.y;
+    const candidateRight = candidateLeft + candidateBounds.width;
+    const candidateBottom = candidateTop + candidateBounds.height;
+    const coversViewport =
+      hasMeasurableViewport &&
+      candidateBounds.width >= viewportCoverWidth &&
+      candidateBounds.height >= viewportCoverHeight &&
+      Math.min(viewportWidth, candidateRight) - Math.max(0, candidateLeft) >= viewportCoverWidth &&
+      Math.min(viewportHeight, candidateBottom) - Math.max(0, candidateTop) >= viewportCoverHeight;
+    if (coversViewport) continue;
+
+    const intersectionWidth = Math.max(
+      0,
+      Math.min(dragRight, candidateRight) - Math.max(dragLeft, candidateLeft),
+    );
+    const intersectionHeight = Math.max(
+      0,
+      Math.min(dragBottom, candidateBottom) - Math.max(dragTop, candidateTop),
+    );
+    const intersectionArea = intersectionWidth * intersectionHeight;
+    if (intersectionArea <= 0) continue;
+
+    const candidateArea = candidateBounds.width * candidateBounds.height;
+    if (intersectionArea / candidateArea >= DRAG_SELECTION_COVERAGE_THRESHOLD) {
       matchingElements.push(candidateElement);
+      continue;
+    }
+
+    const candidateCenterX = candidateLeft + candidateBounds.width / 2;
+    const candidateCenterY = candidateTop + candidateBounds.height / 2;
+    const centerDistanceX = candidateCenterX - dragCenterX;
+    const centerDistanceY = candidateCenterY - dragCenterY;
+    const centerDistanceSquared =
+      centerDistanceX * centerDistanceX + centerDistanceY * centerDistanceY;
+    const isNearerFallback = centerDistanceSquared < nearestFallbackDistanceSquared;
+    const isSmallerEquidistantFallback =
+      centerDistanceSquared === nearestFallbackDistanceSquared &&
+      candidateArea < nearestFallbackArea;
+
+    if (isNearerFallback || isSmallerEquidistantFallback) {
+      nearestFallbackElement = candidateElement;
+      nearestFallbackDistanceSquared = centerDistanceSquared;
+      nearestFallbackArea = candidateArea;
     }
   }
 
-  return sortByDocumentOrder(matchingElements);
+  return matchingElements.length > 0
+    ? sortByDocumentOrder(matchingElements)
+    : nearestFallbackElement
+      ? [nearestFallbackElement]
+      : [];
 };
 
 const removeNestedElements = (elements: Element[]): Element[] => {
@@ -221,8 +249,7 @@ const removeNestedElements = (elements: Element[]): Element[] => {
 export const getElementsInDrag = (
   dragRect: DragRect,
   isValidGrabbableElement: (element: Element) => boolean,
-  shouldCheckCoverage = true,
 ): Element[] => {
-  const elements = filterElementsInDrag(dragRect, isValidGrabbableElement, shouldCheckCoverage);
+  const elements = filterElementsInDrag(dragRect, isValidGrabbableElement);
   return removeNestedElements(elements);
 };
