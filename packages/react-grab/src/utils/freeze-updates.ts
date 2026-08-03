@@ -9,6 +9,7 @@ import {
   _fiberRoots,
   getFiberFromHostInstance,
   getRDTHook,
+  instrument,
   isCompositeFiber,
   type Fiber,
   type ReactRenderer,
@@ -61,6 +62,7 @@ interface PausedContextState {
 
 let isUpdatesPaused = false;
 let freezeOwnerCount = 0;
+let freezeSessionId = 0;
 
 const getOrCache = <K extends object, V>(cache: WeakMap<K, V>, key: K, create: () => V): V => {
   const cached = cache.get(key);
@@ -91,9 +93,24 @@ const pausedContextStates = new WeakMap<ContextDependency, PausedContextState>()
 const renderersWithPatchedDispatcher = new WeakSet<ReactRenderer>();
 const typedFiberRoots = _fiberRoots as Set<FiberRootLike>;
 const pausedFiberRoots = new Set<FiberRootLike>();
+const fiberRootRenderers = new WeakMap<FiberRootLike, ReactRenderer>();
 
-const isDomRenderer = (renderer: ReactRenderer): boolean =>
-  renderer.rendererPackageName.startsWith("react-dom");
+instrument({
+  name: "react-grab-freeze-updates",
+  onCommitFiberRoot: (rendererId, fiberRoot) => {
+    const renderer = getRDTHook().renderers.get(rendererId);
+    if (renderer) fiberRootRenderers.set(fiberRoot, renderer);
+  },
+});
+
+const isDomRenderer = (renderer: ReactRenderer): boolean => {
+  try {
+    const packageName = renderer.rendererPackageName;
+    return typeof packageName === "string" && packageName.startsWith("react-dom");
+  } catch {
+    return false;
+  }
+};
 
 const getFiberRoot = (fiber: Fiber): FiberRootLike | null => {
   let current: Fiber | null = fiber;
@@ -101,6 +118,58 @@ const getFiberRoot = (fiber: Fiber): FiberRootLike | null => {
     current = current.return;
   }
   return (current.stateNode ?? null) as FiberRootLike | null;
+};
+
+const findHostInstance = (fiberRoot: FiberRootLike): object | null => {
+  const root = fiberRoot.current;
+  let fiber = root;
+  while (fiber) {
+    const stateNode = fiber.stateNode;
+    if (
+      stateNode &&
+      typeof stateNode === "object" &&
+      typeof Reflect.get(stateNode, "nodeType") === "number"
+    ) {
+      return stateNode;
+    }
+    if (fiber.child) {
+      fiber = fiber.child;
+      continue;
+    }
+    while (fiber !== root && !fiber.sibling) {
+      fiber = fiber.return;
+      if (!fiber) return null;
+    }
+    if (fiber === root) return null;
+    fiber = fiber.sibling;
+  }
+  return null;
+};
+
+const resolveFiberRootRenderer = (fiberRoot: FiberRootLike): ReactRenderer | null => {
+  const renderer = fiberRootRenderers.get(fiberRoot);
+  if (renderer) return isDomRenderer(renderer) ? renderer : null;
+
+  const domRenderers = Array.from(getRDTHook().renderers.values()).filter(isDomRenderer);
+  if (domRenderers.length === 1) {
+    const domRenderer = domRenderers[0];
+    if (domRenderer) fiberRootRenderers.set(fiberRoot, domRenderer);
+    return domRenderer ?? null;
+  }
+
+  const hostInstance = findHostInstance(fiberRoot);
+  if (!hostInstance) return null;
+
+  for (const domRenderer of domRenderers) {
+    try {
+      const hostFiber = domRenderer.findFiberByHostInstance?.(hostInstance);
+      if (hostFiber && getFiberRoot(hostFiber) === fiberRoot) {
+        fiberRootRenderers.set(fiberRoot, domRenderer);
+        return domRenderer;
+      }
+    } catch {}
+  }
+  return null;
 };
 
 const isDomFiberRoot = (fiberRoot: FiberRootLike): boolean => {
@@ -531,21 +600,22 @@ const installDispatcherPatching = (renderer: ReactRenderer): void => {
   });
 };
 
-const scheduleReactUpdate = (fiberRoots: Set<FiberRootLike>): void => {
+const scheduleReactUpdate = (
+  fiberRoots: Set<FiberRootLike>,
+  scheduledFreezeSessionId: number,
+): void => {
   queueMicrotask(() => {
+    if (isUpdatesPaused || freezeSessionId !== scheduledFreezeSessionId) return;
     try {
-      for (const renderer of getRDTHook().renderers.values()) {
-        if (!isDomRenderer(renderer)) continue;
-        if (typeof renderer.scheduleUpdate !== "function") continue;
-        for (const fiberRoot of fiberRoots) {
-          if (fiberRoot.current) {
-            try {
-              renderer.scheduleUpdate(fiberRoot.current);
-            } catch (error) {
-              reportRecoverableError(
-                new RecoverableError("scheduleUpdate failed during unfreeze", error),
-              );
-            }
+      for (const fiberRoot of fiberRoots) {
+        const renderer = resolveFiberRootRenderer(fiberRoot);
+        if (fiberRoot.current && renderer?.scheduleUpdate) {
+          try {
+            renderer.scheduleUpdate(fiberRoot.current);
+          } catch (error) {
+            reportRecoverableError(
+              new RecoverableError("scheduleUpdate failed during unfreeze", error),
+            );
           }
         }
       }
@@ -581,6 +651,7 @@ const clearPendingUpdates = (): void => {
 };
 
 const resumeUpdates = (): void => {
+  const resumedFreezeSessionId = freezeSessionId;
   const fiberRootsToResume = new Set(pausedFiberRoots);
   try {
     for (const fiberRoot of collectFiberRoots()) {
@@ -613,8 +684,8 @@ const resumeUpdates = (): void => {
   invokeCallbacks(storeCallbacksToInvoke);
   invokeCallbacks(transitionCallbacksToInvoke);
   invokeCallbacks(stateUpdatesToInvoke);
-  if (!isUpdatesPaused) {
-    scheduleReactUpdate(fiberRootsToResume);
+  if (!isUpdatesPaused && freezeSessionId === resumedFreezeSessionId) {
+    scheduleReactUpdate(fiberRootsToResume, resumedFreezeSessionId);
   }
 };
 
@@ -629,6 +700,7 @@ export const freezeUpdatesOrThrow = (): (() => void) => {
   if (isFirstFreezeOwner) {
     try {
       initializeFreezeSupport();
+      freezeSessionId += 1;
       isUpdatesPaused = true;
 
       const fiberRoots = collectFiberRoots();

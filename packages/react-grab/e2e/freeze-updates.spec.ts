@@ -90,6 +90,104 @@ test.describe("Freeze Updates", () => {
   });
 
   test.describe("Multiple Freeze/Unfreeze Cycles", () => {
+    test("ignores malformed renderer registrations", async ({ reactGrab }) => {
+      await reactGrab.page.evaluate(() => {
+        const devtoolsHook = Reflect.get(window, "__REACT_DEVTOOLS_GLOBAL_HOOK__");
+        if (!devtoolsHook || typeof devtoolsHook !== "object") {
+          throw new Error("React DevTools hook is unavailable");
+        }
+        const injectRenderer = Reflect.get(devtoolsHook, "inject");
+        if (typeof injectRenderer !== "function") {
+          throw new Error("React DevTools renderer injection is unavailable");
+        }
+        const incompleteRenderer = { scheduleRefresh: () => {} };
+        Reflect.apply(injectRenderer, devtoolsHook, [incompleteRenderer]);
+        const inaccessibleRenderer = Object.create(null);
+        Object.defineProperty(inaccessibleRenderer, "rendererPackageName", {
+          get: () => {
+            throw new Error("Renderer metadata is inaccessible");
+          },
+        });
+        Reflect.apply(injectRenderer, devtoolsHook, [inaccessibleRenderer]);
+
+        window.freezeReactGrab();
+        window.unfreezeReactGrab();
+      });
+    });
+
+    test("schedules only the owning renderer and skips stale updates", async ({ reactGrab }) => {
+      const scheduleUpdateCounts = await reactGrab.page.evaluate(async () => {
+        const devtoolsHook = Reflect.get(window, "__REACT_DEVTOOLS_GLOBAL_HOOK__");
+        if (!devtoolsHook || typeof devtoolsHook !== "object") {
+          throw new Error("React DevTools hook is unavailable");
+        }
+        const injectRenderer = Reflect.get(devtoolsHook, "inject");
+        const commitFiberRoot = Reflect.get(devtoolsHook, "onCommitFiberRoot");
+        if (typeof injectRenderer !== "function" || typeof commitFiberRoot !== "function") {
+          throw new Error("React DevTools instrumentation is unavailable");
+        }
+        let owningRendererScheduleUpdateCount = 0;
+        let foreignRendererScheduleUpdateCount = 0;
+        const owningRenderer = {
+          currentDispatcherRef: null,
+          rendererPackageName: "react-dom-owning",
+          scheduleUpdate: () => {
+            owningRendererScheduleUpdateCount += 1;
+          },
+        };
+        const foreignRenderer = {
+          currentDispatcherRef: null,
+          rendererPackageName: "react-dom-foreign",
+          scheduleUpdate: () => {
+            foreignRendererScheduleUpdateCount += 1;
+          },
+        };
+        const owningRendererId = Reflect.apply(injectRenderer, devtoolsHook, [owningRenderer]);
+        Reflect.apply(injectRenderer, devtoolsHook, [foreignRenderer]);
+        const syntheticFiberRoot = Object.create(null);
+        const syntheticRootFiber = {
+          child: null,
+          return: null,
+          sibling: null,
+          stateNode: syntheticFiberRoot,
+        };
+        Object.assign(syntheticFiberRoot, {
+          containerInfo: document.body,
+          current: syntheticRootFiber,
+        });
+        Reflect.apply(commitFiberRoot, devtoolsHook, [owningRendererId, syntheticFiberRoot]);
+
+        window.freezeReactGrab();
+        window.unfreezeReactGrab();
+        window.freezeReactGrab();
+        await new Promise<void>((resolve) => queueMicrotask(resolve));
+        const staleScheduleUpdateCount = owningRendererScheduleUpdateCount;
+        window.unfreezeReactGrab();
+        await new Promise<void>((resolve) => queueMicrotask(resolve));
+
+        const scheduleUpdateCountBeforeRapidCycle = owningRendererScheduleUpdateCount;
+        window.freezeReactGrab();
+        window.unfreezeReactGrab();
+        window.freezeReactGrab();
+        window.unfreezeReactGrab();
+        await new Promise<void>((resolve) => queueMicrotask(resolve));
+        return {
+          foreignRendererScheduleUpdateCount,
+          owningRendererScheduleUpdateCount,
+          rapidCycleScheduleUpdateCount:
+            owningRendererScheduleUpdateCount - scheduleUpdateCountBeforeRapidCycle,
+          staleScheduleUpdateCount,
+        };
+      });
+
+      expect(scheduleUpdateCounts).toEqual({
+        foreignRendererScheduleUpdateCount: 0,
+        owningRendererScheduleUpdateCount: 2,
+        rapidCycleScheduleUpdateCount: 1,
+        staleScheduleUpdateCount: 0,
+      });
+    });
+
     test("should handle multiple prompt mode cycles correctly", async ({ reactGrab }) => {
       await reactGrab.registerCommentAction();
 
