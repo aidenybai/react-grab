@@ -9,6 +9,7 @@ import {
   _fiberRoots,
   getFiberFromHostInstance,
   getRDTHook,
+  instrument,
   isCompositeFiber,
   type Fiber,
   type ReactRenderer,
@@ -91,6 +92,14 @@ const pausedContextStates = new WeakMap<ContextDependency, PausedContextState>()
 const renderersWithPatchedDispatcher = new WeakSet<ReactRenderer>();
 const typedFiberRoots = _fiberRoots as Set<FiberRootLike>;
 const pausedFiberRoots = new Set<FiberRootLike>();
+const fiberRootRendererIds = new WeakMap<FiberRootLike, number>();
+
+instrument({
+  name: "react-grab-freeze-updates",
+  onCommitFiberRoot: (rendererId, fiberRoot) => {
+    fiberRootRendererIds.set(fiberRoot, rendererId);
+  },
+});
 
 const isDomRenderer = (renderer: ReactRenderer): boolean =>
   renderer.rendererPackageName.startsWith("react-dom");
@@ -101,6 +110,57 @@ const getFiberRoot = (fiber: Fiber): FiberRootLike | null => {
     current = current.return;
   }
   return (current.stateNode ?? null) as FiberRootLike | null;
+};
+
+const findHostInstance = (fiberRoot: FiberRootLike): object | null => {
+  const root = fiberRoot.current;
+  let fiber = root;
+  while (fiber) {
+    const stateNode = fiber.stateNode;
+    if (
+      stateNode &&
+      typeof stateNode === "object" &&
+      typeof Reflect.get(stateNode, "nodeType") === "number"
+    ) {
+      return stateNode;
+    }
+    if (fiber.child) {
+      fiber = fiber.child;
+      continue;
+    }
+    while (fiber !== root && !fiber.sibling) {
+      fiber = fiber.return;
+      if (!fiber) return null;
+    }
+    if (fiber === root) return null;
+    fiber = fiber.sibling;
+  }
+  return null;
+};
+
+const resolveFiberRootRenderer = (
+  fiberRoot: FiberRootLike,
+  renderers: Map<number, ReactRenderer>,
+): ReactRenderer | null => {
+  const rendererId = fiberRootRendererIds.get(fiberRoot);
+  if (rendererId !== undefined) {
+    const renderer = renderers.get(rendererId);
+    return renderer && isDomRenderer(renderer) ? renderer : null;
+  }
+
+  const domRenderers = Array.from(renderers.values()).filter(isDomRenderer);
+  if (domRenderers.length === 1) return domRenderers[0] ?? null;
+
+  const hostInstance = findHostInstance(fiberRoot);
+  if (!hostInstance) return null;
+
+  for (const renderer of domRenderers) {
+    try {
+      const hostFiber = renderer.findFiberByHostInstance?.(hostInstance);
+      if (hostFiber && getFiberRoot(hostFiber) === fiberRoot) return renderer;
+    } catch {}
+  }
+  return null;
 };
 
 const isDomFiberRoot = (fiberRoot: FiberRootLike): boolean => {
@@ -534,18 +594,16 @@ const installDispatcherPatching = (renderer: ReactRenderer): void => {
 const scheduleReactUpdate = (fiberRoots: Set<FiberRootLike>): void => {
   queueMicrotask(() => {
     try {
-      for (const renderer of getRDTHook().renderers.values()) {
-        if (!isDomRenderer(renderer)) continue;
-        if (typeof renderer.scheduleUpdate !== "function") continue;
-        for (const fiberRoot of fiberRoots) {
-          if (fiberRoot.current) {
-            try {
-              renderer.scheduleUpdate(fiberRoot.current);
-            } catch (error) {
-              reportRecoverableError(
-                new RecoverableError("scheduleUpdate failed during unfreeze", error),
-              );
-            }
+      const renderers = getRDTHook().renderers;
+      for (const fiberRoot of fiberRoots) {
+        const renderer = resolveFiberRootRenderer(fiberRoot, renderers);
+        if (fiberRoot.current && renderer?.scheduleUpdate) {
+          try {
+            renderer.scheduleUpdate(fiberRoot.current);
+          } catch (error) {
+            reportRecoverableError(
+              new RecoverableError("scheduleUpdate failed during unfreeze", error),
+            );
           }
         }
       }

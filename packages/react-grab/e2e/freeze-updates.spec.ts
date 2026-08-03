@@ -90,6 +90,50 @@ test.describe("Freeze Updates", () => {
   });
 
   test.describe("Multiple Freeze/Unfreeze Cycles", () => {
+    test("schedules updates only with the renderer that owns each root", async ({ reactGrab }) => {
+      await reactGrab.page.evaluate(() => {
+        document.documentElement.dataset.foreignScheduleUpdateCount = "0";
+        const devtoolsHook = Reflect.get(window, "__REACT_DEVTOOLS_GLOBAL_HOOK__");
+        if (!devtoolsHook || typeof devtoolsHook !== "object") {
+          throw new Error("React DevTools hook is unavailable");
+        }
+        const injectRenderer = Reflect.get(devtoolsHook, "inject");
+        if (typeof injectRenderer !== "function") {
+          throw new Error("React DevTools renderer injection is unavailable");
+        }
+        const domRenderer = Array.from(devtoolsHook.renderers.values()).find((renderer) =>
+          renderer.rendererPackageName.startsWith("react-dom"),
+        );
+        if (!domRenderer) throw new Error("React DOM renderer is unavailable");
+        injectRenderer.call(devtoolsHook, {
+          bundleType: domRenderer.bundleType,
+          currentDispatcherRef: null,
+          reconcilerVersion: domRenderer.reconcilerVersion,
+          rendererPackageName: "react-dom-foreign",
+          scheduleUpdate: () => {
+            const currentCount = Number(
+              document.documentElement.dataset.foreignScheduleUpdateCount,
+            );
+            document.documentElement.dataset.foreignScheduleUpdateCount = String(currentCount + 1);
+          },
+          version: domRenderer.version,
+        });
+      });
+
+      await reactGrab.page.evaluate(() => {
+        window.freezeReactGrab();
+        window.unfreezeReactGrab();
+      });
+
+      await expect
+        .poll(() =>
+          reactGrab.page.evaluate(() =>
+            Number(document.documentElement.dataset.foreignScheduleUpdateCount),
+          ),
+        )
+        .toBe(0);
+    });
+
     test("should handle multiple prompt mode cycles correctly", async ({ reactGrab }) => {
       await reactGrab.registerCommentAction();
 
