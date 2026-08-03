@@ -100,8 +100,7 @@ test.describe("Freeze Updates", () => {
         if (typeof injectRenderer !== "function") {
           throw new Error("React DevTools renderer injection is unavailable");
         }
-        const incompleteRenderer = Object.create(null);
-        Reflect.set(incompleteRenderer, "scheduleRefresh", () => {});
+        const incompleteRenderer = { scheduleRefresh: () => {} };
         Reflect.apply(injectRenderer, devtoolsHook, [incompleteRenderer]);
         const inaccessibleRenderer = Object.create(null);
         Object.defineProperty(inaccessibleRenderer, "rendererPackageName", {
@@ -129,28 +128,33 @@ test.describe("Freeze Updates", () => {
         }
         let owningRendererScheduleUpdateCount = 0;
         let foreignRendererScheduleUpdateCount = 0;
-        const owningRenderer = Object.create(null);
-        Reflect.set(owningRenderer, "currentDispatcherRef", null);
-        Reflect.set(owningRenderer, "rendererPackageName", "react-dom-owning");
-        Reflect.set(owningRenderer, "scheduleUpdate", () => {
-          owningRendererScheduleUpdateCount += 1;
-        });
-        const foreignRenderer = Object.create(null);
-        Reflect.set(foreignRenderer, "currentDispatcherRef", null);
-        Reflect.set(foreignRenderer, "rendererPackageName", "react-dom-foreign");
-        Reflect.set(foreignRenderer, "scheduleUpdate", () => {
-          foreignRendererScheduleUpdateCount += 1;
-        });
+        const owningRenderer = {
+          currentDispatcherRef: null,
+          rendererPackageName: "react-dom-owning",
+          scheduleUpdate: () => {
+            owningRendererScheduleUpdateCount += 1;
+          },
+        };
+        const foreignRenderer = {
+          currentDispatcherRef: null,
+          rendererPackageName: "react-dom-foreign",
+          scheduleUpdate: () => {
+            foreignRendererScheduleUpdateCount += 1;
+          },
+        };
         const owningRendererId = Reflect.apply(injectRenderer, devtoolsHook, [owningRenderer]);
         Reflect.apply(injectRenderer, devtoolsHook, [foreignRenderer]);
         const syntheticFiberRoot = Object.create(null);
-        const syntheticRootFiber = Object.create(null);
-        Reflect.set(syntheticRootFiber, "child", null);
-        Reflect.set(syntheticRootFiber, "return", null);
-        Reflect.set(syntheticRootFiber, "sibling", null);
-        Reflect.set(syntheticRootFiber, "stateNode", syntheticFiberRoot);
-        Reflect.set(syntheticFiberRoot, "containerInfo", document.body);
-        Reflect.set(syntheticFiberRoot, "current", syntheticRootFiber);
+        const syntheticRootFiber = {
+          child: null,
+          return: null,
+          sibling: null,
+          stateNode: syntheticFiberRoot,
+        };
+        Object.assign(syntheticFiberRoot, {
+          containerInfo: document.body,
+          current: syntheticRootFiber,
+        });
         Reflect.apply(commitFiberRoot, devtoolsHook, [owningRendererId, syntheticFiberRoot]);
 
         window.freezeReactGrab();

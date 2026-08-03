@@ -92,21 +92,20 @@ const pausedContextStates = new WeakMap<ContextDependency, PausedContextState>()
 const renderersWithPatchedDispatcher = new WeakSet<ReactRenderer>();
 const typedFiberRoots = _fiberRoots as Set<FiberRootLike>;
 const pausedFiberRoots = new Set<FiberRootLike>();
-const fiberRootRendererIds = new WeakMap<FiberRootLike, number>();
+const fiberRootRenderers = new WeakMap<FiberRootLike, ReactRenderer>();
 
 instrument({
   name: "react-grab-freeze-updates",
   onCommitFiberRoot: (rendererId, fiberRoot) => {
-    fiberRootRendererIds.set(fiberRoot, rendererId);
+    const renderer = getRDTHook().renderers.get(rendererId);
+    if (renderer) fiberRootRenderers.set(fiberRoot, renderer);
   },
 });
 
 const isDomRenderer = (renderer: ReactRenderer): boolean => {
   try {
-    return (
-      typeof renderer.rendererPackageName === "string" &&
-      renderer.rendererPackageName.startsWith("react-dom")
-    );
+    const packageName = renderer.rendererPackageName;
+    return typeof packageName === "string" && packageName.startsWith("react-dom");
   } catch {
     return false;
   }
@@ -146,26 +145,27 @@ const findHostInstance = (fiberRoot: FiberRootLike): object | null => {
   return null;
 };
 
-const resolveFiberRootRenderer = (
-  fiberRoot: FiberRootLike,
-  renderers: Map<number, ReactRenderer>,
-): ReactRenderer | null => {
-  const rendererId = fiberRootRendererIds.get(fiberRoot);
-  if (rendererId !== undefined) {
-    const renderer = renderers.get(rendererId);
-    return renderer && isDomRenderer(renderer) ? renderer : null;
-  }
+const resolveFiberRootRenderer = (fiberRoot: FiberRootLike): ReactRenderer | null => {
+  const renderer = fiberRootRenderers.get(fiberRoot);
+  if (renderer) return isDomRenderer(renderer) ? renderer : null;
 
-  const domRenderers = Array.from(renderers.values()).filter(isDomRenderer);
-  if (domRenderers.length === 1) return domRenderers[0] ?? null;
+  const domRenderers = Array.from(getRDTHook().renderers.values()).filter(isDomRenderer);
+  if (domRenderers.length === 1) {
+    const domRenderer = domRenderers[0];
+    if (domRenderer) fiberRootRenderers.set(fiberRoot, domRenderer);
+    return domRenderer ?? null;
+  }
 
   const hostInstance = findHostInstance(fiberRoot);
   if (!hostInstance) return null;
 
-  for (const renderer of domRenderers) {
+  for (const domRenderer of domRenderers) {
     try {
-      const hostFiber = renderer.findFiberByHostInstance?.(hostInstance);
-      if (hostFiber && getFiberRoot(hostFiber) === fiberRoot) return renderer;
+      const hostFiber = domRenderer.findFiberByHostInstance?.(hostInstance);
+      if (hostFiber && getFiberRoot(hostFiber) === fiberRoot) {
+        fiberRootRenderers.set(fiberRoot, domRenderer);
+        return domRenderer;
+      }
     } catch {}
   }
   return null;
@@ -603,9 +603,8 @@ const scheduleReactUpdate = (fiberRoots: Set<FiberRootLike>): void => {
   queueMicrotask(() => {
     if (isUpdatesPaused) return;
     try {
-      const renderers = getRDTHook().renderers;
       for (const fiberRoot of fiberRoots) {
-        const renderer = resolveFiberRootRenderer(fiberRoot, renderers);
+        const renderer = resolveFiberRootRenderer(fiberRoot);
         if (fiberRoot.current && renderer?.scheduleUpdate) {
           try {
             renderer.scheduleUpdate(fiberRoot.current);
