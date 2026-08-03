@@ -62,6 +62,7 @@ interface PausedContextState {
 
 let isUpdatesPaused = false;
 let freezeOwnerCount = 0;
+let freezeSessionId = 0;
 
 const getOrCache = <K extends object, V>(cache: WeakMap<K, V>, key: K, create: () => V): V => {
   const cached = cache.get(key);
@@ -599,9 +600,12 @@ const installDispatcherPatching = (renderer: ReactRenderer): void => {
   });
 };
 
-const scheduleReactUpdate = (fiberRoots: Set<FiberRootLike>): void => {
+const scheduleReactUpdate = (
+  fiberRoots: Set<FiberRootLike>,
+  scheduledFreezeSessionId: number,
+): void => {
   queueMicrotask(() => {
-    if (isUpdatesPaused) return;
+    if (isUpdatesPaused || freezeSessionId !== scheduledFreezeSessionId) return;
     try {
       for (const fiberRoot of fiberRoots) {
         const renderer = resolveFiberRootRenderer(fiberRoot);
@@ -647,6 +651,7 @@ const clearPendingUpdates = (): void => {
 };
 
 const resumeUpdates = (): void => {
+  const resumedFreezeSessionId = freezeSessionId;
   const fiberRootsToResume = new Set(pausedFiberRoots);
   try {
     for (const fiberRoot of collectFiberRoots()) {
@@ -679,8 +684,8 @@ const resumeUpdates = (): void => {
   invokeCallbacks(storeCallbacksToInvoke);
   invokeCallbacks(transitionCallbacksToInvoke);
   invokeCallbacks(stateUpdatesToInvoke);
-  if (!isUpdatesPaused) {
-    scheduleReactUpdate(fiberRootsToResume);
+  if (!isUpdatesPaused && freezeSessionId === resumedFreezeSessionId) {
+    scheduleReactUpdate(fiberRootsToResume, resumedFreezeSessionId);
   }
 };
 
@@ -695,6 +700,7 @@ export const freezeUpdatesOrThrow = (): (() => void) => {
   if (isFirstFreezeOwner) {
     try {
       initializeFreezeSupport();
+      freezeSessionId += 1;
       isUpdatesPaused = true;
 
       const fiberRoots = collectFiberRoots();

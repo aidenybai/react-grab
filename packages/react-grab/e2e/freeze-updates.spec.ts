@@ -164,16 +164,26 @@ test.describe("Freeze Updates", () => {
         const staleScheduleUpdateCount = owningRendererScheduleUpdateCount;
         window.unfreezeReactGrab();
         await new Promise<void>((resolve) => queueMicrotask(resolve));
+
+        const scheduleUpdateCountBeforeRapidCycle = owningRendererScheduleUpdateCount;
+        window.freezeReactGrab();
+        window.unfreezeReactGrab();
+        window.freezeReactGrab();
+        window.unfreezeReactGrab();
+        await new Promise<void>((resolve) => queueMicrotask(resolve));
         return {
           foreignRendererScheduleUpdateCount,
           owningRendererScheduleUpdateCount,
+          rapidCycleScheduleUpdateCount:
+            owningRendererScheduleUpdateCount - scheduleUpdateCountBeforeRapidCycle,
           staleScheduleUpdateCount,
         };
       });
 
       expect(scheduleUpdateCounts).toEqual({
         foreignRendererScheduleUpdateCount: 0,
-        owningRendererScheduleUpdateCount: 1,
+        owningRendererScheduleUpdateCount: 2,
+        rapidCycleScheduleUpdateCount: 1,
         staleScheduleUpdateCount: 0,
       });
     });
