@@ -101,8 +101,16 @@ instrument({
   },
 });
 
-const isDomRenderer = (renderer: ReactRenderer): boolean =>
-  renderer.rendererPackageName.startsWith("react-dom");
+const isDomRenderer = (renderer: ReactRenderer): boolean => {
+  try {
+    return (
+      typeof renderer.rendererPackageName === "string" &&
+      renderer.rendererPackageName.startsWith("react-dom")
+    );
+  } catch {
+    return false;
+  }
+};
 
 const getFiberRoot = (fiber: Fiber): FiberRootLike | null => {
   let current: Fiber | null = fiber;
@@ -593,6 +601,7 @@ const installDispatcherPatching = (renderer: ReactRenderer): void => {
 
 const scheduleReactUpdate = (fiberRoots: Set<FiberRootLike>): void => {
   queueMicrotask(() => {
+    if (isUpdatesPaused) return;
     try {
       const renderers = getRDTHook().renderers;
       for (const fiberRoot of fiberRoots) {
