@@ -48,29 +48,35 @@ export const getSvgTextElementAtPoint = (
   }
 
   let candidateElement = searchRootElement.lastElementChild;
-  while (candidateElement?.lastElementChild) {
-    candidateElement = candidateElement.lastElementChild;
-  }
-  let scannedElementCount = 0;
+  let traversedElementCount = 0;
+  let didVisitHitElement = false;
 
-  while (candidateElement && scannedElementCount < SVG_TEXT_HIT_TEST_MAX_ELEMENTS) {
-    scannedElementCount += 1;
+  while (candidateElement && traversedElementCount < SVG_TEXT_HIT_TEST_MAX_ELEMENTS) {
+    traversedElementCount += 1;
 
     if (isSvgTextElement(candidateElement) && containsPoint(candidateElement, clientX, clientY)) {
       return candidateElement;
     }
 
-    if (candidateElement === hitElement && hitElement !== searchRootElement) return null;
-
-    if (!candidateElement.previousElementSibling) {
-      candidateElement = candidateElement.parentElement;
-      if (candidateElement === searchRootElement) return null;
-    } else {
-      candidateElement = candidateElement.previousElementSibling;
-      while (candidateElement.lastElementChild) {
-        candidateElement = candidateElement.lastElementChild;
-      }
+    if (candidateElement === hitElement && hitElement !== searchRootElement) {
+      didVisitHitElement = true;
+      if (!candidateElement.lastElementChild) return null;
     }
+
+    if (candidateElement.lastElementChild) {
+      candidateElement = candidateElement.lastElementChild;
+      continue;
+    }
+
+    while (candidateElement !== searchRootElement && !candidateElement.previousElementSibling) {
+      if (candidateElement.parentElement === hitElement && didVisitHitElement) return null;
+      candidateElement = candidateElement.parentElement;
+      traversedElementCount += 1;
+      if (!candidateElement || traversedElementCount >= SVG_TEXT_HIT_TEST_MAX_ELEMENTS) return null;
+    }
+
+    if (candidateElement === searchRootElement) return null;
+    candidateElement = candidateElement.previousElementSibling;
   }
 
   return null;
