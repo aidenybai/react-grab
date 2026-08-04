@@ -68,8 +68,17 @@ export const getElementsAtPoint = (clientX: number, clientY: number): Element[] 
     const elements = getDeepElementsAtPoint(clientX, clientY);
     const scopedElements = getScopeContainer() ? elements.filter(isWithinScope) : elements;
     const resolvedElements: Element[] = [];
+    let didResolveSvgTextElement = false;
     for (const element of scopedElements) {
-      resolvedElements.push(resolveThreeElementAtPoint(element, clientX, clientY));
+      let preciseElement = element;
+      if (!didResolveSvgTextElement) {
+        const svgTextElement = getSvgTextElementAtPoint(element, clientX, clientY);
+        if (svgTextElement && isWithinScope(svgTextElement)) {
+          preciseElement = svgTextElement;
+          didResolveSvgTextElement = true;
+        }
+      }
+      resolvedElements.push(resolveThreeElementAtPoint(preciseElement, clientX, clientY));
     }
     return resolvedElements;
   } finally {

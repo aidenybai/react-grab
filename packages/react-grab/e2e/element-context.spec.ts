@@ -189,7 +189,7 @@ test.describe("Element Context Fallback", () => {
       expect(clipboard).toContain('<text id="svg-visible-label">Quarterly revenue</text>');
     });
 
-    test("should hover pointer-events-none SVG text instead of its chart root", async ({
+    test("should hover and copy pointer-events-none SVG text instead of its chart root", async ({
       reactGrab,
     }) => {
       await reactGrab.page.evaluate(() => {
@@ -217,6 +217,10 @@ test.describe("Element Context Fallback", () => {
 
       await reactGrab.activate();
       await reactGrab.hoverUntilTargetSelected("#pointer-events-none-svg-label");
+      await reactGrab.clickElement("#pointer-events-none-svg-label");
+
+      const clipboard = await reactGrab.getClipboardContent();
+      expect(clipboard).toContain('<text id="pointer-events-none-svg-label">composer-2.5</text>');
     });
 
     test("should use a semantic link selector for a source-less SVG path", async ({
