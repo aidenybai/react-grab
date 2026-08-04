@@ -2,7 +2,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test"
 import type { ElementBounds } from "../src/types.js";
 import { getElementsInDrag } from "../src/utils/get-elements-in-drag.js";
 import { createElementBounds } from "../src/utils/create-element-bounds.js";
+import { getComposedParentElement } from "../src/utils/get-composed-parent-element.js";
 import { getDeepElementsAtPoint } from "../src/utils/get-deep-elements-at-point.js";
+import { DRAG_SELECTION_MAX_NEIGHBOR_SCAN_ELEMENTS } from "../src/constants.js";
 
 vi.mock("../src/utils/compare-element-document-order.js", () => ({
   compareElementDocumentOrder: vi.fn(() => 0),
@@ -45,7 +47,25 @@ vi.mock("../src/utils/runtime-mode.js", () => ({
   isWithinScope: vi.fn(() => true),
 }));
 
-const createElement = (): Element => Object.create(null);
+const createElement = (children: Element[] = []): Element => {
+  const element = Object.assign(Object.create(null), {
+    children,
+    getRootNode: () => null,
+    nextElementSibling: null,
+    parentElement: null,
+    previousElementSibling: null,
+    shadowRoot: null,
+    tagName: "DIV",
+  });
+  for (let childIndex = 0; childIndex < children.length; childIndex += 1) {
+    Object.assign(children[childIndex], {
+      nextElementSibling: children[childIndex + 1] ?? null,
+      parentElement: element,
+      previousElementSibling: children[childIndex - 1] ?? null,
+    });
+  }
+  return element;
+};
 
 const setElementBounds = (boundsByElement: Map<Element, ElementBounds>) => {
   vi.mocked(createElementBounds).mockImplementation((element) => {
@@ -57,6 +77,7 @@ const setElementBounds = (boundsByElement: Map<Element, ElementBounds>) => {
 
 beforeEach(() => {
   vi.stubGlobal("window", { innerHeight: 300, innerWidth: 300 });
+  vi.mocked(getComposedParentElement).mockReturnValue(null);
 });
 
 afterEach(() => {
@@ -130,6 +151,77 @@ describe("getElementsInDrag", () => {
 
     expect(leftToRightElements).toEqual([rightElement]);
     expect(rightToLeftElements).toEqual([leftElement]);
+  });
+
+  it("fills unsampled table rows around a sampled cell", () => {
+    const firstCell = createElement();
+    const secondCell = createElement();
+    const thirdCell = createElement();
+    const firstRow = createElement([firstCell]);
+    const secondRow = createElement([secondCell]);
+    const thirdRow = createElement([thirdCell]);
+    const tableBody = createElement([firstRow, secondRow, thirdRow]);
+    Object.assign(firstRow, { tagName: "TR" });
+    Object.assign(secondRow, { tagName: "TR" });
+    Object.assign(thirdRow, { tagName: "TR" });
+    vi.mocked(getDeepElementsAtPoint).mockReturnValue([firstCell, tableBody]);
+    vi.mocked(getComposedParentElement).mockImplementation((element) => {
+      if (element === firstCell) return firstRow;
+      if (element === secondCell) return secondRow;
+      if (element === thirdCell) return thirdRow;
+      if (element === firstRow || element === secondRow || element === thirdRow) return tableBody;
+      return null;
+    });
+    setElementBounds(
+      new Map([
+        [tableBody, { x: 0, y: 0, width: 300, height: 500, borderRadius: "0px" }],
+        [firstRow, { x: 0, y: 0, width: 300, height: 100, borderRadius: "0px" }],
+        [secondRow, { x: 0, y: 100, width: 300, height: 100, borderRadius: "0px" }],
+        [thirdRow, { x: 0, y: 200, width: 300, height: 100, borderRadius: "0px" }],
+        [firstCell, { x: 0, y: 0, width: 100, height: 100, borderRadius: "0px" }],
+        [secondCell, { x: 0, y: 100, width: 100, height: 100, borderRadius: "0px" }],
+        [thirdCell, { x: 0, y: 200, width: 100, height: 100, borderRadius: "0px" }],
+      ]),
+    );
+
+    const elements = getElementsInDrag(
+      { x: 0, y: 0, width: 300, height: 300 },
+      { x: 299, y: 299 },
+      () => true,
+    );
+
+    expect(elements).toEqual([firstRow, secondRow, thirdRow]);
+  });
+
+  it("bounds candidate neighborhood completion on dense containers", () => {
+    const siblingElements = Array.from(
+      { length: DRAG_SELECTION_MAX_NEIGHBOR_SCAN_ELEMENTS + 10 },
+      () => createElement(),
+    );
+    for (const siblingElement of siblingElements) {
+      Object.assign(siblingElement, { tagName: "TR" });
+    }
+    createElement(siblingElements);
+    vi.mocked(getDeepElementsAtPoint).mockReturnValue([siblingElements[0]]);
+    const boundsByElement = new Map<Element, ElementBounds>();
+    for (const siblingElement of siblingElements) {
+      boundsByElement.set(siblingElement, {
+        x: 10,
+        y: 10,
+        width: 10,
+        height: 10,
+        borderRadius: "0px",
+      });
+    }
+    setElementBounds(boundsByElement);
+
+    const elements = getElementsInDrag(
+      { x: 0, y: 0, width: 300, height: 300 },
+      { x: 299, y: 299 },
+      () => true,
+    );
+
+    expect(elements).toHaveLength(DRAG_SELECTION_MAX_NEIGHBOR_SCAN_ELEMENTS + 1);
   });
 
   it("ignores viewport-covering candidates", () => {

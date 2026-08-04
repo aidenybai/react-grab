@@ -189,6 +189,36 @@ test.describe("Element Context Fallback", () => {
       expect(clipboard).toContain('<text id="svg-visible-label">Quarterly revenue</text>');
     });
 
+    test("should hover pointer-events-none SVG text instead of its chart root", async ({
+      reactGrab,
+    }) => {
+      await reactGrab.page.evaluate(() => {
+        const wrapperElement = document.createElement("div");
+        Object.assign(wrapperElement.style, {
+          left: "200px",
+          position: "fixed",
+          top: "200px",
+          zIndex: "999",
+        });
+        const svgElement = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        svgElement.setAttribute("height", "100");
+        svgElement.setAttribute("width", "400");
+        const textElement = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        textElement.id = "pointer-events-none-svg-label";
+        textElement.setAttribute("font-size", "24");
+        textElement.setAttribute("x", "20");
+        textElement.setAttribute("y", "50");
+        textElement.style.pointerEvents = "none";
+        textElement.textContent = "composer-2.5";
+        svgElement.appendChild(textElement);
+        wrapperElement.appendChild(svgElement);
+        document.body.appendChild(wrapperElement);
+      });
+
+      await reactGrab.activate();
+      await reactGrab.hoverUntilTargetSelected("#pointer-events-none-svg-label");
+    });
+
     test("should use a semantic link selector for a source-less SVG path", async ({
       reactGrab,
     }) => {

@@ -1,4 +1,4 @@
-import type { DragRect, Position } from "../types.js";
+import type { DragRect, ElementBounds, Position } from "../types.js";
 import { suspendPointerEventsFreeze, resumePointerEventsFreeze } from "./pointer-events-freeze.js";
 import {
   DRAG_SELECTION_COVERAGE_THRESHOLD,
@@ -8,6 +8,8 @@ import {
   DRAG_SELECTION_MAX_TOTAL_SAMPLE_POINTS,
   DRAG_SELECTION_EDGE_INSET_PX,
   DRAG_SELECTION_SAMPLE_COORDINATE_VALUES,
+  DRAG_SELECTION_MAX_NEIGHBOR_SCAN_ELEMENTS,
+  DRAG_SELECTION_MAX_LOCAL_COLLECTION_ELEMENTS,
   MIN_HIT_TEST_VIEWPORT_DIMENSION_PX,
   VIEWPORT_COVERAGE_THRESHOLD,
 } from "../constants.js";
@@ -24,6 +26,109 @@ import { isShadowRoot } from "./is-shadow-root.js";
 
 const sortByDocumentOrder = (elements: Element[]): Element[] =>
   elements.sort(compareElementDocumentOrder);
+
+const hasValidBounds = (bounds: ElementBounds): boolean =>
+  Number.isFinite(bounds.x) &&
+  Number.isFinite(bounds.y) &&
+  Number.isFinite(bounds.width) &&
+  Number.isFinite(bounds.height) &&
+  bounds.width > 0 &&
+  bounds.height > 0;
+
+const boundsIntersectDrag = (bounds: ElementBounds, dragRect: DragRect): boolean =>
+  bounds.x < dragRect.x + dragRect.width &&
+  bounds.x + bounds.width > dragRect.x &&
+  bounds.y < dragRect.y + dragRect.height &&
+  bounds.y + bounds.height > dragRect.y;
+
+const completeCandidateNeighborhoods = (
+  candidates: Set<Element>,
+  dragRect: DragRect,
+  candidateBoundsByElement: Map<Element, ElementBounds>,
+): void => {
+  const candidateQueue = [...candidates];
+  const tableRowQueue = candidateQueue.filter(
+    (candidateElement) => candidateElement.tagName === "TR",
+  );
+  let scannedNeighborCount = 0;
+
+  for (
+    let candidateIndex = 0;
+    candidateIndex < candidateQueue.length &&
+    scannedNeighborCount < DRAG_SELECTION_MAX_NEIGHBOR_SCAN_ELEMENTS;
+    candidateIndex += 1
+  ) {
+    const parentElement = getComposedParentElement(candidateQueue[candidateIndex]);
+    if (!parentElement || parentElement.tagName !== "TR" || candidates.has(parentElement)) continue;
+    scannedNeighborCount += 1;
+    candidates.add(parentElement);
+    candidateQueue.push(parentElement);
+    tableRowQueue.push(parentElement);
+  }
+
+  const addIntersectingCandidate = (candidateElement: Element | null): void => {
+    if (
+      !candidateElement ||
+      candidates.has(candidateElement) ||
+      scannedNeighborCount >= DRAG_SELECTION_MAX_NEIGHBOR_SCAN_ELEMENTS
+    ) {
+      return;
+    }
+    scannedNeighborCount += 1;
+
+    let candidateBounds = candidateBoundsByElement.get(candidateElement);
+    if (!candidateBounds) {
+      candidateBounds = createElementBounds(candidateElement);
+      candidateBoundsByElement.set(candidateElement, candidateBounds);
+    }
+    if (!hasValidBounds(candidateBounds) || !boundsIntersectDrag(candidateBounds, dragRect)) return;
+
+    candidates.add(candidateElement);
+    candidateQueue.push(candidateElement);
+    if (candidateElement.tagName === "TR") tableRowQueue.push(candidateElement);
+  };
+
+  const addIntersectingChildren = (childCollection: HTMLCollection): void => {
+    if (childCollection.length > DRAG_SELECTION_MAX_LOCAL_COLLECTION_ELEMENTS) return;
+    for (const childElement of childCollection) {
+      if (scannedNeighborCount >= DRAG_SELECTION_MAX_NEIGHBOR_SCAN_ELEMENTS) return;
+      addIntersectingCandidate(childElement);
+    }
+  };
+
+  for (
+    let tableRowIndex = 0;
+    tableRowIndex < tableRowQueue.length &&
+    scannedNeighborCount < DRAG_SELECTION_MAX_NEIGHBOR_SCAN_ELEMENTS;
+    tableRowIndex += 1
+  ) {
+    const tableRowElement = tableRowQueue[tableRowIndex];
+    addIntersectingCandidate(tableRowElement.previousElementSibling);
+    addIntersectingCandidate(tableRowElement.nextElementSibling);
+  }
+
+  for (
+    let candidateIndex = 0;
+    candidateIndex < candidateQueue.length &&
+    scannedNeighborCount < DRAG_SELECTION_MAX_NEIGHBOR_SCAN_ELEMENTS;
+    candidateIndex += 1
+  ) {
+    const candidateElement = candidateQueue[candidateIndex];
+    if (isRootElement(candidateElement)) continue;
+
+    const siblingCount = candidateElement.parentElement?.children.length ?? 0;
+    if (
+      candidateElement.tagName === "TR" ||
+      siblingCount <= DRAG_SELECTION_MAX_LOCAL_COLLECTION_ELEMENTS
+    ) {
+      addIntersectingCandidate(candidateElement.previousElementSibling);
+      addIntersectingCandidate(candidateElement.nextElementSibling);
+    }
+
+    addIntersectingChildren(candidateElement.children);
+    if (candidateElement.shadowRoot) addIntersectingChildren(candidateElement.shadowRoot.children);
+  }
+};
 
 const createSampleCoordinates = (dragRect: DragRect, intentPoint: Position): number[] => {
   if (dragRect.width <= 0 || dragRect.height <= 0) return [];
@@ -113,6 +218,7 @@ const filterElementsInDrag = (
   const dragBottom = dragRect.y + dragRect.height;
 
   const candidates = new Set<Element>();
+  const candidateBoundsByElement = new Map<Element, ElementBounds>();
   const sampleCoordinates = createSampleCoordinates(dragRect, intentPoint);
 
   suspendPointerEventsFreeze();
@@ -134,6 +240,8 @@ const filterElementsInDrag = (
     resumePointerEventsFreeze();
   }
 
+  completeCandidateNeighborhoods(candidates, dragRect, candidateBoundsByElement);
+
   const matchingElements: Element[] = [];
   let nearestFallbackElement: Element | null = null;
   let nearestFallbackDistanceSquared = Number.POSITIVE_INFINITY;
@@ -151,17 +259,9 @@ const filterElementsInDrag = (
     if (!isWithinScope(candidateElement)) continue;
     if (!isValidGrabbableElement(candidateElement)) continue;
 
-    const candidateBounds = createElementBounds(candidateElement);
-    if (
-      !Number.isFinite(candidateBounds.x) ||
-      !Number.isFinite(candidateBounds.y) ||
-      !Number.isFinite(candidateBounds.width) ||
-      !Number.isFinite(candidateBounds.height) ||
-      candidateBounds.width <= 0 ||
-      candidateBounds.height <= 0
-    ) {
-      continue;
-    }
+    const candidateBounds =
+      candidateBoundsByElement.get(candidateElement) ?? createElementBounds(candidateElement);
+    if (!hasValidBounds(candidateBounds)) continue;
 
     const candidateLeft = candidateBounds.x;
     const candidateTop = candidateBounds.y;

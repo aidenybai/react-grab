@@ -9,6 +9,7 @@ import { getAccessibleIframeDocument } from "./get-accessible-iframe-document.js
 import { getDeepElementAtPoint } from "./get-deep-element-at-point.js";
 import { getDeepFallbackElementAtPoint } from "./get-deep-fallback-element-at-point.js";
 import { getDeepElementsAtPoint } from "./get-deep-elements-at-point.js";
+import { getSvgTextElementAtPoint } from "./get-svg-text-element-at-point.js";
 import { getScopeContainer, isWithinScope } from "./runtime-mode.js";
 import { isIframeElement } from "./is-iframe-element.js";
 import { isPointInsideRect } from "./is-point-inside-rect.js";
@@ -135,14 +136,17 @@ export const getElementAtPosition = (clientX: number, clientY: number): Element 
     // overlapping the scoped container) we fall back to elementsFromPoint, which
     // returns the full z-ordered stack, and take the first grabbable in-scope one.
     const topElement = getDeepElementAtPoint(clientX, clientY);
-    const resolvedElement = topElement
-      ? resolveThreeElementAtPoint(topElement, clientX, clientY)
+    const preciseElement = topElement
+      ? (getSvgTextElementAtPoint(topElement, clientX, clientY) ?? topElement)
+      : null;
+    const resolvedElement = preciseElement
+      ? resolveThreeElementAtPoint(preciseElement, clientX, clientY)
       : null;
     if (
-      topElement &&
+      preciseElement &&
       resolvedElement &&
       isValidGrabbableElement(resolvedElement) &&
-      isWithinScope(topElement)
+      isWithinScope(preciseElement)
     ) {
       result = resolvedElement;
     } else {
