@@ -41,7 +41,7 @@ export const getSvgTextElementAtPoint = (
 
   let searchRootElement = hitElement;
   let parentElement = hitElement.parentElement;
-  while (parentElement?.namespaceURI === SVG_NAMESPACE) {
+  while (searchRootElement.localName !== "svg" && parentElement?.namespaceURI === SVG_NAMESPACE) {
     searchRootElement = parentElement;
     if (parentElement.localName === "svg") break;
     parentElement = parentElement.parentElement;
@@ -49,34 +49,33 @@ export const getSvgTextElementAtPoint = (
 
   let candidateElement = searchRootElement.lastElementChild;
   let traversedElementCount = 0;
-  let didVisitHitElement = false;
+  let shouldDescendIntoLastChild = true;
 
   while (candidateElement && traversedElementCount < SVG_TEXT_HIT_TEST_MAX_ELEMENTS) {
     traversedElementCount += 1;
+
+    if (shouldDescendIntoLastChild && candidateElement.lastElementChild) {
+      candidateElement = candidateElement.lastElementChild;
+      continue;
+    }
 
     if (isSvgTextElement(candidateElement) && containsPoint(candidateElement, clientX, clientY)) {
       return candidateElement;
     }
 
     if (candidateElement === hitElement && hitElement !== searchRootElement) {
-      didVisitHitElement = true;
-      if (!candidateElement.lastElementChild) return null;
+      return null;
     }
 
-    if (candidateElement.lastElementChild) {
-      candidateElement = candidateElement.lastElementChild;
+    if (candidateElement.previousElementSibling) {
+      candidateElement = candidateElement.previousElementSibling;
+      shouldDescendIntoLastChild = true;
       continue;
     }
 
-    while (candidateElement !== searchRootElement && !candidateElement.previousElementSibling) {
-      if (candidateElement.parentElement === hitElement && didVisitHitElement) return null;
-      candidateElement = candidateElement.parentElement;
-      traversedElementCount += 1;
-      if (!candidateElement || traversedElementCount >= SVG_TEXT_HIT_TEST_MAX_ELEMENTS) return null;
-    }
-
+    candidateElement = candidateElement.parentElement;
     if (candidateElement === searchRootElement) return null;
-    candidateElement = candidateElement.previousElementSibling;
+    shouldDescendIntoLastChild = false;
   }
 
   return null;

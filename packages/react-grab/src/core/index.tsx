@@ -76,7 +76,7 @@ import {
   ELEMENT_DETECTION_THROTTLE_MS,
   PENDING_DETECTION_STALENESS_MS,
   COMPONENT_NAME_DEBOUNCE_MS,
-  DRAG_PREVIEW_DEBOUNCE_MS,
+  DRAG_PREVIEW_UPDATE_INTERVAL_MS,
   MODIFIER_KEYS,
   BLUR_DEACTIVATION_THRESHOLD_MS,
   BOUNDS_RECALC_INTERVAL_MS,
@@ -168,6 +168,19 @@ import { collectCleanupError } from "../utils/collect-cleanup-error.js";
 import { throwCollectedErrors } from "../utils/throw-collected-errors.js";
 
 const builtInPlugins = [copyPlugin, commentPlugin, openPlugin];
+
+interface DragPreviewPointer {
+  x: number;
+  y: number;
+}
+
+interface DragPreviewPointerState {
+  committedX: number;
+  committedY: number;
+  hasCommittedPointer: boolean;
+  latestX: number;
+  latestY: number;
+}
 
 interface CopyWithLabelOptions {
   element: Element;
@@ -487,28 +500,74 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       latestPointerX: 0,
       latestPointerY: 0,
     };
-    let dragPreviewDebounceTimerId: number | null = null;
-    const [debouncedDragPointer, setDebouncedDragPointer] = createSignal<{
-      x: number;
-      y: number;
-    } | null>(null);
+    let dragPreviewUpdateTimerId: number | null = null;
+    const dragPreviewPointerState: DragPreviewPointerState = {
+      committedX: 0,
+      committedY: 0,
+      hasCommittedPointer: false,
+      latestX: 0,
+      latestY: 0,
+    };
+    const [dragPreviewPointer, setDragPreviewPointer] = createSignal<DragPreviewPointer | null>(
+      null,
+    );
     const [scrollVersion, setScrollVersion] = createSignal(0);
-    const scheduleDragPreviewUpdate = (clientX: number, clientY: number) => {
-      if (dragPreviewDebounceTimerId !== null) {
-        clearTimeout(dragPreviewDebounceTimerId);
+    const commitLatestDragPreviewPointer = (): boolean => {
+      if (
+        dragPreviewPointerState.hasCommittedPointer &&
+        dragPreviewPointerState.committedX === dragPreviewPointerState.latestX &&
+        dragPreviewPointerState.committedY === dragPreviewPointerState.latestY
+      ) {
+        return false;
       }
-      setDebouncedDragPointer(null);
-      dragPreviewDebounceTimerId = window.setTimeout(() => {
-        setDebouncedDragPointer({ x: clientX, y: clientY });
-        dragPreviewDebounceTimerId = null;
-      }, DRAG_PREVIEW_DEBOUNCE_MS);
+
+      dragPreviewPointerState.committedX = dragPreviewPointerState.latestX;
+      dragPreviewPointerState.committedY = dragPreviewPointerState.latestY;
+      dragPreviewPointerState.hasCommittedPointer = true;
+      setDragPreviewPointer({
+        x: dragPreviewPointerState.latestX,
+        y: dragPreviewPointerState.latestY,
+      });
+      return true;
+    };
+    const continueDragPreviewUpdates = () => {
+      if (!commitLatestDragPreviewPointer()) {
+        dragPreviewUpdateTimerId = null;
+        return;
+      }
+      dragPreviewUpdateTimerId = window.setTimeout(
+        continueDragPreviewUpdates,
+        DRAG_PREVIEW_UPDATE_INTERVAL_MS,
+      );
+    };
+    const scheduleDragPreviewUpdate = (clientX: number, clientY: number) => {
+      dragPreviewPointerState.latestX = clientX;
+      dragPreviewPointerState.latestY = clientY;
+      if (dragPreviewUpdateTimerId !== null) return;
+
+      commitLatestDragPreviewPointer();
+      dragPreviewUpdateTimerId = window.setTimeout(
+        continueDragPreviewUpdates,
+        DRAG_PREVIEW_UPDATE_INTERVAL_MS,
+      );
+    };
+    const flushDragPreviewElements = (clientX: number, clientY: number): Element[] => {
+      dragPreviewPointerState.latestX = clientX;
+      dragPreviewPointerState.latestY = clientY;
+      if (dragPreviewUpdateTimerId !== null) {
+        clearTimeout(dragPreviewUpdateTimerId);
+        dragPreviewUpdateTimerId = null;
+      }
+      commitLatestDragPreviewPointer();
+      return dragPreviewElements();
     };
     const releaseDragPreview = () => {
-      if (dragPreviewDebounceTimerId !== null) {
-        clearTimeout(dragPreviewDebounceTimerId);
-        dragPreviewDebounceTimerId = null;
+      if (dragPreviewUpdateTimerId !== null) {
+        clearTimeout(dragPreviewUpdateTimerId);
+        dragPreviewUpdateTimerId = null;
       }
-      setDebouncedDragPointer(null);
+      dragPreviewPointerState.hasCommittedPointer = false;
+      setDragPreviewPointer(null);
       // Memos hold their last value until re-read. Once the drag is over
       // nothing may render the preview again, which would pin the captured
       // Element[] (and any since-detached subtrees) in memory — reading the
@@ -1348,7 +1407,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       if (!isDraggingBeyondThreshold()) return [];
 
-      const pointer = debouncedDragPointer();
+      const pointer = dragPreviewPointer();
       if (!pointer) return [];
 
       const drag = calculateDragRectangle(pointer.x, pointer.y);
@@ -2097,16 +2156,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const handleDragSelection = (
       dragSelectionRect: ReturnType<typeof calculateDragRectangle>,
-      intentPoint: Position,
+      selectedElements: Element[],
       hasModifierKeyHeld: boolean,
       isShiftHeld: boolean,
     ) => {
-      const selectedElements = getElementsInDrag(
-        dragSelectionRect,
-        intentPoint,
-        isValidGrabbableElement,
-      );
-
       if (selectedElements.length === 0) return;
 
       const isShiftAccumulating =
@@ -2301,8 +2354,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     ) => {
       if (!isDragging()) return;
 
-      releaseDragPreview();
-
       const dragDistance = calculateDragDistance(clientX, clientY);
       const wasDragGesture =
         dragDistance.x > DRAG_THRESHOLD_PX || dragDistance.y > DRAG_THRESHOLD_PX;
@@ -2310,6 +2361,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       // The rectangle needs to be calculated before endDrag() because endDrag
       // resets dragStart in the store, which would zero out the rectangle.
       const dragSelectionRect = wasDragGesture ? calculateDragRectangle(clientX, clientY) : null;
+      const dragSelectionElements = dragSelectionRect
+        ? flushDragPreviewElements(clientX, clientY)
+        : [];
+
+      releaseDragPreview();
 
       if (wasDragGesture) {
         actions.endDrag();
@@ -2323,7 +2379,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (dragSelectionRect) {
         handleDragSelection(
           dragSelectionRect,
-          { x: clientX, y: clientY },
+          dragSelectionElements,
           hasModifierKeyHeld,
           isShiftHeld,
         );
@@ -3354,8 +3410,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const cleanupErrors: unknown[] = [];
       collectCleanupError(stopForwardingSameOriginFrameEvents, cleanupErrors);
       collectCleanupError(() => eventListenerManager.abort(), cleanupErrors);
-      if (dragPreviewDebounceTimerId !== null) {
-        window.clearTimeout(dragPreviewDebounceTimerId);
+      if (dragPreviewUpdateTimerId !== null) {
+        window.clearTimeout(dragPreviewUpdateTimerId);
       }
       if (keydownSpamTimerId) window.clearTimeout(keydownSpamTimerId);
       collectCleanupError(clearCopyFeedbackCooldown, cleanupErrors);

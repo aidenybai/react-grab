@@ -61,6 +61,16 @@ describe("getSvgTextElementAtPoint", () => {
     expect(getSvgTextElementAtPoint(svgElement, 15, 15)).toBe(lastTextElement);
   });
 
+  it("prefers a nested text run over its containing text element", () => {
+    const svgElement = createMockElement({ localName: "svg" });
+    const textElement = createMockElement({ localName: "text" });
+    const textRunElement = createMockElement({ localName: "tspan" });
+    appendMockChild(svgElement, textElement);
+    appendMockChild(textElement, textRunElement);
+
+    expect(getSvgTextElementAtPoint(svgElement, 15, 15)).toBe(textRunElement);
+  });
+
   it("finds overlapping text outside the native hit subtree", () => {
     const svgElement = createMockElement({ localName: "svg" });
     const shapeGroupElement = createMockElement();
@@ -99,6 +109,18 @@ describe("getSvgTextElementAtPoint", () => {
     }
 
     expect(getSvgTextElementAtPoint(shapeElement, 15, 15)).toBe(textElement);
+  });
+
+  it("does not leave a nested SVG when the nested root receives the native hit", () => {
+    const outerSvgElement = createMockElement({ localName: "svg" });
+    const outerTextElement = createMockElement({ localName: "text" });
+    const innerSvgElement = createMockElement({ localName: "svg" });
+    const innerTextElement = createMockElement({ localName: "text" });
+    appendMockChild(outerSvgElement, outerTextElement);
+    appendMockChild(outerSvgElement, innerSvgElement);
+    appendMockChild(innerSvgElement, innerTextElement);
+
+    expect(getSvgTextElementAtPoint(innerSvgElement, 15, 15)).toBe(innerTextElement);
   });
 
   it("ignores text whose painted bounds do not contain the pointer", () => {
