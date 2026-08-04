@@ -129,6 +129,7 @@ import type {
   Plugin,
   ToolbarState,
   DropdownAnchor,
+  DragRect,
   ElementLabelVariant,
 } from "../types.js";
 import { createPluginRegistry } from "./plugin-registry.js";
@@ -551,7 +552,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         DRAG_PREVIEW_UPDATE_INTERVAL_MS,
       );
     };
-    const flushDragPreviewElements = (clientX: number, clientY: number): Element[] => {
+    const flushDragPreviewElements = (
+      dragSelectionRect: DragRect,
+      clientX: number,
+      clientY: number,
+    ): Element[] => {
       dragPreviewPointerState.latestX = clientX;
       dragPreviewPointerState.latestY = clientY;
       if (dragPreviewUpdateTimerId !== null) {
@@ -559,7 +564,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         dragPreviewUpdateTimerId = null;
       }
       commitLatestDragPreviewPointer();
-      return dragPreviewElements();
+      return getElementsInDrag(
+        dragSelectionRect,
+        { x: clientX, y: clientY },
+        isValidGrabbableElement,
+      );
     };
     const releaseDragPreview = () => {
       if (dragPreviewUpdateTimerId !== null) {
@@ -2362,7 +2371,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       // resets dragStart in the store, which would zero out the rectangle.
       const dragSelectionRect = wasDragGesture ? calculateDragRectangle(clientX, clientY) : null;
       const dragSelectionElements = dragSelectionRect
-        ? flushDragPreviewElements(clientX, clientY)
+        ? flushDragPreviewElements(dragSelectionRect, clientX, clientY)
         : [];
 
       releaseDragPreview();

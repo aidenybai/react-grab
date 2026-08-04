@@ -177,7 +177,9 @@ export const getElementAtPosition = (clientX: number, clientY: number): Element 
       ? resolveValidElementAtPoint(svgTextElement, clientX, clientY)
       : null;
     const topResult = topElement ? resolveValidElementAtPoint(topElement, clientX, clientY) : null;
-    result = svgResult ?? topResult ?? getDeepFallbackElementAtPoint(clientX, clientY);
+    const fallbackResult =
+      topResult ?? (svgResult ? null : getDeepFallbackElementAtPoint(clientX, clientY));
+    result = svgResult ?? fallbackResult;
 
     if (result && isIframeElement(result) && !getAccessibleIframeDocument(result)) {
       const iframeBounds = createElementBounds(result);
@@ -198,7 +200,7 @@ export const getElementAtPosition = (clientX: number, clientY: number): Element 
       clientX,
       clientY,
       element: result,
-      svgFallbackElement: topResult,
+      svgFallbackElement: fallbackResult,
       svgHitElement: topElement?.namespaceURI === "http://www.w3.org/2000/svg" ? topElement : null,
       timestamp: now,
     };

@@ -4,7 +4,9 @@ import {
   getElementAtPosition,
 } from "../src/utils/get-element-at-position.js";
 import { getDeepElementAtPoint } from "../src/utils/get-deep-element-at-point.js";
+import { getDeepFallbackElementAtPoint } from "../src/utils/get-deep-fallback-element-at-point.js";
 import { getSvgTextElementAtPoint } from "../src/utils/get-svg-text-element-at-point.js";
+import { isValidGrabbableElement } from "../src/utils/is-valid-grabbable-element.js";
 
 vi.mock("../src/core/three-selection.js", () => ({
   resolveThreeElementAtPoint: vi.fn((element) => element),
@@ -88,5 +90,18 @@ describe("getElementAtPosition", () => {
     expect(getElementAtPosition(10, 10)).toBe(textElement);
     expect(getElementAtPosition(11, 11)).toBe(svgElement);
     expect(getDeepElementAtPoint).toHaveBeenCalledOnce();
+  });
+
+  it("preserves a cached deep fallback when the native SVG hit is invalid", () => {
+    const svgElement = createSvgElement("svg");
+    const fallbackElement: Element = Object.create(null);
+    vi.mocked(getDeepElementAtPoint).mockReturnValue(svgElement);
+    vi.mocked(getDeepFallbackElementAtPoint).mockReturnValue(fallbackElement);
+    vi.mocked(isValidGrabbableElement).mockImplementation((element) => element !== svgElement);
+
+    expect(getElementAtPosition(10, 10)).toBe(fallbackElement);
+    expect(getElementAtPosition(11, 11)).toBe(fallbackElement);
+    expect(getDeepElementAtPoint).toHaveBeenCalledOnce();
+    expect(getDeepFallbackElementAtPoint).toHaveBeenCalledOnce();
   });
 });
