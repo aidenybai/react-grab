@@ -50,17 +50,17 @@ const completeCandidateNeighborhoods = (
   const tableRowQueue = candidateQueue.filter(
     (candidateElement) => candidateElement.tagName === "TR",
   );
-  let scannedNeighborCount = 0;
+  let inspectedNeighborCount = 0;
 
   for (
     let candidateIndex = 0;
     candidateIndex < candidateQueue.length &&
-    scannedNeighborCount < DRAG_SELECTION_MAX_NEIGHBOR_SCAN_ELEMENTS;
+    inspectedNeighborCount < DRAG_SELECTION_MAX_NEIGHBOR_SCAN_ELEMENTS;
     candidateIndex += 1
   ) {
     const parentElement = getComposedParentElement(candidateQueue[candidateIndex]);
     if (!parentElement || parentElement.tagName !== "TR" || candidates.has(parentElement)) continue;
-    scannedNeighborCount += 1;
+    inspectedNeighborCount += 1;
     candidates.add(parentElement);
     candidateQueue.push(parentElement);
     tableRowQueue.push(parentElement);
@@ -70,11 +70,11 @@ const completeCandidateNeighborhoods = (
     if (
       !candidateElement ||
       candidates.has(candidateElement) ||
-      scannedNeighborCount >= DRAG_SELECTION_MAX_NEIGHBOR_SCAN_ELEMENTS
+      inspectedNeighborCount >= DRAG_SELECTION_MAX_NEIGHBOR_SCAN_ELEMENTS
     ) {
       return;
     }
-    scannedNeighborCount += 1;
+    inspectedNeighborCount += 1;
 
     let candidateBounds = candidateBoundsByElement.get(candidateElement);
     if (!candidateBounds) {
@@ -91,7 +91,7 @@ const completeCandidateNeighborhoods = (
   const addIntersectingChildren = (childCollection: HTMLCollection): void => {
     if (childCollection.length > DRAG_SELECTION_MAX_LOCAL_COLLECTION_ELEMENTS) return;
     for (const childElement of childCollection) {
-      if (scannedNeighborCount >= DRAG_SELECTION_MAX_NEIGHBOR_SCAN_ELEMENTS) return;
+      if (inspectedNeighborCount >= DRAG_SELECTION_MAX_NEIGHBOR_SCAN_ELEMENTS) return;
       addIntersectingCandidate(childElement);
     }
   };
@@ -99,7 +99,7 @@ const completeCandidateNeighborhoods = (
   for (
     let tableRowIndex = 0;
     tableRowIndex < tableRowQueue.length &&
-    scannedNeighborCount < DRAG_SELECTION_MAX_NEIGHBOR_SCAN_ELEMENTS;
+    inspectedNeighborCount < DRAG_SELECTION_MAX_NEIGHBOR_SCAN_ELEMENTS;
     tableRowIndex += 1
   ) {
     const tableRowElement = tableRowQueue[tableRowIndex];
@@ -110,7 +110,7 @@ const completeCandidateNeighborhoods = (
   for (
     let candidateIndex = 0;
     candidateIndex < candidateQueue.length &&
-    scannedNeighborCount < DRAG_SELECTION_MAX_NEIGHBOR_SCAN_ELEMENTS;
+    inspectedNeighborCount < DRAG_SELECTION_MAX_NEIGHBOR_SCAN_ELEMENTS;
     candidateIndex += 1
   ) {
     const candidateElement = candidateQueue[candidateIndex];
@@ -306,7 +306,6 @@ const filterElementsInDrag = (
       intentDistanceX * intentDistanceX + intentDistanceY * intentDistanceY;
     const isNearerFallback = intentDistanceSquared < nearestFallbackDistanceSquared;
     const isSmallerEquidistantFallback =
-      intentDistanceSquared > 0 &&
       intentDistanceSquared === nearestFallbackDistanceSquared &&
       candidateArea < nearestFallbackArea;
 

@@ -39,7 +39,14 @@ export const getSvgTextElementAtPoint = (
 ): Element | null => {
   if (hitElement.namespaceURI !== SVG_NAMESPACE) return null;
 
-  let candidateElement = hitElement.lastElementChild;
+  let searchRootElement = hitElement;
+  let parentElement = hitElement.parentElement;
+  while (parentElement?.namespaceURI === SVG_NAMESPACE) {
+    searchRootElement = parentElement;
+    parentElement = parentElement.parentElement;
+  }
+
+  let candidateElement = searchRootElement.lastElementChild;
   let scannedElementCount = 0;
 
   while (candidateElement && scannedElementCount < SVG_TEXT_HIT_TEST_MAX_ELEMENTS) {
@@ -54,12 +61,12 @@ export const getSvgTextElementAtPoint = (
       continue;
     }
 
-    while (candidateElement !== hitElement && !candidateElement.previousElementSibling) {
+    while (candidateElement !== searchRootElement && !candidateElement.previousElementSibling) {
       candidateElement = candidateElement.parentElement;
       if (!candidateElement) return null;
     }
 
-    if (candidateElement === hitElement) return null;
+    if (candidateElement === searchRootElement) return null;
     candidateElement = candidateElement.previousElementSibling;
   }
 

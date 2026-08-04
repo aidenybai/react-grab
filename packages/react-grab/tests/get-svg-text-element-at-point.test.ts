@@ -61,6 +61,20 @@ describe("getSvgTextElementAtPoint", () => {
     expect(getSvgTextElementAtPoint(svgElement, 15, 15)).toBe(lastTextElement);
   });
 
+  it("finds overlapping text outside the native hit subtree", () => {
+    const svgElement = createMockElement({ localName: "svg" });
+    const shapeGroupElement = createMockElement();
+    const shapeElement = createMockElement({ localName: "rect" });
+    const labelGroupElement = createMockElement();
+    const textElement = createMockElement({ localName: "text" });
+    appendMockChild(svgElement, shapeGroupElement);
+    appendMockChild(shapeGroupElement, shapeElement);
+    appendMockChild(svgElement, labelGroupElement);
+    appendMockChild(labelGroupElement, textElement);
+
+    expect(getSvgTextElementAtPoint(shapeElement, 15, 15)).toBe(textElement);
+  });
+
   it("ignores text whose painted bounds do not contain the pointer", () => {
     const svgElement = createMockElement({ localName: "svg" });
     const textElement = createMockElement({

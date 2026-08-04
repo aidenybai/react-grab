@@ -153,6 +153,26 @@ describe("getElementsInDrag", () => {
     expect(rightToLeftElements).toEqual([leftElement]);
   });
 
+  it("prefers the smaller candidate when overlapping candidates contain the endpoint", () => {
+    const containerElement = createElement();
+    const targetElement = createElement();
+    vi.mocked(getDeepElementsAtPoint).mockReturnValue([containerElement, targetElement]);
+    setElementBounds(
+      new Map([
+        [containerElement, { x: 0, y: 0, width: 200, height: 200, borderRadius: "0px" }],
+        [targetElement, { x: 0, y: 0, width: 100, height: 100, borderRadius: "0px" }],
+      ]),
+    );
+
+    const elements = getElementsInDrag(
+      { x: 0, y: 0, width: 50, height: 50 },
+      { x: 25, y: 25 },
+      () => true,
+    );
+
+    expect(elements).toEqual([targetElement]);
+  });
+
   it("fills unsampled table rows around a sampled cell", () => {
     const firstCell = createElement();
     const secondCell = createElement();
@@ -193,7 +213,7 @@ describe("getElementsInDrag", () => {
     expect(elements).toEqual([firstRow, secondRow, thirdRow]);
   });
 
-  it("bounds candidate neighborhood completion on dense containers", () => {
+  it("bounds candidate neighborhood inspections on dense containers", () => {
     const siblingElements = Array.from(
       { length: DRAG_SELECTION_MAX_NEIGHBOR_SCAN_ELEMENTS + 10 },
       () => createElement(),
