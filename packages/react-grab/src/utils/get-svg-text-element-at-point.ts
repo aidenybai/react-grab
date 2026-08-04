@@ -43,10 +43,14 @@ export const getSvgTextElementAtPoint = (
   let parentElement = hitElement.parentElement;
   while (parentElement?.namespaceURI === SVG_NAMESPACE) {
     searchRootElement = parentElement;
+    if (parentElement.localName === "svg") break;
     parentElement = parentElement.parentElement;
   }
 
   let candidateElement = searchRootElement.lastElementChild;
+  while (candidateElement?.lastElementChild) {
+    candidateElement = candidateElement.lastElementChild;
+  }
   let scannedElementCount = 0;
 
   while (candidateElement && scannedElementCount < SVG_TEXT_HIT_TEST_MAX_ELEMENTS) {
@@ -56,18 +60,17 @@ export const getSvgTextElementAtPoint = (
       return candidateElement;
     }
 
-    if (candidateElement.lastElementChild) {
-      candidateElement = candidateElement.lastElementChild;
-      continue;
-    }
+    if (candidateElement === hitElement && hitElement !== searchRootElement) return null;
 
-    while (candidateElement !== searchRootElement && !candidateElement.previousElementSibling) {
+    if (!candidateElement.previousElementSibling) {
       candidateElement = candidateElement.parentElement;
-      if (!candidateElement) return null;
+      if (candidateElement === searchRootElement) return null;
+    } else {
+      candidateElement = candidateElement.previousElementSibling;
+      while (candidateElement.lastElementChild) {
+        candidateElement = candidateElement.lastElementChild;
+      }
     }
-
-    if (candidateElement === searchRootElement) return null;
-    candidateElement = candidateElement.previousElementSibling;
   }
 
   return null;

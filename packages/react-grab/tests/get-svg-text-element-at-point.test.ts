@@ -75,6 +75,32 @@ describe("getSvgTextElementAtPoint", () => {
     expect(getSvgTextElementAtPoint(shapeElement, 15, 15)).toBe(textElement);
   });
 
+  it("does not select overlapping text painted behind the native hit", () => {
+    const svgElement = createMockElement({ localName: "svg" });
+    const textElement = createMockElement({ localName: "text" });
+    const shapeElement = createMockElement({ localName: "rect" });
+    appendMockChild(svgElement, textElement);
+    appendMockChild(svgElement, shapeElement);
+
+    expect(getSvgTextElementAtPoint(shapeElement, 15, 15)).toBeNull();
+  });
+
+  it("limits traversal to the nearest owning SVG", () => {
+    const outerSvgElement = createMockElement({ localName: "svg" });
+    const innerSvgElement = createMockElement({ localName: "svg" });
+    const shapeElement = createMockElement({ localName: "rect" });
+    const textElement = createMockElement({ localName: "text" });
+    appendMockChild(outerSvgElement, innerSvgElement);
+    appendMockChild(innerSvgElement, shapeElement);
+    appendMockChild(innerSvgElement, textElement);
+
+    for (let index = 0; index < SVG_TEXT_HIT_TEST_MAX_ELEMENTS; index += 1) {
+      appendMockChild(outerSvgElement, createMockElement());
+    }
+
+    expect(getSvgTextElementAtPoint(shapeElement, 15, 15)).toBe(textElement);
+  });
+
   it("ignores text whose painted bounds do not contain the pointer", () => {
     const svgElement = createMockElement({ localName: "svg" });
     const textElement = createMockElement({
