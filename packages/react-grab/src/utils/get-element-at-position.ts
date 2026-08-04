@@ -177,8 +177,7 @@ export const getElementAtPosition = (clientX: number, clientY: number): Element 
       ? resolveValidElementAtPoint(svgTextElement, clientX, clientY)
       : null;
     const topResult = topElement ? resolveValidElementAtPoint(topElement, clientX, clientY) : null;
-    const fallbackResult =
-      topResult ?? (svgResult ? null : getDeepFallbackElementAtPoint(clientX, clientY));
+    const fallbackResult = topResult ?? getDeepFallbackElementAtPoint(clientX, clientY);
     result = svgResult ?? fallbackResult;
 
     if (result && isIframeElement(result) && !getAccessibleIframeDocument(result)) {

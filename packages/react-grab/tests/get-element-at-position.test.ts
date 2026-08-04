@@ -104,4 +104,19 @@ describe("getElementAtPosition", () => {
     expect(getDeepElementAtPoint).toHaveBeenCalledOnce();
     expect(getDeepFallbackElementAtPoint).toHaveBeenCalledOnce();
   });
+
+  it("restores the deep fallback after leaving refined SVG text", () => {
+    const svgElement = createSvgElement("svg");
+    const textElement = createSvgElement("text");
+    const fallbackElement: Element = Object.create(null);
+    vi.mocked(getDeepElementAtPoint).mockReturnValue(svgElement);
+    vi.mocked(getDeepFallbackElementAtPoint).mockReturnValue(fallbackElement);
+    vi.mocked(getSvgTextElementAtPoint).mockReturnValueOnce(textElement).mockReturnValueOnce(null);
+    vi.mocked(isValidGrabbableElement).mockImplementation((element) => element !== svgElement);
+
+    expect(getElementAtPosition(10, 10)).toBe(textElement);
+    expect(getElementAtPosition(11, 11)).toBe(fallbackElement);
+    expect(getDeepElementAtPoint).toHaveBeenCalledOnce();
+    expect(getDeepFallbackElementAtPoint).toHaveBeenCalledOnce();
+  });
 });
