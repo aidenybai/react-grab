@@ -76,9 +76,60 @@ describe("getElementsInDrag", () => {
       ]),
     );
 
-    const elements = getElementsInDrag({ x: 100, y: 100, width: 100, height: 100 }, () => true);
+    const elements = getElementsInDrag(
+      { x: 100, y: 100, width: 100, height: 100 },
+      { x: 150, y: 150 },
+      () => true,
+    );
 
     expect(elements).toEqual([nearestElement]);
+  });
+
+  it("prefers the candidate under the drag endpoint over one with a closer center", () => {
+    const endpointElement = createElement();
+    const centeredElement = createElement();
+    vi.mocked(getDeepElementsAtPoint).mockReturnValue([centeredElement, endpointElement]);
+    setElementBounds(
+      new Map([
+        [endpointElement, { x: 100, y: 80, width: 150, height: 140, borderRadius: "0px" }],
+        [centeredElement, { x: 140, y: 0, width: 20, height: 300, borderRadius: "0px" }],
+      ]),
+    );
+
+    const elements = getElementsInDrag(
+      { x: 100, y: 100, width: 100, height: 100 },
+      { x: 195, y: 150 },
+      () => true,
+    );
+
+    expect(elements).toEqual([endpointElement]);
+    expect(getDeepElementsAtPoint).toHaveBeenNthCalledWith(1, 195, 150);
+  });
+
+  it("uses drag direction to resolve otherwise equal fallback candidates", () => {
+    const leftElement = createElement();
+    const rightElement = createElement();
+    vi.mocked(getDeepElementsAtPoint).mockReturnValue([leftElement, rightElement]);
+    setElementBounds(
+      new Map([
+        [leftElement, { x: 50, y: 80, width: 120, height: 140, borderRadius: "0px" }],
+        [rightElement, { x: 130, y: 80, width: 120, height: 140, borderRadius: "0px" }],
+      ]),
+    );
+
+    const leftToRightElements = getElementsInDrag(
+      { x: 100, y: 100, width: 100, height: 100 },
+      { x: 195, y: 150 },
+      () => true,
+    );
+    const rightToLeftElements = getElementsInDrag(
+      { x: 100, y: 100, width: 100, height: 100 },
+      { x: 105, y: 150 },
+      () => true,
+    );
+
+    expect(leftToRightElements).toEqual([rightElement]);
+    expect(rightToLeftElements).toEqual([leftElement]);
   });
 
   it("ignores viewport-covering candidates", () => {
@@ -92,7 +143,11 @@ describe("getElementsInDrag", () => {
       ]),
     );
 
-    const elements = getElementsInDrag({ x: 100, y: 100, width: 100, height: 100 }, () => true);
+    const elements = getElementsInDrag(
+      { x: 100, y: 100, width: 100, height: 100 },
+      { x: 150, y: 150 },
+      () => true,
+    );
 
     expect(elements).toEqual([nearbyElement]);
   });
@@ -108,7 +163,11 @@ describe("getElementsInDrag", () => {
       ]),
     );
 
-    const elements = getElementsInDrag({ x: 10, y: 10, width: 280, height: 280 }, () => true);
+    const elements = getElementsInDrag(
+      { x: 10, y: 10, width: 280, height: 280 },
+      { x: 150, y: 150 },
+      () => true,
+    );
 
     expect(elements).toEqual([enclosedElement]);
   });
@@ -122,7 +181,11 @@ describe("getElementsInDrag", () => {
       ]),
     );
 
-    const elements = getElementsInDrag({ x: 50, y: 50, width: 50, height: 50 }, () => true);
+    const elements = getElementsInDrag(
+      { x: 50, y: 50, width: 50, height: 50 },
+      { x: 75, y: 75 },
+      () => true,
+    );
 
     expect(elements).toEqual([offscreenElement]);
   });
@@ -138,15 +201,19 @@ describe("getElementsInDrag", () => {
       ]),
     );
 
-    const elements = getElementsInDrag({ x: 100, y: 100, width: 100, height: 100 }, () => true);
+    const elements = getElementsInDrag(
+      { x: 100, y: 100, width: 100, height: 100 },
+      { x: 150, y: 150 },
+      () => true,
+    );
 
     expect(elements).toEqual([coveredElement]);
   });
 
-  it("prefers the smaller candidate when fallback centers are equal", () => {
+  it("prefers the topmost candidate when multiple candidates contain the drag endpoint", () => {
     const wrapperElement = createElement();
     const nestedElement = createElement();
-    vi.mocked(getDeepElementsAtPoint).mockReturnValue([wrapperElement, nestedElement]);
+    vi.mocked(getDeepElementsAtPoint).mockReturnValue([nestedElement, wrapperElement]);
     setElementBounds(
       new Map([
         [wrapperElement, { x: 50, y: 50, width: 200, height: 200, borderRadius: "0px" }],
@@ -154,7 +221,11 @@ describe("getElementsInDrag", () => {
       ]),
     );
 
-    const elements = getElementsInDrag({ x: 100, y: 100, width: 100, height: 100 }, () => true);
+    const elements = getElementsInDrag(
+      { x: 100, y: 100, width: 100, height: 100 },
+      { x: 150, y: 150 },
+      () => true,
+    );
 
     expect(elements).toEqual([nestedElement]);
   });
@@ -169,7 +240,11 @@ describe("getElementsInDrag", () => {
       ]),
     );
 
-    const elements = getElementsInDrag({ x: 125, y: 125, width: 50, height: 50 }, () => true);
+    const elements = getElementsInDrag(
+      { x: 125, y: 125, width: 50, height: 50 },
+      { x: 150, y: 150 },
+      () => true,
+    );
 
     expect(elements).toEqual([candidateElement]);
   });
@@ -183,7 +258,11 @@ describe("getElementsInDrag", () => {
       ]),
     );
 
-    const elements = getElementsInDrag({ x: 100, y: 100, width: 100, height: 100 }, () => true);
+    const elements = getElementsInDrag(
+      { x: 100, y: 100, width: 100, height: 100 },
+      { x: 150, y: 150 },
+      () => true,
+    );
 
     expect(elements).toEqual([]);
   });

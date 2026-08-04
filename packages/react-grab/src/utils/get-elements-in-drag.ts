@@ -1,4 +1,4 @@
-import type { DragRect } from "../types.js";
+import type { DragRect, Position } from "../types.js";
 import { suspendPointerEventsFreeze, resumePointerEventsFreeze } from "./pointer-events-freeze.js";
 import {
   DRAG_SELECTION_COVERAGE_THRESHOLD,
@@ -7,6 +7,8 @@ import {
   DRAG_SELECTION_MAX_SAMPLES_PER_AXIS,
   DRAG_SELECTION_MAX_TOTAL_SAMPLE_POINTS,
   DRAG_SELECTION_EDGE_INSET_PX,
+  DRAG_SELECTION_SAMPLE_COORDINATE_VALUES,
+  MIN_HIT_TEST_VIEWPORT_DIMENSION_PX,
   VIEWPORT_COVERAGE_THRESHOLD,
 } from "../constants.js";
 import { isRootElement } from "./is-root-element.js";
@@ -23,16 +25,14 @@ import { isShadowRoot } from "./is-shadow-root.js";
 const sortByDocumentOrder = (elements: Element[]): Element[] =>
   elements.sort(compareElementDocumentOrder);
 
-interface SamplePoint {
-  x: number;
-  y: number;
-}
-
-const createSamplePoints = (dragRect: DragRect): SamplePoint[] => {
+const createSampleCoordinates = (dragRect: DragRect, intentPoint: Position): number[] => {
   if (dragRect.width <= 0 || dragRect.height <= 0) return [];
 
-  const viewportWidth = window.innerWidth;
-  const viewportHeight = window.innerHeight;
+  const viewportWidth = Math.max(MIN_HIT_TEST_VIEWPORT_DIMENSION_PX, Math.round(window.innerWidth));
+  const viewportHeight = Math.max(
+    MIN_HIT_TEST_VIEWPORT_DIMENSION_PX,
+    Math.round(window.innerHeight),
+  );
 
   const left = dragRect.x;
   const top = dragRect.y;
@@ -68,18 +68,19 @@ const createSamplePoints = (dragRect: DragRect): SamplePoint[] => {
     DRAG_SELECTION_MAX_SAMPLES_PER_AXIS,
   );
 
-  const pointKeys = new Set<string>();
-  const points: SamplePoint[] = [];
+  const pointKeys = new Set<number>();
+  const sampleCoordinates: number[] = [];
 
   const addPoint = (x: number, y: number) => {
     const clampedX = clampToRange(Math.round(x), 0, viewportWidth - 1);
     const clampedY = clampToRange(Math.round(y), 0, viewportHeight - 1);
-    const key = `${clampedX}:${clampedY}`;
+    const key = clampedY * viewportWidth + clampedX;
     if (pointKeys.has(key)) return;
     pointKeys.add(key);
-    points.push({ x: clampedX, y: clampedY });
+    sampleCoordinates.push(clampedX, clampedY);
   };
 
+  addPoint(intentPoint.x, intentPoint.y);
   addPoint(left + DRAG_SELECTION_EDGE_INSET_PX, top + DRAG_SELECTION_EDGE_INSET_PX);
   addPoint(right - DRAG_SELECTION_EDGE_INSET_PX, top + DRAG_SELECTION_EDGE_INSET_PX);
   addPoint(left + DRAG_SELECTION_EDGE_INSET_PX, bottom - DRAG_SELECTION_EDGE_INSET_PX);
@@ -98,11 +99,12 @@ const createSamplePoints = (dragRect: DragRect): SamplePoint[] => {
     }
   }
 
-  return points;
+  return sampleCoordinates;
 };
 
 const filterElementsInDrag = (
   dragRect: DragRect,
+  intentPoint: Position,
   isValidGrabbableElement: (element: Element) => boolean,
 ): Element[] => {
   const dragLeft = dragRect.x;
@@ -111,12 +113,19 @@ const filterElementsInDrag = (
   const dragBottom = dragRect.y + dragRect.height;
 
   const candidates = new Set<Element>();
-  const samplePoints = createSamplePoints(dragRect);
+  const sampleCoordinates = createSampleCoordinates(dragRect, intentPoint);
 
   suspendPointerEventsFreeze();
   try {
-    for (const point of samplePoints) {
-      const elementsAtPoint = getDeepElementsAtPoint(point.x, point.y);
+    for (
+      let coordinateIndex = 0;
+      coordinateIndex < sampleCoordinates.length;
+      coordinateIndex += DRAG_SELECTION_SAMPLE_COORDINATE_VALUES
+    ) {
+      const elementsAtPoint = getDeepElementsAtPoint(
+        sampleCoordinates[coordinateIndex],
+        sampleCoordinates[coordinateIndex + 1],
+      );
       for (const candidateElement of elementsAtPoint) {
         candidates.add(candidateElement);
       }
@@ -129,8 +138,6 @@ const filterElementsInDrag = (
   let nearestFallbackElement: Element | null = null;
   let nearestFallbackDistanceSquared = Number.POSITIVE_INFINITY;
   let nearestFallbackArea = Number.POSITIVE_INFINITY;
-  const dragCenterX = dragRect.x + dragRect.width / 2;
-  const dragCenterY = dragRect.y + dragRect.height / 2;
   const viewportWidth = window.innerWidth;
   const viewportHeight = window.innerHeight;
   const hasMeasurableViewport = viewportWidth > 0 && viewportHeight > 0;
@@ -185,20 +192,27 @@ const filterElementsInDrag = (
       continue;
     }
 
-    const candidateCenterX = candidateLeft + candidateBounds.width / 2;
-    const candidateCenterY = candidateTop + candidateBounds.height / 2;
-    const centerDistanceX = candidateCenterX - dragCenterX;
-    const centerDistanceY = candidateCenterY - dragCenterY;
-    const centerDistanceSquared =
-      centerDistanceX * centerDistanceX + centerDistanceY * centerDistanceY;
-    const isNearerFallback = centerDistanceSquared < nearestFallbackDistanceSquared;
+    const intentDistanceX = Math.max(
+      candidateLeft - intentPoint.x,
+      0,
+      intentPoint.x - candidateRight,
+    );
+    const intentDistanceY = Math.max(
+      candidateTop - intentPoint.y,
+      0,
+      intentPoint.y - candidateBottom,
+    );
+    const intentDistanceSquared =
+      intentDistanceX * intentDistanceX + intentDistanceY * intentDistanceY;
+    const isNearerFallback = intentDistanceSquared < nearestFallbackDistanceSquared;
     const isSmallerEquidistantFallback =
-      centerDistanceSquared === nearestFallbackDistanceSquared &&
+      intentDistanceSquared > 0 &&
+      intentDistanceSquared === nearestFallbackDistanceSquared &&
       candidateArea < nearestFallbackArea;
 
     if (isNearerFallback || isSmallerEquidistantFallback) {
       nearestFallbackElement = candidateElement;
-      nearestFallbackDistanceSquared = centerDistanceSquared;
+      nearestFallbackDistanceSquared = intentDistanceSquared;
       nearestFallbackArea = candidateArea;
     }
   }
@@ -248,8 +262,9 @@ const removeNestedElements = (elements: Element[]): Element[] => {
 
 export const getElementsInDrag = (
   dragRect: DragRect,
+  intentPoint: Position,
   isValidGrabbableElement: (element: Element) => boolean,
 ): Element[] => {
-  const elements = filterElementsInDrag(dragRect, isValidGrabbableElement);
+  const elements = filterElementsInDrag(dragRect, intentPoint, isValidGrabbableElement);
   return removeNestedElements(elements);
 };
