@@ -1,11 +1,25 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import type { ElementBounds } from "../src/types.js";
 import { getElementsInDrag } from "../src/utils/get-elements-in-drag.js";
+import { compareElementDocumentOrder } from "../src/utils/compare-element-document-order.js";
 import { createElementBounds } from "../src/utils/create-element-bounds.js";
+import { getAccessibleIframeDocument } from "../src/utils/get-accessible-iframe-document.js";
 import { getComposedParentElement } from "../src/utils/get-composed-parent-element.js";
 import { getDeepElementsAtPoint } from "../src/utils/get-deep-elements-at-point.js";
 import { getLocalContentElementAtPoint } from "../src/utils/get-local-content-element-at-point.js";
-import { DRAG_SELECTION_MAX_NEIGHBOR_SCAN_ELEMENTS } from "../src/constants.js";
+import { isIframeElement } from "../src/utils/is-iframe-element.js";
+import { isRootElement } from "../src/utils/is-root-element.js";
+import { isShadowRoot } from "../src/utils/is-shadow-root.js";
+import {
+  resumePointerEventsFreeze,
+  suspendPointerEventsFreeze,
+} from "../src/utils/pointer-events-freeze.js";
+import { isWithinScope } from "../src/utils/runtime-mode.js";
+import {
+  DRAG_SELECTION_MAX_LOCAL_COLLECTION_ELEMENTS,
+  DRAG_SELECTION_MAX_NEIGHBOR_SCAN_ELEMENTS,
+  DRAG_SELECTION_MAX_TOTAL_SAMPLE_POINTS,
+} from "../src/constants.js";
 
 vi.mock("../src/utils/compare-element-document-order.js", () => ({
   compareElementDocumentOrder: vi.fn(() => 0),
@@ -82,8 +96,16 @@ const setElementBounds = (boundsByElement: Map<Element, ElementBounds>) => {
 
 beforeEach(() => {
   vi.stubGlobal("window", { innerHeight: 300, innerWidth: 300 });
+  vi.mocked(compareElementDocumentOrder).mockReturnValue(0);
+  vi.mocked(createElementBounds).mockReset();
+  vi.mocked(getAccessibleIframeDocument).mockReturnValue(null);
   vi.mocked(getComposedParentElement).mockReturnValue(null);
+  vi.mocked(getDeepElementsAtPoint).mockReturnValue([]);
   vi.mocked(getLocalContentElementAtPoint).mockReturnValue(null);
+  vi.mocked(isIframeElement).mockReturnValue(false);
+  vi.mocked(isRootElement).mockReturnValue(false);
+  vi.mocked(isShadowRoot).mockReturnValue(false);
+  vi.mocked(isWithinScope).mockReturnValue(true);
 });
 
 afterEach(() => {
@@ -153,6 +175,79 @@ describe("getElementsInDrag", () => {
 
     expect(elements).toEqual([textElement]);
     expect(getLocalContentElementAtPoint).toHaveBeenCalledOnce();
+  });
+
+  it("only refines local content at the drag endpoint", () => {
+    const candidateElement = createElement();
+    vi.mocked(getDeepElementsAtPoint).mockReturnValue([candidateElement]);
+    setElementBounds(
+      new Map([
+        [candidateElement, { x: 100, y: 100, width: 100, height: 100, borderRadius: "0px" }],
+      ]),
+    );
+
+    getElementsInDrag({ x: 100, y: 100, width: 100, height: 100 }, { x: 195, y: 195 }, () => true);
+
+    expect(vi.mocked(getDeepElementsAtPoint).mock.calls.length).toBeGreaterThan(1);
+    expect(getLocalContentElementAtPoint).toHaveBeenCalledOnce();
+    expect(getLocalContentElementAtPoint).toHaveBeenCalledWith(candidateElement, 195, 195);
+  });
+
+  it("looks through invalid stack layers for local content at the endpoint", () => {
+    const ignoredOverlayElement = createElement();
+    const contentContainerElement = createElement();
+    const localContentElement = createElement();
+    vi.mocked(getDeepElementsAtPoint).mockReturnValue([
+      ignoredOverlayElement,
+      contentContainerElement,
+    ]);
+    vi.mocked(getLocalContentElementAtPoint).mockImplementation((element) =>
+      element === contentContainerElement ? localContentElement : null,
+    );
+    setElementBounds(
+      new Map([
+        [ignoredOverlayElement, { x: 0, y: 0, width: 300, height: 300, borderRadius: "0px" }],
+        [contentContainerElement, { x: 50, y: 50, width: 200, height: 200, borderRadius: "0px" }],
+        [localContentElement, { x: 140, y: 140, width: 20, height: 20, borderRadius: "0px" }],
+      ]),
+    );
+
+    const elements = getElementsInDrag(
+      { x: 140, y: 140, width: 20, height: 20 },
+      { x: 150, y: 150 },
+      (element) => element !== ignoredOverlayElement,
+    );
+
+    expect(elements).toEqual([localContentElement]);
+    expect(getLocalContentElementAtPoint).toHaveBeenNthCalledWith(
+      1,
+      ignoredOverlayElement,
+      150,
+      150,
+    );
+    expect(getLocalContentElementAtPoint).toHaveBeenNthCalledWith(
+      2,
+      contentContainerElement,
+      150,
+      150,
+    );
+  });
+
+  it("stops local refinement at the first valid paint layer", () => {
+    const topElement = createElement();
+    const lowerElement = createElement();
+    vi.mocked(getDeepElementsAtPoint).mockReturnValue([topElement, lowerElement]);
+    setElementBounds(
+      new Map([
+        [topElement, { x: 100, y: 100, width: 100, height: 100, borderRadius: "0px" }],
+        [lowerElement, { x: 100, y: 100, width: 100, height: 100, borderRadius: "0px" }],
+      ]),
+    );
+
+    getElementsInDrag({ x: 125, y: 125, width: 50, height: 50 }, { x: 150, y: 150 }, () => true);
+
+    expect(getLocalContentElementAtPoint).toHaveBeenCalledOnce();
+    expect(getLocalContentElementAtPoint).toHaveBeenCalledWith(topElement, 150, 150);
   });
 
   it("uses drag direction to resolve otherwise equal fallback candidates", () => {
@@ -272,6 +367,70 @@ describe("getElementsInDrag", () => {
     expect(elements).toHaveLength(DRAG_SELECTION_MAX_NEIGHBOR_SCAN_ELEMENTS + 1);
   });
 
+  it("does not scan children from an unbounded local collection", () => {
+    const childElements = Array.from(
+      { length: DRAG_SELECTION_MAX_LOCAL_COLLECTION_ELEMENTS + 1 },
+      () => createElement(),
+    );
+    const containerElement = createElement(childElements);
+    vi.mocked(getDeepElementsAtPoint).mockReturnValue([containerElement]);
+    setElementBounds(
+      new Map([[containerElement, { x: 0, y: 0, width: 200, height: 200, borderRadius: "0px" }]]),
+    );
+
+    const elements = getElementsInDrag(
+      { x: 25, y: 25, width: 50, height: 50 },
+      { x: 50, y: 50 },
+      () => true,
+    );
+
+    expect(elements).toEqual([containerElement]);
+    expect(createElementBounds).toHaveBeenCalledOnce();
+  });
+
+  it("bounds sampling work for enormous drag rectangles", () => {
+    getElementsInDrag(
+      { x: -1_000_000, y: -1_000_000, width: 2_000_000, height: 2_000_000 },
+      { x: 150, y: 150 },
+      () => true,
+    );
+
+    expect(vi.mocked(getDeepElementsAtPoint).mock.calls.length).toBeLessThanOrEqual(
+      DRAG_SELECTION_MAX_TOTAL_SAMPLE_POINTS + 10,
+    );
+    for (const [clientX, clientY] of vi.mocked(getDeepElementsAtPoint).mock.calls) {
+      expect(clientX).toBeGreaterThanOrEqual(0);
+      expect(clientX).toBeLessThan(300);
+      expect(clientY).toBeGreaterThanOrEqual(0);
+      expect(clientY).toBeLessThan(300);
+    }
+  });
+
+  it("does not hit test an empty drag rectangle", () => {
+    expect(
+      getElementsInDrag({ x: 100, y: 100, width: 0, height: 100 }, { x: 100, y: 150 }, () => true),
+    ).toEqual([]);
+    expect(getDeepElementsAtPoint).not.toHaveBeenCalled();
+    expect(suspendPointerEventsFreeze).toHaveBeenCalledOnce();
+    expect(resumePointerEventsFreeze).toHaveBeenCalledOnce();
+  });
+
+  it("restores pointer-event freezing when a sampled hit test throws", () => {
+    vi.mocked(getDeepElementsAtPoint).mockImplementation(() => {
+      throw new Error("hit test failed");
+    });
+
+    expect(() =>
+      getElementsInDrag(
+        { x: 100, y: 100, width: 100, height: 100 },
+        { x: 150, y: 150 },
+        () => true,
+      ),
+    ).toThrow("hit test failed");
+    expect(suspendPointerEventsFreeze).toHaveBeenCalledOnce();
+    expect(resumePointerEventsFreeze).toHaveBeenCalledOnce();
+  });
+
   it("ignores viewport-covering candidates", () => {
     const viewportElement = createElement();
     const nearbyElement = createElement();
@@ -348,6 +507,184 @@ describe("getElementsInDrag", () => {
     );
 
     expect(elements).toEqual([coveredElement]);
+  });
+
+  it("includes a candidate at the exact coverage threshold", () => {
+    const candidateElement = createElement();
+    vi.mocked(getDeepElementsAtPoint).mockReturnValue([candidateElement]);
+    setElementBounds(
+      new Map([[candidateElement, { x: 0, y: 0, width: 30, height: 40, borderRadius: "0px" }]]),
+    );
+
+    const elements = getElementsInDrag(
+      { x: 0, y: 0, width: 30, height: 30 },
+      { x: 29, y: 29 },
+      () => true,
+    );
+
+    expect(elements).toEqual([candidateElement]);
+  });
+
+  it("excludes a candidate that only touches the drag edge", () => {
+    const candidateElement = createElement();
+    vi.mocked(getDeepElementsAtPoint).mockReturnValue([candidateElement]);
+    setElementBounds(
+      new Map([[candidateElement, { x: 100, y: 0, width: 50, height: 100, borderRadius: "0px" }]]),
+    );
+
+    const elements = getElementsInDrag(
+      { x: 0, y: 0, width: 100, height: 100 },
+      { x: 99, y: 50 },
+      () => true,
+    );
+
+    expect(elements).toEqual([]);
+  });
+
+  it("returns all covered candidates in document order", () => {
+    const laterElement = createElement();
+    const earlierElement = createElement();
+    vi.mocked(getDeepElementsAtPoint).mockReturnValue([laterElement, earlierElement]);
+    vi.mocked(compareElementDocumentOrder).mockImplementation((leftElement, rightElement) =>
+      leftElement === earlierElement && rightElement === laterElement ? -1 : 1,
+    );
+    setElementBounds(
+      new Map([
+        [laterElement, { x: 60, y: 60, width: 20, height: 20, borderRadius: "0px" }],
+        [earlierElement, { x: 20, y: 20, width: 20, height: 20, borderRadius: "0px" }],
+      ]),
+    );
+
+    const elements = getElementsInDrag(
+      { x: 0, y: 0, width: 100, height: 100 },
+      { x: 75, y: 75 },
+      () => true,
+    );
+
+    expect(elements).toEqual([earlierElement, laterElement]);
+  });
+
+  it("keeps the ancestor when ordinary nested candidates both qualify", () => {
+    const childElement = createElement();
+    const parentElement = createElement([childElement]);
+    vi.mocked(getDeepElementsAtPoint).mockReturnValue([childElement, parentElement]);
+    vi.mocked(getComposedParentElement).mockImplementation((element) =>
+      element === childElement ? parentElement : null,
+    );
+    setElementBounds(
+      new Map([
+        [parentElement, { x: 0, y: 0, width: 100, height: 100, borderRadius: "0px" }],
+        [childElement, { x: 10, y: 10, width: 20, height: 20, borderRadius: "0px" }],
+      ]),
+    );
+
+    const elements = getElementsInDrag(
+      { x: 0, y: 0, width: 100, height: 100 },
+      { x: 20, y: 20 },
+      () => true,
+    );
+
+    expect(elements).toEqual([parentElement]);
+  });
+
+  it("keeps the inner candidate instead of its open shadow host", () => {
+    const shadowElement = createElement();
+    const shadowHostElement = createElement();
+    const shadowRoot = Object.assign(Object.create(null), { host: shadowHostElement });
+    Object.assign(shadowElement, { getRootNode: () => shadowRoot });
+    vi.mocked(getDeepElementsAtPoint).mockReturnValue([shadowElement, shadowHostElement]);
+    vi.mocked(compareElementDocumentOrder).mockImplementation((leftElement, rightElement) =>
+      leftElement === shadowHostElement && rightElement === shadowElement ? -1 : 1,
+    );
+    vi.mocked(getComposedParentElement).mockImplementation((element) =>
+      element === shadowElement ? shadowHostElement : null,
+    );
+    vi.mocked(isShadowRoot).mockImplementation((rootNode) => rootNode === shadowRoot);
+    setElementBounds(
+      new Map([
+        [shadowHostElement, { x: 0, y: 0, width: 100, height: 100, borderRadius: "0px" }],
+        [shadowElement, { x: 10, y: 10, width: 20, height: 20, borderRadius: "0px" }],
+      ]),
+    );
+
+    const elements = getElementsInDrag(
+      { x: 0, y: 0, width: 100, height: 100 },
+      { x: 20, y: 20 },
+      () => true,
+    );
+
+    expect(elements).toEqual([shadowElement]);
+  });
+
+  it("skips accessible iframe shells while keeping their deep content", () => {
+    const iframeElement = createElement();
+    const frameContentElement = createElement();
+    vi.mocked(getDeepElementsAtPoint).mockReturnValue([frameContentElement, iframeElement]);
+    vi.mocked(isIframeElement).mockImplementation((element) => element === iframeElement);
+    vi.mocked(getAccessibleIframeDocument).mockImplementation((element) =>
+      element === iframeElement ? Object.create(null) : null,
+    );
+    setElementBounds(
+      new Map([
+        [iframeElement, { x: 0, y: 0, width: 100, height: 100, borderRadius: "0px" }],
+        [frameContentElement, { x: 10, y: 10, width: 20, height: 20, borderRadius: "0px" }],
+      ]),
+    );
+
+    const elements = getElementsInDrag(
+      { x: 0, y: 0, width: 100, height: 100 },
+      { x: 20, y: 20 },
+      () => true,
+    );
+
+    expect(elements).toEqual([frameContentElement]);
+  });
+
+  it("keeps an inaccessible iframe as a selectable fallback", () => {
+    const iframeElement = createElement();
+    vi.mocked(getDeepElementsAtPoint).mockReturnValue([iframeElement]);
+    vi.mocked(isIframeElement).mockReturnValue(true);
+    setElementBounds(
+      new Map([[iframeElement, { x: 0, y: 0, width: 100, height: 100, borderRadius: "0px" }]]),
+    );
+
+    const elements = getElementsInDrag(
+      { x: 25, y: 25, width: 50, height: 50 },
+      { x: 50, y: 50 },
+      () => true,
+    );
+
+    expect(elements).toEqual([iframeElement]);
+  });
+
+  it("filters roots, out-of-scope layers, and invalid overlays before fallback ranking", () => {
+    const rootElement = createElement();
+    const outOfScopeElement = createElement();
+    const invalidOverlayElement = createElement();
+    const targetElement = createElement();
+    vi.mocked(getDeepElementsAtPoint).mockReturnValue([
+      rootElement,
+      outOfScopeElement,
+      invalidOverlayElement,
+      targetElement,
+    ]);
+    vi.mocked(isRootElement).mockImplementation((element) => element === rootElement);
+    vi.mocked(isWithinScope).mockImplementation((element) => element !== outOfScopeElement);
+    setElementBounds(
+      new Map([
+        [invalidOverlayElement, { x: 100, y: 100, width: 10, height: 10, borderRadius: "0px" }],
+        [targetElement, { x: 50, y: 50, width: 200, height: 200, borderRadius: "0px" }],
+      ]),
+    );
+
+    const elements = getElementsInDrag(
+      { x: 100, y: 100, width: 100, height: 100 },
+      { x: 150, y: 150 },
+      (element) => element !== invalidOverlayElement,
+    );
+
+    expect(elements).toEqual([targetElement]);
+    expect(createElementBounds).toHaveBeenCalledOnce();
   });
 
   it("prefers the topmost candidate when multiple candidates contain the drag endpoint", () => {

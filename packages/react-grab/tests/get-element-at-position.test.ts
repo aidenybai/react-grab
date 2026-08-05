@@ -2,11 +2,23 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test"
 import {
   clearElementPositionCache,
   getElementAtPosition,
+  getElementsAtPoint,
 } from "../src/utils/get-element-at-position.js";
+import { resolveThreeElementAtPoint } from "../src/core/three-selection.js";
+import { createElementBounds } from "../src/utils/create-element-bounds.js";
+import { getAccessibleIframeDocument } from "../src/utils/get-accessible-iframe-document.js";
 import { getDeepElementAtPoint } from "../src/utils/get-deep-element-at-point.js";
+import { getDeepElementsAtPoint } from "../src/utils/get-deep-elements-at-point.js";
 import { getDeepFallbackElementAtPoint } from "../src/utils/get-deep-fallback-element-at-point.js";
 import { getLocalContentElementAtPoint } from "../src/utils/get-local-content-element-at-point.js";
+import { isIframeElement } from "../src/utils/is-iframe-element.js";
 import { isValidGrabbableElement } from "../src/utils/is-valid-grabbable-element.js";
+import {
+  resumePointerEventsFreeze,
+  suspendPointerEventsFreeze,
+} from "../src/utils/pointer-events-freeze.js";
+import { getScopeContainer, isWithinScope } from "../src/utils/runtime-mode.js";
+import { ELEMENT_POSITION_THROTTLE_MS } from "../src/constants.js";
 
 vi.mock("../src/core/three-selection.js", () => ({
   resolveThreeElementAtPoint: vi.fn((element) => element),
@@ -68,14 +80,35 @@ const createHtmlElement = (localName: string): Element =>
 
 beforeEach(() => {
   clearElementPositionCache();
-  vi.clearAllMocks();
+  vi.resetAllMocks();
+  vi.stubGlobal("performance", { now: vi.fn(() => 0) });
+  vi.mocked(createElementBounds).mockReset();
+  vi.mocked(getAccessibleIframeDocument).mockReturnValue(null);
+  vi.mocked(getDeepElementAtPoint).mockReturnValue(null);
+  vi.mocked(getDeepElementsAtPoint).mockReturnValue([]);
+  vi.mocked(getDeepFallbackElementAtPoint).mockReturnValue(null);
+  vi.mocked(getLocalContentElementAtPoint).mockReturnValue(null);
+  vi.mocked(getScopeContainer).mockReturnValue(null);
+  vi.mocked(isIframeElement).mockReturnValue(false);
+  vi.mocked(isValidGrabbableElement).mockReturnValue(true);
+  vi.mocked(isWithinScope).mockReturnValue(true);
+  vi.mocked(resolveThreeElementAtPoint).mockImplementation((element) => element);
 });
 
 afterEach(() => {
   clearElementPositionCache();
+  vi.useRealTimers();
+  vi.unstubAllGlobals();
 });
 
 describe("getElementAtPosition", () => {
+  it("rejects non-finite coordinates without hit testing", () => {
+    expect(getElementAtPosition(Number.NaN, 10)).toBeNull();
+    expect(getElementAtPosition(10, Number.POSITIVE_INFINITY)).toBeNull();
+    expect(getDeepElementAtPoint).not.toHaveBeenCalled();
+    expect(suspendPointerEventsFreeze).not.toHaveBeenCalled();
+  });
+
   it("does not refine cached HTML hits without a local content match", () => {
     const htmlElement = createHtmlElement("li");
     vi.mocked(getDeepElementAtPoint).mockReturnValue(htmlElement);
@@ -83,6 +116,126 @@ describe("getElementAtPosition", () => {
     expect(getElementAtPosition(10, 10)).toBe(htmlElement);
     expect(getElementAtPosition(11, 11)).toBe(htmlElement);
     expect(getLocalContentElementAtPoint).toHaveBeenCalledOnce();
+  });
+
+  it("refreshes the hit target after a fast pointer jump", () => {
+    const firstElement = createHtmlElement("li");
+    const secondElement = createHtmlElement("button");
+    vi.mocked(getDeepElementAtPoint)
+      .mockReturnValueOnce(firstElement)
+      .mockReturnValueOnce(secondElement);
+
+    expect(getElementAtPosition(10, 10)).toBe(firstElement);
+    vi.mocked(performance.now).mockReturnValue(1);
+    expect(getElementAtPosition(100, 100)).toBe(secondElement);
+    expect(getDeepElementAtPoint).toHaveBeenCalledTimes(2);
+  });
+
+  it("refreshes a nearby hit after the cache throttle expires", () => {
+    const firstElement = createHtmlElement("li");
+    const secondElement = createHtmlElement("button");
+    vi.mocked(getDeepElementAtPoint)
+      .mockReturnValueOnce(firstElement)
+      .mockReturnValueOnce(secondElement);
+
+    expect(getElementAtPosition(10, 10)).toBe(firstElement);
+    vi.mocked(performance.now).mockReturnValue(ELEMENT_POSITION_THROTTLE_MS + 1);
+    expect(getElementAtPosition(11, 11)).toBe(secondElement);
+    expect(getDeepElementAtPoint).toHaveBeenCalledTimes(2);
+  });
+
+  it("uses the deep fallback when the top paint layer is invalid", () => {
+    const overlayElement = createHtmlElement("div");
+    const targetElement = createHtmlElement("button");
+    vi.mocked(getDeepElementAtPoint).mockReturnValue(overlayElement);
+    vi.mocked(getDeepFallbackElementAtPoint).mockReturnValue(targetElement);
+    vi.mocked(isValidGrabbableElement).mockImplementation((element) => element !== overlayElement);
+
+    expect(getElementAtPosition(10, 10)).toBe(targetElement);
+    expect(getDeepFallbackElementAtPoint).toHaveBeenCalledWith(10, 10);
+  });
+
+  it("falls back to the native hit when refined local content is invalid", () => {
+    const nativeElement = createHtmlElement("button");
+    const localContentElement = createHtmlElement("span");
+    vi.mocked(getDeepElementAtPoint).mockReturnValue(nativeElement);
+    vi.mocked(getLocalContentElementAtPoint).mockReturnValue(localContentElement);
+    vi.mocked(isValidGrabbableElement).mockImplementation(
+      (element) => element !== localContentElement,
+    );
+
+    expect(getElementAtPosition(10, 10)).toBe(nativeElement);
+  });
+
+  it("falls back to the native hit when refined local content is out of scope", () => {
+    const nativeElement = createHtmlElement("button");
+    const localContentElement = createHtmlElement("span");
+    vi.mocked(getDeepElementAtPoint).mockReturnValue(nativeElement);
+    vi.mocked(getLocalContentElementAtPoint).mockReturnValue(localContentElement);
+    vi.mocked(isWithinScope).mockImplementation((element) => element !== localContentElement);
+
+    expect(getElementAtPosition(10, 10)).toBe(nativeElement);
+  });
+
+  it("restores pointer-event freezing after a failed deep hit test", () => {
+    vi.useFakeTimers();
+    vi.mocked(getDeepElementAtPoint).mockImplementation(() => {
+      throw new Error("hit test failed");
+    });
+
+    expect(() => getElementAtPosition(10, 10)).toThrow("hit test failed");
+    expect(suspendPointerEventsFreeze).toHaveBeenCalledOnce();
+    expect(resumePointerEventsFreeze).not.toHaveBeenCalled();
+    vi.runAllTimers();
+    expect(resumePointerEventsFreeze).toHaveBeenCalledOnce();
+  });
+
+  it("reuses an inaccessible iframe only while the point remains inside fresh bounds", () => {
+    const iframeElement = Object.assign(createHtmlElement("iframe"), { isConnected: true });
+    const outsideElement = createHtmlElement("button");
+    vi.mocked(getDeepElementAtPoint)
+      .mockReturnValueOnce(iframeElement)
+      .mockReturnValueOnce(outsideElement);
+    vi.mocked(isIframeElement).mockImplementation((element) => element === iframeElement);
+    vi.mocked(createElementBounds).mockReturnValue({
+      x: 0,
+      y: 0,
+      width: 100,
+      height: 100,
+      borderRadius: "0px",
+    });
+
+    expect(getElementAtPosition(10, 10)).toBe(iframeElement);
+    vi.mocked(performance.now).mockReturnValue(1);
+    expect(getElementAtPosition(20, 20)).toBe(iframeElement);
+    expect(getDeepElementAtPoint).toHaveBeenCalledOnce();
+
+    expect(getElementAtPosition(120, 120)).toBe(outsideElement);
+    expect(getDeepElementAtPoint).toHaveBeenCalledTimes(2);
+  });
+
+  it("invalidates an iframe cache when the frame becomes accessible", () => {
+    const iframeElement = Object.assign(createHtmlElement("iframe"), { isConnected: true });
+    const frameContentElement = createHtmlElement("button");
+    let accessibleDocument: Document | null = null;
+    vi.mocked(getDeepElementAtPoint)
+      .mockReturnValueOnce(iframeElement)
+      .mockReturnValueOnce(frameContentElement);
+    vi.mocked(isIframeElement).mockImplementation((element) => element === iframeElement);
+    vi.mocked(getAccessibleIframeDocument).mockImplementation(() => accessibleDocument);
+    vi.mocked(createElementBounds).mockReturnValue({
+      x: 0,
+      y: 0,
+      width: 100,
+      height: 100,
+      borderRadius: "0px",
+    });
+
+    expect(getElementAtPosition(10, 10)).toBe(iframeElement);
+    accessibleDocument = Object.create(null);
+    vi.mocked(performance.now).mockReturnValue(1);
+    expect(getElementAtPosition(20, 20)).toBe(frameContentElement);
+    expect(getDeepElementAtPoint).toHaveBeenCalledTimes(2);
   });
 
   it("refines cached SVG hits when the pointer enters a text label", () => {
@@ -139,5 +292,57 @@ describe("getElementAtPosition", () => {
     expect(getElementAtPosition(11, 11)).toBe(fallbackElement);
     expect(getDeepElementAtPoint).toHaveBeenCalledOnce();
     expect(getDeepFallbackElementAtPoint).toHaveBeenCalledOnce();
+  });
+});
+
+describe("getElementsAtPoint", () => {
+  it("refines only the first valid local-content layer while preserving stack order", () => {
+    const ignoredOverlayElement = createHtmlElement("div");
+    const containerElement = createHtmlElement("button");
+    const localContentElement = createHtmlElement("span");
+    const lowerElement = createHtmlElement("section");
+    vi.mocked(getDeepElementsAtPoint).mockReturnValue([
+      ignoredOverlayElement,
+      containerElement,
+      lowerElement,
+    ]);
+    vi.mocked(getLocalContentElementAtPoint).mockImplementation((element) =>
+      element === containerElement ? localContentElement : null,
+    );
+    vi.mocked(isValidGrabbableElement).mockImplementation(
+      (element) => element !== ignoredOverlayElement,
+    );
+
+    expect(getElementsAtPoint(10, 10)).toEqual([
+      ignoredOverlayElement,
+      localContentElement,
+      lowerElement,
+    ]);
+    expect(getLocalContentElementAtPoint).toHaveBeenCalledTimes(2);
+    expect(getLocalContentElementAtPoint).not.toHaveBeenCalledWith(lowerElement, 10, 10);
+  });
+
+  it("filters out-of-scope stack layers before local refinement", () => {
+    const outsideElement = createHtmlElement("div");
+    const insideElement = createHtmlElement("button");
+    const scopeElement: HTMLElement = Object.create(null);
+    vi.mocked(getDeepElementsAtPoint).mockReturnValue([outsideElement, insideElement]);
+    vi.mocked(getScopeContainer).mockReturnValue(scopeElement);
+    vi.mocked(isWithinScope).mockImplementation((element) => element !== outsideElement);
+
+    expect(getElementsAtPoint(10, 10)).toEqual([insideElement]);
+    expect(getLocalContentElementAtPoint).toHaveBeenCalledOnce();
+    expect(getLocalContentElementAtPoint).toHaveBeenCalledWith(insideElement, 10, 10);
+  });
+
+  it("schedules freeze restoration when deep stack collection throws", () => {
+    vi.useFakeTimers();
+    vi.mocked(getDeepElementsAtPoint).mockImplementation(() => {
+      throw new Error("stack failed");
+    });
+
+    expect(() => getElementsAtPoint(10, 10)).toThrow("stack failed");
+    vi.runAllTimers();
+    expect(resumePointerEventsFreeze).toHaveBeenCalledOnce();
   });
 });

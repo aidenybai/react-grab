@@ -134,7 +134,7 @@ export const getElementAtPosition = (clientX: number, clientY: number): Element 
     );
     const isWithinThrottle = now - positionCache.timestamp < ELEMENT_POSITION_THROTTLE_MS;
 
-    if (isPositionClose || isWithinThrottle) {
+    if (isPositionClose && isWithinThrottle) {
       if (!positionCache.localHitElement) return positionCache.element;
 
       const localContentElement = getLocalContentElementAtPoint(
