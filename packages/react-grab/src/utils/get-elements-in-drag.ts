@@ -17,6 +17,7 @@ import { isRootElement } from "./is-root-element.js";
 import { isWithinScope } from "./runtime-mode.js";
 import { clampToRange } from "./clamp-to-range.js";
 import { getDeepElementsAtPoint } from "./get-deep-elements-at-point.js";
+import { getLocalContentElementAtPoint } from "./get-local-content-element-at-point.js";
 import { createElementBounds } from "./create-element-bounds.js";
 import { getComposedParentElement } from "./get-composed-parent-element.js";
 import { compareElementDocumentOrder } from "./compare-element-document-order.js";
@@ -234,6 +235,21 @@ const filterElementsInDrag = (
       );
       for (const candidateElement of elementsAtPoint) {
         candidates.add(candidateElement);
+      }
+
+      if (coordinateIndex === 0) {
+        for (const candidateElement of elementsAtPoint) {
+          const localContentElement = getLocalContentElementAtPoint(
+            candidateElement,
+            sampleCoordinates[coordinateIndex],
+            sampleCoordinates[coordinateIndex + 1],
+          );
+          if (localContentElement && isValidGrabbableElement(localContentElement)) {
+            candidates.add(localContentElement);
+            break;
+          }
+          if (isValidGrabbableElement(candidateElement)) break;
+        }
       }
     }
   } finally {

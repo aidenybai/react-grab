@@ -9,7 +9,7 @@ import { getAccessibleIframeDocument } from "./get-accessible-iframe-document.js
 import { getDeepElementAtPoint } from "./get-deep-element-at-point.js";
 import { getDeepFallbackElementAtPoint } from "./get-deep-fallback-element-at-point.js";
 import { getDeepElementsAtPoint } from "./get-deep-elements-at-point.js";
-import { getSvgTextElementAtPoint } from "./get-svg-text-element-at-point.js";
+import { getLocalContentElementAtPoint } from "./get-local-content-element-at-point.js";
 import { getScopeContainer, isWithinScope } from "./runtime-mode.js";
 import { isIframeElement } from "./is-iframe-element.js";
 import { isPointInsideRect } from "./is-point-inside-rect.js";
@@ -21,8 +21,8 @@ interface PositionCache {
   clientX: number;
   clientY: number;
   element: Element | null;
-  svgFallbackElement: Element | null;
-  svgHitElement: Element | null;
+  fallbackElement: Element | null;
+  localHitElement: Element | null;
   timestamp: number;
 }
 
@@ -81,14 +81,16 @@ export const getElementsAtPoint = (clientX: number, clientY: number): Element[] 
     const elements = getDeepElementsAtPoint(clientX, clientY);
     const scopedElements = getScopeContainer() ? elements.filter(isWithinScope) : elements;
     const resolvedElements: Element[] = [];
-    let didResolveSvgTextElement = false;
+    let didResolveLocalContent = false;
     for (const element of scopedElements) {
       let preciseElement = element;
-      if (!didResolveSvgTextElement) {
-        const svgTextElement = getSvgTextElementAtPoint(element, clientX, clientY);
-        if (svgTextElement && isWithinScope(svgTextElement)) {
-          preciseElement = svgTextElement;
-          didResolveSvgTextElement = true;
+      if (!didResolveLocalContent) {
+        const localContentElement = getLocalContentElementAtPoint(element, clientX, clientY);
+        if (localContentElement && isWithinScope(localContentElement)) {
+          preciseElement = localContentElement;
+          didResolveLocalContent = true;
+        } else if (isValidGrabbableElement(element)) {
+          didResolveLocalContent = true;
         }
       }
       resolvedElements.push(resolveThreeElementAtPoint(preciseElement, clientX, clientY));
@@ -133,17 +135,17 @@ export const getElementAtPosition = (clientX: number, clientY: number): Element 
     const isWithinThrottle = now - positionCache.timestamp < ELEMENT_POSITION_THROTTLE_MS;
 
     if (isPositionClose || isWithinThrottle) {
-      if (!positionCache.svgHitElement) return positionCache.element;
+      if (!positionCache.localHitElement) return positionCache.element;
 
-      const svgTextElement = getSvgTextElementAtPoint(
-        positionCache.svgHitElement,
+      const localContentElement = getLocalContentElementAtPoint(
+        positionCache.localHitElement,
         clientX,
         clientY,
       );
-      return svgTextElement
-        ? (resolveValidElementAtPoint(svgTextElement, clientX, clientY) ??
-            positionCache.svgFallbackElement)
-        : positionCache.svgFallbackElement;
+      return localContentElement
+        ? (resolveValidElementAtPoint(localContentElement, clientX, clientY) ??
+            positionCache.fallbackElement)
+        : positionCache.fallbackElement;
     }
   }
 
@@ -170,15 +172,15 @@ export const getElementAtPosition = (clientX: number, clientY: number): Element 
     // overlapping the scoped container) we fall back to elementsFromPoint, which
     // returns the full z-ordered stack, and take the first grabbable in-scope one.
     const topElement = getDeepElementAtPoint(clientX, clientY);
-    const svgTextElement = topElement
-      ? getSvgTextElementAtPoint(topElement, clientX, clientY)
+    const localContentElement = topElement
+      ? getLocalContentElementAtPoint(topElement, clientX, clientY)
       : null;
-    const svgResult = svgTextElement
-      ? resolveValidElementAtPoint(svgTextElement, clientX, clientY)
+    const localContentResult = localContentElement
+      ? resolveValidElementAtPoint(localContentElement, clientX, clientY)
       : null;
     const topResult = topElement ? resolveValidElementAtPoint(topElement, clientX, clientY) : null;
     const fallbackResult = topResult ?? getDeepFallbackElementAtPoint(clientX, clientY);
-    result = svgResult ?? fallbackResult;
+    result = localContentResult ?? fallbackResult;
 
     if (result && isIframeElement(result) && !getAccessibleIframeDocument(result)) {
       const iframeBounds = createElementBounds(result);
@@ -199,8 +201,11 @@ export const getElementAtPosition = (clientX: number, clientY: number): Element 
       clientX,
       clientY,
       element: result,
-      svgFallbackElement: fallbackResult,
-      svgHitElement: topElement?.namespaceURI === "http://www.w3.org/2000/svg" ? topElement : null,
+      fallbackElement: fallbackResult,
+      localHitElement:
+        topElement?.namespaceURI === "http://www.w3.org/2000/svg" || localContentElement
+          ? topElement
+          : null,
       timestamp: now,
     };
     return result;

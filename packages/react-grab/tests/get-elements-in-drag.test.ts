@@ -4,6 +4,7 @@ import { getElementsInDrag } from "../src/utils/get-elements-in-drag.js";
 import { createElementBounds } from "../src/utils/create-element-bounds.js";
 import { getComposedParentElement } from "../src/utils/get-composed-parent-element.js";
 import { getDeepElementsAtPoint } from "../src/utils/get-deep-elements-at-point.js";
+import { getLocalContentElementAtPoint } from "../src/utils/get-local-content-element-at-point.js";
 import { DRAG_SELECTION_MAX_NEIGHBOR_SCAN_ELEMENTS } from "../src/constants.js";
 
 vi.mock("../src/utils/compare-element-document-order.js", () => ({
@@ -24,6 +25,10 @@ vi.mock("../src/utils/get-composed-parent-element.js", () => ({
 
 vi.mock("../src/utils/get-deep-elements-at-point.js", () => ({
   getDeepElementsAtPoint: vi.fn(),
+}));
+
+vi.mock("../src/utils/get-local-content-element-at-point.js", () => ({
+  getLocalContentElementAtPoint: vi.fn(() => null),
 }));
 
 vi.mock("../src/utils/is-iframe-element.js", () => ({
@@ -78,6 +83,7 @@ const setElementBounds = (boundsByElement: Map<Element, ElementBounds>) => {
 beforeEach(() => {
   vi.stubGlobal("window", { innerHeight: 300, innerWidth: 300 });
   vi.mocked(getComposedParentElement).mockReturnValue(null);
+  vi.mocked(getLocalContentElementAtPoint).mockReturnValue(null);
 });
 
 afterEach(() => {
@@ -125,6 +131,28 @@ describe("getElementsInDrag", () => {
 
     expect(elements).toEqual([endpointElement]);
     expect(getDeepElementsAtPoint).toHaveBeenNthCalledWith(1, 195, 150);
+  });
+
+  it("includes local pointer-none content at the drag endpoint", () => {
+    const svgElement = createElement();
+    const textElement = createElement();
+    vi.mocked(getDeepElementsAtPoint).mockReturnValue([svgElement]);
+    vi.mocked(getLocalContentElementAtPoint).mockReturnValue(textElement);
+    setElementBounds(
+      new Map([
+        [svgElement, { x: 50, y: 50, width: 200, height: 200, borderRadius: "0px" }],
+        [textElement, { x: 125, y: 125, width: 50, height: 20, borderRadius: "0px" }],
+      ]),
+    );
+
+    const elements = getElementsInDrag(
+      { x: 125, y: 125, width: 50, height: 20 },
+      { x: 150, y: 135 },
+      () => true,
+    );
+
+    expect(elements).toEqual([textElement]);
+    expect(getLocalContentElementAtPoint).toHaveBeenCalledOnce();
   });
 
   it("uses drag direction to resolve otherwise equal fallback candidates", () => {

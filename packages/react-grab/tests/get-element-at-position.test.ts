@@ -5,7 +5,7 @@ import {
 } from "../src/utils/get-element-at-position.js";
 import { getDeepElementAtPoint } from "../src/utils/get-deep-element-at-point.js";
 import { getDeepFallbackElementAtPoint } from "../src/utils/get-deep-fallback-element-at-point.js";
-import { getSvgTextElementAtPoint } from "../src/utils/get-svg-text-element-at-point.js";
+import { getLocalContentElementAtPoint } from "../src/utils/get-local-content-element-at-point.js";
 import { isValidGrabbableElement } from "../src/utils/is-valid-grabbable-element.js";
 
 vi.mock("../src/core/three-selection.js", () => ({
@@ -32,8 +32,8 @@ vi.mock("../src/utils/get-deep-fallback-element-at-point.js", () => ({
   getDeepFallbackElementAtPoint: vi.fn(() => null),
 }));
 
-vi.mock("../src/utils/get-svg-text-element-at-point.js", () => ({
-  getSvgTextElementAtPoint: vi.fn(() => null),
+vi.mock("../src/utils/get-local-content-element-at-point.js", () => ({
+  getLocalContentElementAtPoint: vi.fn(() => null),
 }));
 
 vi.mock("../src/utils/is-iframe-element.js", () => ({
@@ -60,6 +60,12 @@ const createSvgElement = (localName: string): Element =>
     namespaceURI: "http://www.w3.org/2000/svg",
   });
 
+const createHtmlElement = (localName: string): Element =>
+  Object.assign(Object.create(null), {
+    localName,
+    namespaceURI: "http://www.w3.org/1999/xhtml",
+  });
+
 beforeEach(() => {
   clearElementPositionCache();
   vi.clearAllMocks();
@@ -70,11 +76,22 @@ afterEach(() => {
 });
 
 describe("getElementAtPosition", () => {
+  it("does not refine cached HTML hits without a local content match", () => {
+    const htmlElement = createHtmlElement("li");
+    vi.mocked(getDeepElementAtPoint).mockReturnValue(htmlElement);
+
+    expect(getElementAtPosition(10, 10)).toBe(htmlElement);
+    expect(getElementAtPosition(11, 11)).toBe(htmlElement);
+    expect(getLocalContentElementAtPoint).toHaveBeenCalledOnce();
+  });
+
   it("refines cached SVG hits when the pointer enters a text label", () => {
     const svgElement = createSvgElement("svg");
     const textElement = createSvgElement("text");
     vi.mocked(getDeepElementAtPoint).mockReturnValue(svgElement);
-    vi.mocked(getSvgTextElementAtPoint).mockReturnValueOnce(null).mockReturnValueOnce(textElement);
+    vi.mocked(getLocalContentElementAtPoint)
+      .mockReturnValueOnce(null)
+      .mockReturnValueOnce(textElement);
 
     expect(getElementAtPosition(10, 10)).toBe(svgElement);
     expect(getElementAtPosition(11, 11)).toBe(textElement);
@@ -85,7 +102,9 @@ describe("getElementAtPosition", () => {
     const svgElement = createSvgElement("svg");
     const textElement = createSvgElement("text");
     vi.mocked(getDeepElementAtPoint).mockReturnValue(svgElement);
-    vi.mocked(getSvgTextElementAtPoint).mockReturnValueOnce(textElement).mockReturnValueOnce(null);
+    vi.mocked(getLocalContentElementAtPoint)
+      .mockReturnValueOnce(textElement)
+      .mockReturnValueOnce(null);
 
     expect(getElementAtPosition(10, 10)).toBe(textElement);
     expect(getElementAtPosition(11, 11)).toBe(svgElement);
@@ -111,7 +130,9 @@ describe("getElementAtPosition", () => {
     const fallbackElement: Element = Object.create(null);
     vi.mocked(getDeepElementAtPoint).mockReturnValue(svgElement);
     vi.mocked(getDeepFallbackElementAtPoint).mockReturnValue(fallbackElement);
-    vi.mocked(getSvgTextElementAtPoint).mockReturnValueOnce(textElement).mockReturnValueOnce(null);
+    vi.mocked(getLocalContentElementAtPoint)
+      .mockReturnValueOnce(textElement)
+      .mockReturnValueOnce(null);
     vi.mocked(isValidGrabbableElement).mockImplementation((element) => element !== svgElement);
 
     expect(getElementAtPosition(10, 10)).toBe(textElement);

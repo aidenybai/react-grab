@@ -223,6 +223,35 @@ test.describe("Element Context Fallback", () => {
       expect(clipboard).toContain('<text id="pointer-events-none-svg-label">composer-2.5</text>');
     });
 
+    test("should refine a native container hit to pointer-events-none HTML text", async ({
+      reactGrab,
+    }) => {
+      await reactGrab.page.evaluate(() => {
+        const buttonElement = document.createElement("button");
+        Object.assign(buttonElement.style, {
+          fontSize: "24px",
+          left: "200px",
+          padding: "20px",
+          position: "fixed",
+          top: "200px",
+          zIndex: "999",
+        });
+        const labelElement = document.createElement("span");
+        labelElement.id = "pointer-events-none-html-label";
+        labelElement.style.pointerEvents = "none";
+        labelElement.textContent = "Nested label";
+        buttonElement.appendChild(labelElement);
+        document.body.appendChild(buttonElement);
+      });
+
+      await reactGrab.activate();
+      await reactGrab.hoverUntilTargetSelected("#pointer-events-none-html-label");
+      await reactGrab.clickElement("#pointer-events-none-html-label");
+
+      const clipboard = await reactGrab.getClipboardContent();
+      expect(clipboard).toContain('<span id="pointer-events-none-html-label">Nested label</span>');
+    });
+
     test("should use a semantic link selector for a source-less SVG path", async ({
       reactGrab,
     }) => {
