@@ -1,7 +1,7 @@
 import { expect, test } from "./fixtures.js";
 
 test.describe("drag targeting regressions", () => {
-  test("keeps the candidate preview live during continuous movement", async ({ reactGrab }) => {
+  test("keeps the candidate preview visible during continuous movement", async ({ reactGrab }) => {
     await reactGrab.page.evaluate(() => {
       const targetElement = document.createElement("button");
       targetElement.textContent = "Continuous drag target";

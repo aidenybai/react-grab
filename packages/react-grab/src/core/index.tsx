@@ -78,6 +78,7 @@ import {
   COMPONENT_NAME_DEBOUNCE_MS,
   DRAG_PREVIEW_DEBOUNCE_MS,
   DRAG_PREVIEW_MAX_WAIT_MS,
+  DRAG_PREVIEW_EXPENSIVE_COMPUTATION_MS,
   MODIFIER_KEYS,
   BLUR_DEACTIVATION_THRESHOLD_MS,
   BOUNDS_RECALC_INTERVAL_MS,
@@ -493,6 +494,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     let latestDragPreviewX = 0;
     let latestDragPreviewY = 0;
     let lastDragPreviewUpdateTimestamp = 0;
+    let lastDragPreviewComputationDuration = 0;
     let hasUpdatedDragPreview = false;
     const [dragPreviewPointer, setDragPreviewPointer] = createSignal<Position | null>(null);
     const [scrollVersion, setScrollVersion] = createSignal(0);
@@ -508,8 +510,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       latestDragPreviewY = clientY;
       const timestamp = performance.now();
       const timeSinceLastUpdate = timestamp - lastDragPreviewUpdateTimestamp;
+      const isPreviewComputationExpensive =
+        lastDragPreviewComputationDuration >= DRAG_PREVIEW_EXPENSIVE_COMPUTATION_MS;
 
-      if (!hasUpdatedDragPreview || timeSinceLastUpdate >= DRAG_PREVIEW_MAX_WAIT_MS) {
+      if (
+        !hasUpdatedDragPreview ||
+        (!isPreviewComputationExpensive && timeSinceLastUpdate >= DRAG_PREVIEW_MAX_WAIT_MS)
+      ) {
         if (dragPreviewUpdateTimerId !== null) clearTimeout(dragPreviewUpdateTimerId);
         dragPreviewUpdateTimerId = null;
         commitDragPreviewUpdate(timestamp);
@@ -519,10 +526,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (dragPreviewUpdateTimerId !== null) clearTimeout(dragPreviewUpdateTimerId);
       dragPreviewUpdateTimerId = window.setTimeout(
         () => {
-          commitDragPreviewUpdate(performance.now());
+          if (isDraggingBeyondThreshold()) commitDragPreviewUpdate(performance.now());
           dragPreviewUpdateTimerId = null;
         },
-        Math.min(DRAG_PREVIEW_DEBOUNCE_MS, DRAG_PREVIEW_MAX_WAIT_MS - timeSinceLastUpdate),
+        isPreviewComputationExpensive
+          ? DRAG_PREVIEW_DEBOUNCE_MS
+          : Math.min(DRAG_PREVIEW_DEBOUNCE_MS, DRAG_PREVIEW_MAX_WAIT_MS - timeSinceLastUpdate),
       );
     };
     const flushDragPreviewElements = (
@@ -546,6 +555,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         dragPreviewUpdateTimerId = null;
       }
       hasUpdatedDragPreview = false;
+      lastDragPreviewComputationDuration = 0;
       setDragPreviewPointer(null);
       // Memos hold their last value until re-read. Once the drag is over
       // nothing may render the preview again, which would pin the captured
@@ -1390,7 +1400,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       if (!pointer) return [];
 
       const drag = calculateDragRectangle(pointer.x, pointer.y);
-      return getElementsInDrag(drag, pointer, isValidGrabbableElement);
+      const computationStartTimestamp = performance.now();
+      const elements = getElementsInDrag(drag, pointer, isValidGrabbableElement);
+      lastDragPreviewComputationDuration = performance.now() - computationStartTimestamp;
+      return elements;
     });
 
     const dragPreviewBounds = createMemo((): OverlayBounds[] => {
