@@ -1,6 +1,33 @@
 import { expect, test } from "./fixtures.js";
 
 test.describe("drag targeting regressions", () => {
+  test("keeps the candidate preview live during continuous movement", async ({ reactGrab }) => {
+    await reactGrab.page.evaluate(() => {
+      const targetElement = document.createElement("button");
+      targetElement.textContent = "Continuous drag target";
+      targetElement.style.cssText =
+        "position:fixed;left:100px;top:100px;width:160px;height:120px;z-index:2147480000";
+      document.body.append(targetElement);
+    });
+
+    await reactGrab.activate();
+    await reactGrab.page.mouse.move(80, 80);
+    await reactGrab.page.mouse.down();
+
+    for (let stepIndex = 1; stepIndex <= 15; stepIndex += 1) {
+      await reactGrab.page.mouse.move(80 + stepIndex * 8, 80 + stepIndex * 6);
+      await reactGrab.page.waitForTimeout(10);
+    }
+
+    expect(
+      await reactGrab.page.evaluate(
+        () => window.__REACT_GRAB__?.getState().isSelectionBoxVisible ?? false,
+      ),
+    ).toBe(true);
+
+    await reactGrab.page.mouse.up();
+  });
+
   test("uses release direction to choose between equal partial candidates", async ({
     reactGrab,
   }) => {
