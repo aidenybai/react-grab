@@ -48,6 +48,9 @@ const addIntersectingNeighbors = (
   candidateBoundsByElement: Map<Element, ElementBounds>,
 ): void => {
   const candidateQueue = [...candidates];
+  const tableRowQueue = candidateQueue.filter(
+    (candidateElement) => candidateElement.tagName === "TR",
+  );
   let inspectedNeighborCount = 0;
 
   for (
@@ -61,6 +64,7 @@ const addIntersectingNeighbors = (
     inspectedNeighborCount += 1;
     candidates.add(parentElement);
     candidateQueue.push(parentElement);
+    tableRowQueue.push(parentElement);
   }
 
   const addCandidate = (candidateElement: Element | null): void => {
@@ -82,6 +86,7 @@ const addIntersectingNeighbors = (
 
     candidates.add(candidateElement);
     candidateQueue.push(candidateElement);
+    if (candidateElement.tagName === "TR") tableRowQueue.push(candidateElement);
   };
 
   const addChildren = (childCollection: HTMLCollection): void => {
@@ -93,15 +98,14 @@ const addIntersectingNeighbors = (
   };
 
   for (
-    let candidateIndex = 0;
-    candidateIndex < candidateQueue.length &&
+    let tableRowIndex = 0;
+    tableRowIndex < tableRowQueue.length &&
     inspectedNeighborCount < DRAG_SELECTION_MAX_NEIGHBOR_SCAN_ELEMENTS;
-    candidateIndex += 1
+    tableRowIndex += 1
   ) {
-    const candidateElement = candidateQueue[candidateIndex];
-    if (candidateElement.tagName !== "TR") continue;
-    addCandidate(candidateElement.previousElementSibling);
-    addCandidate(candidateElement.nextElementSibling);
+    const tableRowElement = tableRowQueue[tableRowIndex];
+    addCandidate(tableRowElement.previousElementSibling);
+    addCandidate(tableRowElement.nextElementSibling);
   }
 
   for (
