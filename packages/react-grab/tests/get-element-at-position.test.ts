@@ -302,6 +302,7 @@ describe("getElementsAtPoint", () => {
     const containerElement = Object.assign(createHtmlElement("button"), {
       contains: (element: Element) => element === localContentElement,
     });
+    Object.assign(localContentElement, { parentElement: containerElement });
     const lowerElement = createHtmlElement("section");
     vi.mocked(getDeepElementsAtPoint).mockReturnValue([
       ignoredOverlayElement,
@@ -361,6 +362,29 @@ describe("getElementsAtPoint", () => {
     ]);
   });
 
+  it("skips a native SVG sibling behind refined text", () => {
+    const svgElement = createSvgElement("svg");
+    const shapeElement = createSvgElement("rect");
+    const labelGroupElement = Object.assign(createSvgElement("g"), {
+      parentElement: svgElement,
+    });
+    const localTextElement = Object.assign(createSvgElement("text"), {
+      parentElement: labelGroupElement,
+    });
+    const lowerElement = createHtmlElement("section");
+    vi.mocked(getDeepElementsAtPoint).mockReturnValue([shapeElement, svgElement, lowerElement]);
+    vi.mocked(getLocalContentElementAtPoint).mockImplementation((element) =>
+      element === shapeElement ? localTextElement : null,
+    );
+
+    expect(getElementsAtPoint(10, 10)).toEqual([
+      localTextElement,
+      labelGroupElement,
+      svgElement,
+      lowerElement,
+    ]);
+  });
+
   it("does not repeat an inserted ancestor that is also in the native stack", () => {
     const containerElement = createHtmlElement("button");
     const parentElement = Object.assign(createHtmlElement("span"), {
@@ -375,11 +399,7 @@ describe("getElementsAtPoint", () => {
     vi.mocked(getDeepElementsAtPoint).mockReturnValue([containerElement, parentElement]);
     vi.mocked(getLocalContentElementAtPoint).mockReturnValue(localContentElement);
 
-    expect(getElementsAtPoint(10, 10)).toEqual([
-      localContentElement,
-      parentElement,
-      containerElement,
-    ]);
+    expect(getElementsAtPoint(10, 10)).toEqual([localContentElement, parentElement]);
   });
 
   it("filters out-of-scope stack layers before local refinement", () => {

@@ -9,6 +9,7 @@ import { getAccessibleIframeDocument } from "./get-accessible-iframe-document.js
 import { getDeepElementAtPoint } from "./get-deep-element-at-point.js";
 import { getDeepFallbackElementAtPoint } from "./get-deep-fallback-element-at-point.js";
 import { getDeepElementsAtPoint } from "./get-deep-elements-at-point.js";
+import { getComposedParentElement } from "./get-composed-parent-element.js";
 import { getLocalContentElementAtPoint } from "./get-local-content-element-at-point.js";
 import { getScopeContainer, isWithinScope } from "./runtime-mode.js";
 import { isIframeElement } from "./is-iframe-element.js";
@@ -83,7 +84,8 @@ export const getElementsAtPoint = (clientX: number, clientY: number): Element[] 
     const resolvedElements: Element[] = [];
     const includedElements = new Set<Element>();
     let didResolveLocalContent = false;
-    for (const element of scopedElements) {
+    for (let elementIndex = 0; elementIndex < scopedElements.length; elementIndex += 1) {
+      const element = scopedElements[elementIndex];
       let preciseElement = element;
       if (!didResolveLocalContent) {
         const localContentElement = getLocalContentElementAtPoint(element, clientX, clientY);
@@ -105,26 +107,25 @@ export const getElementsAtPoint = (clientX: number, clientY: number): Element[] 
       }
       if (preciseElement === element) continue;
 
-      if (element.contains(preciseElement)) {
-        let ancestorElement = preciseElement.parentElement;
-        while (ancestorElement && ancestorElement !== element) {
-          const resolvedAncestorElement = resolveThreeElementAtPoint(
-            ancestorElement,
-            clientX,
-            clientY,
-          );
-          if (!includedElements.has(resolvedAncestorElement)) {
-            includedElements.add(resolvedAncestorElement);
-            resolvedElements.push(resolvedAncestorElement);
-          }
-          ancestorElement = ancestorElement.parentElement;
+      let ancestorElement = getComposedParentElement(preciseElement);
+      let nativeAncestorIndex = -1;
+      while (ancestorElement) {
+        const resolvedAncestorElement = resolveThreeElementAtPoint(
+          ancestorElement,
+          clientX,
+          clientY,
+        );
+        if (!includedElements.has(resolvedAncestorElement)) {
+          includedElements.add(resolvedAncestorElement);
+          resolvedElements.push(resolvedAncestorElement);
         }
+
+        nativeAncestorIndex = scopedElements.indexOf(ancestorElement, elementIndex);
+        if (nativeAncestorIndex !== -1) break;
+        ancestorElement = getComposedParentElement(ancestorElement);
       }
-      const resolvedNativeElement = resolveThreeElementAtPoint(element, clientX, clientY);
-      if (!includedElements.has(resolvedNativeElement)) {
-        includedElements.add(resolvedNativeElement);
-        resolvedElements.push(resolvedNativeElement);
-      }
+      if (nativeAncestorIndex === -1) break;
+      elementIndex = nativeAncestorIndex;
     }
     return resolvedElements;
   } finally {
