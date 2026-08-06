@@ -42,15 +42,12 @@ const boundsIntersectDrag = (bounds: ElementBounds, dragRect: DragRect): boolean
   bounds.y < dragRect.y + dragRect.height &&
   bounds.y + bounds.height > dragRect.y;
 
-const completeCandidateNeighborhoods = (
+const addIntersectingNeighbors = (
   candidates: Set<Element>,
   dragRect: DragRect,
   candidateBoundsByElement: Map<Element, ElementBounds>,
 ): void => {
   const candidateQueue = [...candidates];
-  const tableRowQueue = candidateQueue.filter(
-    (candidateElement) => candidateElement.tagName === "TR",
-  );
   let inspectedNeighborCount = 0;
 
   for (
@@ -64,10 +61,9 @@ const completeCandidateNeighborhoods = (
     inspectedNeighborCount += 1;
     candidates.add(parentElement);
     candidateQueue.push(parentElement);
-    tableRowQueue.push(parentElement);
   }
 
-  const addIntersectingCandidate = (candidateElement: Element | null): void => {
+  const addCandidate = (candidateElement: Element | null): void => {
     if (
       !candidateElement ||
       candidates.has(candidateElement) ||
@@ -86,26 +82,26 @@ const completeCandidateNeighborhoods = (
 
     candidates.add(candidateElement);
     candidateQueue.push(candidateElement);
-    if (candidateElement.tagName === "TR") tableRowQueue.push(candidateElement);
   };
 
-  const addIntersectingChildren = (childCollection: HTMLCollection): void => {
+  const addChildren = (childCollection: HTMLCollection): void => {
     if (childCollection.length > DRAG_SELECTION_MAX_LOCAL_COLLECTION_ELEMENTS) return;
     for (const childElement of childCollection) {
       if (inspectedNeighborCount >= DRAG_SELECTION_MAX_NEIGHBOR_SCAN_ELEMENTS) return;
-      addIntersectingCandidate(childElement);
+      addCandidate(childElement);
     }
   };
 
   for (
-    let tableRowIndex = 0;
-    tableRowIndex < tableRowQueue.length &&
+    let candidateIndex = 0;
+    candidateIndex < candidateQueue.length &&
     inspectedNeighborCount < DRAG_SELECTION_MAX_NEIGHBOR_SCAN_ELEMENTS;
-    tableRowIndex += 1
+    candidateIndex += 1
   ) {
-    const tableRowElement = tableRowQueue[tableRowIndex];
-    addIntersectingCandidate(tableRowElement.previousElementSibling);
-    addIntersectingCandidate(tableRowElement.nextElementSibling);
+    const candidateElement = candidateQueue[candidateIndex];
+    if (candidateElement.tagName !== "TR") continue;
+    addCandidate(candidateElement.previousElementSibling);
+    addCandidate(candidateElement.nextElementSibling);
   }
 
   for (
@@ -122,12 +118,12 @@ const completeCandidateNeighborhoods = (
       candidateElement.tagName === "TR" ||
       siblingCount <= DRAG_SELECTION_MAX_LOCAL_COLLECTION_ELEMENTS
     ) {
-      addIntersectingCandidate(candidateElement.previousElementSibling);
-      addIntersectingCandidate(candidateElement.nextElementSibling);
+      addCandidate(candidateElement.previousElementSibling);
+      addCandidate(candidateElement.nextElementSibling);
     }
 
-    addIntersectingChildren(candidateElement.children);
-    if (candidateElement.shadowRoot) addIntersectingChildren(candidateElement.shadowRoot.children);
+    addChildren(candidateElement.children);
+    if (candidateElement.shadowRoot) addChildren(candidateElement.shadowRoot.children);
   }
 };
 
@@ -256,7 +252,7 @@ const filterElementsInDrag = (
     resumePointerEventsFreeze();
   }
 
-  completeCandidateNeighborhoods(candidates, dragRect, candidateBoundsByElement);
+  addIntersectingNeighbors(candidates, dragRect, candidateBoundsByElement);
 
   const matchingElements: Element[] = [];
   let nearestFallbackElement: Element | null = null;
