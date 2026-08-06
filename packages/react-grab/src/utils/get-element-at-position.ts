@@ -84,8 +84,7 @@ export const getElementsAtPoint = (clientX: number, clientY: number): Element[] 
     const resolvedElements: Element[] = [];
     const includedElements = new Set<Element>();
     let didResolveLocalContent = false;
-    for (let elementIndex = 0; elementIndex < scopedElements.length; elementIndex += 1) {
-      const element = scopedElements[elementIndex];
+    for (const element of scopedElements) {
       let preciseElement = element;
       if (!didResolveLocalContent) {
         const localContentElement = getLocalContentElementAtPoint(element, clientX, clientY);
@@ -108,8 +107,7 @@ export const getElementsAtPoint = (clientX: number, clientY: number): Element[] 
       if (preciseElement === element) continue;
 
       let ancestorElement = getComposedParentElement(preciseElement);
-      let nativeAncestorIndex = -1;
-      while (ancestorElement) {
+      while (ancestorElement && isWithinScope(ancestorElement)) {
         const resolvedAncestorElement = resolveThreeElementAtPoint(
           ancestorElement,
           clientX,
@@ -119,13 +117,9 @@ export const getElementsAtPoint = (clientX: number, clientY: number): Element[] 
           includedElements.add(resolvedAncestorElement);
           resolvedElements.push(resolvedAncestorElement);
         }
-
-        nativeAncestorIndex = scopedElements.indexOf(ancestorElement, elementIndex);
-        if (nativeAncestorIndex !== -1) break;
         ancestorElement = getComposedParentElement(ancestorElement);
       }
-      if (nativeAncestorIndex === -1) break;
-      elementIndex = nativeAncestorIndex;
+      break;
     }
     return resolvedElements;
   } finally {

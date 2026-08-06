@@ -68,14 +68,18 @@ vi.mock("../src/utils/runtime-mode.js", () => ({
 
 const createSvgElement = (localName: string): Element =>
   Object.assign(Object.create(null), {
+    getRootNode: () => Object.create(null),
     localName,
     namespaceURI: "http://www.w3.org/2000/svg",
+    parentElement: null,
   });
 
 const createHtmlElement = (localName: string): Element =>
   Object.assign(Object.create(null), {
+    getRootNode: () => Object.create(null),
     localName,
     namespaceURI: "http://www.w3.org/1999/xhtml",
+    parentElement: null,
   });
 
 beforeEach(() => {
@@ -296,7 +300,7 @@ describe("getElementAtPosition", () => {
 });
 
 describe("getElementsAtPoint", () => {
-  it("refines only the first valid local-content layer while preserving stack order", () => {
+  it("replaces lower native layers with the refined hierarchy", () => {
     const ignoredOverlayElement = createHtmlElement("div");
     const localContentElement = createHtmlElement("span");
     const containerElement = Object.assign(createHtmlElement("button"), {
@@ -320,7 +324,6 @@ describe("getElementsAtPoint", () => {
       ignoredOverlayElement,
       localContentElement,
       containerElement,
-      lowerElement,
     ]);
     expect(getLocalContentElementAtPoint).toHaveBeenCalledTimes(2);
     expect(getLocalContentElementAtPoint).not.toHaveBeenCalledWith(lowerElement, 10, 10);
@@ -377,12 +380,7 @@ describe("getElementsAtPoint", () => {
       element === shapeElement ? localTextElement : null,
     );
 
-    expect(getElementsAtPoint(10, 10)).toEqual([
-      localTextElement,
-      labelGroupElement,
-      svgElement,
-      lowerElement,
-    ]);
+    expect(getElementsAtPoint(10, 10)).toEqual([localTextElement, labelGroupElement, svgElement]);
   });
 
   it("does not repeat an inserted ancestor that is also in the native stack", () => {
@@ -399,7 +397,28 @@ describe("getElementsAtPoint", () => {
     vi.mocked(getDeepElementsAtPoint).mockReturnValue([containerElement, parentElement]);
     vi.mocked(getLocalContentElementAtPoint).mockReturnValue(localContentElement);
 
-    expect(getElementsAtPoint(10, 10)).toEqual([localContentElement, parentElement]);
+    expect(getElementsAtPoint(10, 10)).toEqual([
+      localContentElement,
+      parentElement,
+      containerElement,
+    ]);
+  });
+
+  it("stops the refined hierarchy at the scope boundary", () => {
+    const outsideElement = createHtmlElement("main");
+    const scopedElement = Object.assign(createHtmlElement("section"), {
+      parentElement: outsideElement,
+    });
+    const localContentElement = Object.assign(createHtmlElement("span"), {
+      parentElement: scopedElement,
+    });
+    const scopeContainer: HTMLElement = Object.create(null);
+    vi.mocked(getDeepElementsAtPoint).mockReturnValue([scopedElement]);
+    vi.mocked(getLocalContentElementAtPoint).mockReturnValue(localContentElement);
+    vi.mocked(getScopeContainer).mockReturnValue(scopeContainer);
+    vi.mocked(isWithinScope).mockImplementation((element) => element !== outsideElement);
+
+    expect(getElementsAtPoint(10, 10)).toEqual([localContentElement, scopedElement]);
   });
 
   it("filters out-of-scope stack layers before local refinement", () => {
