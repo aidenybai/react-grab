@@ -361,6 +361,27 @@ describe("getElementsAtPoint", () => {
     ]);
   });
 
+  it("does not repeat an inserted ancestor that is also in the native stack", () => {
+    const containerElement = createHtmlElement("button");
+    const parentElement = Object.assign(createHtmlElement("span"), {
+      parentElement: containerElement,
+    });
+    const localContentElement = Object.assign(createHtmlElement("strong"), {
+      parentElement,
+    });
+    Object.assign(containerElement, {
+      contains: (element: Element) => element === parentElement || element === localContentElement,
+    });
+    vi.mocked(getDeepElementsAtPoint).mockReturnValue([containerElement, parentElement]);
+    vi.mocked(getLocalContentElementAtPoint).mockReturnValue(localContentElement);
+
+    expect(getElementsAtPoint(10, 10)).toEqual([
+      localContentElement,
+      parentElement,
+      containerElement,
+    ]);
+  });
+
   it("filters out-of-scope stack layers before local refinement", () => {
     const outsideElement = createHtmlElement("div");
     const insideElement = createHtmlElement("button");

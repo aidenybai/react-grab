@@ -81,6 +81,7 @@ export const getElementsAtPoint = (clientX: number, clientY: number): Element[] 
     const elements = getDeepElementsAtPoint(clientX, clientY);
     const scopedElements = getScopeContainer() ? elements.filter(isWithinScope) : elements;
     const resolvedElements: Element[] = [];
+    const includedElements = new Set<Element>();
     let didResolveLocalContent = false;
     for (const element of scopedElements) {
       let preciseElement = element;
@@ -97,17 +98,33 @@ export const getElementsAtPoint = (clientX: number, clientY: number): Element[] 
           didResolveLocalContent = true;
         }
       }
-      resolvedElements.push(resolveThreeElementAtPoint(preciseElement, clientX, clientY));
+      const resolvedPreciseElement = resolveThreeElementAtPoint(preciseElement, clientX, clientY);
+      if (!includedElements.has(resolvedPreciseElement)) {
+        includedElements.add(resolvedPreciseElement);
+        resolvedElements.push(resolvedPreciseElement);
+      }
       if (preciseElement === element) continue;
 
       if (element.contains(preciseElement)) {
         let ancestorElement = preciseElement.parentElement;
         while (ancestorElement && ancestorElement !== element) {
-          resolvedElements.push(resolveThreeElementAtPoint(ancestorElement, clientX, clientY));
+          const resolvedAncestorElement = resolveThreeElementAtPoint(
+            ancestorElement,
+            clientX,
+            clientY,
+          );
+          if (!includedElements.has(resolvedAncestorElement)) {
+            includedElements.add(resolvedAncestorElement);
+            resolvedElements.push(resolvedAncestorElement);
+          }
           ancestorElement = ancestorElement.parentElement;
         }
       }
-      resolvedElements.push(resolveThreeElementAtPoint(element, clientX, clientY));
+      const resolvedNativeElement = resolveThreeElementAtPoint(element, clientX, clientY);
+      if (!includedElements.has(resolvedNativeElement)) {
+        includedElements.add(resolvedNativeElement);
+        resolvedElements.push(resolvedNativeElement);
+      }
     }
     return resolvedElements;
   } finally {
