@@ -86,7 +86,11 @@ export const getElementsAtPoint = (clientX: number, clientY: number): Element[] 
       let preciseElement = element;
       if (!didResolveLocalContent) {
         const localContentElement = getLocalContentElementAtPoint(element, clientX, clientY);
-        if (localContentElement && isWithinScope(localContentElement)) {
+        if (
+          localContentElement &&
+          isWithinScope(localContentElement) &&
+          isValidGrabbableElement(localContentElement)
+        ) {
           preciseElement = localContentElement;
           didResolveLocalContent = true;
         } else if (isValidGrabbableElement(element)) {
@@ -94,6 +98,16 @@ export const getElementsAtPoint = (clientX: number, clientY: number): Element[] 
         }
       }
       resolvedElements.push(resolveThreeElementAtPoint(preciseElement, clientX, clientY));
+      if (preciseElement === element) continue;
+
+      if (element.contains(preciseElement)) {
+        let ancestorElement = preciseElement.parentElement;
+        while (ancestorElement && ancestorElement !== element) {
+          resolvedElements.push(resolveThreeElementAtPoint(ancestorElement, clientX, clientY));
+          ancestorElement = ancestorElement.parentElement;
+        }
+      }
+      resolvedElements.push(resolveThreeElementAtPoint(element, clientX, clientY));
     }
     return resolvedElements;
   } finally {

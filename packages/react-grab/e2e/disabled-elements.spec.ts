@@ -198,10 +198,10 @@ test.describe("Pointer Events None - Arrow Navigation", () => {
   test("should support ArrowUp from pointer-events none element", async ({ reactGrab }) => {
     await reactGrab.page.evaluate((containerId) => {
       const container = document.getElementById(containerId);
-      const parent = document.createElement("div");
+      const parent = document.createElement("article");
       parent.setAttribute("data-testid", "arrow-up-parent");
       parent.style.cssText = "padding: 40px; background: #d0d0d0; margin-top: 10px;";
-      const child = document.createElement("div");
+      const child = document.createElement("span");
       child.setAttribute("data-testid", "arrow-up-child");
       child.style.cssText = "pointer-events: none; padding: 20px; background: #f0f0f0;";
       child.textContent = "Pointer Events None Child";
@@ -215,20 +215,22 @@ test.describe("Pointer Events None - Arrow Navigation", () => {
     if (!bounds) throw new Error("Could not get element bounds");
     await reactGrab.page.mouse.move(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
     await reactGrab.waitForSelectionBox();
-    expect(await reactGrab.isSelectionBoxVisible()).toBe(true);
+    await expect.poll(reactGrab.getTargetTestId).toBe("arrow-up-child");
 
     await reactGrab.pressArrowUp();
     await reactGrab.waitForSelectionBox();
-    expect(await reactGrab.isSelectionBoxVisible()).toBe(true);
+    await expect
+      .poll(async () => (await reactGrab.getSelectionLabelInfo()).tagName)
+      .toBe("article");
   });
 
   test("should support ArrowDown back to pointer-events none element", async ({ reactGrab }) => {
     await reactGrab.page.evaluate((containerId) => {
       const container = document.getElementById(containerId);
-      const parent = document.createElement("div");
+      const parent = document.createElement("article");
       parent.setAttribute("data-testid", "arrow-down-parent");
       parent.style.cssText = "padding: 40px; background: #d0d0d0; margin-top: 10px;";
-      const child = document.createElement("div");
+      const child = document.createElement("span");
       child.setAttribute("data-testid", "arrow-down-child");
       child.style.cssText = "pointer-events: none; padding: 20px; background: #f0f0f0;";
       child.textContent = "Pointer Events None Child";
@@ -245,19 +247,22 @@ test.describe("Pointer Events None - Arrow Navigation", () => {
 
     await reactGrab.pressArrowUp();
     await reactGrab.waitForSelectionBox();
+    await expect
+      .poll(async () => (await reactGrab.getSelectionLabelInfo()).tagName)
+      .toBe("article");
 
     await reactGrab.pressArrowDown();
     await reactGrab.waitForSelectionBox();
-    expect(await reactGrab.isSelectionBoxVisible()).toBe(true);
+    await expect.poll(async () => (await reactGrab.getSelectionLabelInfo()).tagName).toBe("span");
   });
 
   test("should support round-trip navigation", async ({ reactGrab }) => {
     await reactGrab.page.evaluate((containerId) => {
       const container = document.getElementById(containerId);
-      const parent = document.createElement("div");
+      const parent = document.createElement("article");
       parent.setAttribute("data-testid", "round-trip-parent");
       parent.style.cssText = "padding: 40px; background: #d0d0d0; margin-top: 10px;";
-      const child = document.createElement("div");
+      const child = document.createElement("span");
       child.setAttribute("data-testid", "round-trip-child");
       child.style.cssText = "pointer-events: none; padding: 20px; background: #f0f0f0;";
       child.textContent = "Pointer Events None Child";
@@ -271,30 +276,35 @@ test.describe("Pointer Events None - Arrow Navigation", () => {
     if (!bounds) throw new Error("Could not get element bounds");
     await reactGrab.page.mouse.move(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
     await reactGrab.waitForSelectionBox();
+    await expect.poll(reactGrab.getTargetTestId).toBe("round-trip-child");
 
     await reactGrab.pressArrowUp();
     await reactGrab.waitForSelectionBox();
-    expect(await reactGrab.isSelectionBoxVisible()).toBe(true);
+    await expect
+      .poll(async () => (await reactGrab.getSelectionLabelInfo()).tagName)
+      .toBe("article");
 
     await reactGrab.pressArrowDown();
     await reactGrab.waitForSelectionBox();
-    expect(await reactGrab.isSelectionBoxVisible()).toBe(true);
+    await expect.poll(async () => (await reactGrab.getSelectionLabelInfo()).tagName).toBe("span");
 
     await reactGrab.pressArrowUp();
     await reactGrab.waitForSelectionBox();
-    expect(await reactGrab.isSelectionBoxVisible()).toBe(true);
+    await expect
+      .poll(async () => (await reactGrab.getSelectionLabelInfo()).tagName)
+      .toBe("article");
   });
 
   test("should navigate through nested pointer-events none elements", async ({ reactGrab }) => {
     await reactGrab.page.evaluate((containerId) => {
       const container = document.getElementById(containerId);
-      const grandparent = document.createElement("div");
+      const grandparent = document.createElement("section");
       grandparent.setAttribute("data-testid", "nested-grandparent");
       grandparent.style.cssText = "padding: 60px; background: #c0c0c0; margin-top: 10px;";
-      const parent = document.createElement("div");
+      const parent = document.createElement("article");
       parent.setAttribute("data-testid", "nested-parent");
       parent.style.cssText = "pointer-events: none; padding: 40px; background: #d0d0d0;";
-      const child = document.createElement("div");
+      const child = document.createElement("span");
       child.setAttribute("data-testid", "nested-child");
       child.style.cssText = "pointer-events: none; padding: 20px; background: #f0f0f0;";
       child.textContent = "Deeply Nested Pointer Events None";
@@ -309,14 +319,18 @@ test.describe("Pointer Events None - Arrow Navigation", () => {
     if (!bounds) throw new Error("Could not get element bounds");
     await reactGrab.page.mouse.move(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
     await reactGrab.waitForSelectionBox();
-    expect(await reactGrab.isSelectionBoxVisible()).toBe(true);
+    await expect.poll(reactGrab.getTargetTestId).toBe("nested-child");
 
     await reactGrab.pressArrowUp();
     await reactGrab.waitForSelectionBox();
-    expect(await reactGrab.isSelectionBoxVisible()).toBe(true);
+    await expect
+      .poll(async () => (await reactGrab.getSelectionLabelInfo()).tagName)
+      .toBe("article");
 
     await reactGrab.pressArrowUp();
     await reactGrab.waitForSelectionBox();
-    expect(await reactGrab.isSelectionBoxVisible()).toBe(true);
+    await expect
+      .poll(async () => (await reactGrab.getSelectionLabelInfo()).tagName)
+      .toBe("section");
   });
 });

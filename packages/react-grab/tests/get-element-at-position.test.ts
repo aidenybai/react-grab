@@ -298,8 +298,10 @@ describe("getElementAtPosition", () => {
 describe("getElementsAtPoint", () => {
   it("refines only the first valid local-content layer while preserving stack order", () => {
     const ignoredOverlayElement = createHtmlElement("div");
-    const containerElement = createHtmlElement("button");
     const localContentElement = createHtmlElement("span");
+    const containerElement = Object.assign(createHtmlElement("button"), {
+      contains: (element: Element) => element === localContentElement,
+    });
     const lowerElement = createHtmlElement("section");
     vi.mocked(getDeepElementsAtPoint).mockReturnValue([
       ignoredOverlayElement,
@@ -316,10 +318,47 @@ describe("getElementsAtPoint", () => {
     expect(getElementsAtPoint(10, 10)).toEqual([
       ignoredOverlayElement,
       localContentElement,
+      containerElement,
       lowerElement,
     ]);
     expect(getLocalContentElementAtPoint).toHaveBeenCalledTimes(2);
     expect(getLocalContentElementAtPoint).not.toHaveBeenCalledWith(lowerElement, 10, 10);
+  });
+
+  it("preserves the native layer when local content is invalid", () => {
+    const ignoredContentElement = createHtmlElement("span");
+    const containerElement = Object.assign(createHtmlElement("button"), {
+      contains: (element: Element) => element === ignoredContentElement,
+    });
+    const lowerElement = createHtmlElement("section");
+    vi.mocked(getDeepElementsAtPoint).mockReturnValue([containerElement, lowerElement]);
+    vi.mocked(getLocalContentElementAtPoint).mockReturnValue(ignoredContentElement);
+    vi.mocked(isValidGrabbableElement).mockImplementation(
+      (element) => element !== ignoredContentElement,
+    );
+
+    expect(getElementsAtPoint(10, 10)).toEqual([containerElement, lowerElement]);
+  });
+
+  it("inserts pointer-disabled ancestors before the native layer", () => {
+    const containerElement = createHtmlElement("button");
+    const parentElement = Object.assign(createHtmlElement("span"), {
+      parentElement: containerElement,
+    });
+    const localContentElement = Object.assign(createHtmlElement("strong"), {
+      parentElement,
+    });
+    Object.assign(containerElement, {
+      contains: (element: Element) => element === parentElement || element === localContentElement,
+    });
+    vi.mocked(getDeepElementsAtPoint).mockReturnValue([containerElement]);
+    vi.mocked(getLocalContentElementAtPoint).mockReturnValue(localContentElement);
+
+    expect(getElementsAtPoint(10, 10)).toEqual([
+      localContentElement,
+      parentElement,
+      containerElement,
+    ]);
   });
 
   it("filters out-of-scope stack layers before local refinement", () => {
