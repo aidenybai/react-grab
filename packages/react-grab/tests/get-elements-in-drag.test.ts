@@ -234,22 +234,17 @@ describe("getElementsInDrag", () => {
     expect(getThreeSelectionElements).toHaveBeenCalledWith(canvasElement, canvasElement);
   });
 
-  it("prefers the endpoint instance over a large Three.js aggregate", () => {
+  it("passes the endpoint instance into Three.js drag enumeration", () => {
     const canvasElement = createElement();
-    const aggregateElement = createElement();
     const instanceElement = createElement();
     Object.assign(canvasElement, { tagName: "CANVAS" });
-    Object.assign(aggregateElement, { tagName: "INSTANCEDMESH" });
     Object.assign(instanceElement, { tagName: "INSTANCEDMESH" });
     vi.mocked(getDeepElementsAtPoint).mockReturnValue([canvasElement]);
     vi.mocked(resolveThreeElementAtPoint).mockReturnValue(instanceElement);
-    vi.mocked(getThreeSelectionElements).mockImplementation((_canvasElement, endpointElement) =>
-      endpointElement === instanceElement ? [instanceElement] : [aggregateElement],
-    );
+    vi.mocked(getThreeSelectionElements).mockReturnValue([instanceElement]);
     setElementBounds(
       new Map([
         [canvasElement, { x: 50, y: 50, width: 200, height: 200, borderRadius: "0px" }],
-        [aggregateElement, { x: 50, y: 50, width: 200, height: 200, borderRadius: "0px" }],
         [instanceElement, { x: 180, y: 180, width: 30, height: 30, borderRadius: "0px" }],
       ]),
     );
