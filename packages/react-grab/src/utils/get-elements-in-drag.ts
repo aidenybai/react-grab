@@ -24,7 +24,7 @@ import { compareElementDocumentOrder } from "./compare-element-document-order.js
 import { getAccessibleIframeDocument } from "./get-accessible-iframe-document.js";
 import { isIframeElement } from "./is-iframe-element.js";
 import { isShadowRoot } from "./is-shadow-root.js";
-import { getThreeSelectionElements } from "../core/three-selection.js";
+import { getThreeSelectionElements, resolveThreeElementAtPoint } from "../core/three-selection.js";
 
 const sortByDocumentOrder = (elements: Element[]): Element[] =>
   elements.sort(compareElementDocumentOrder);
@@ -222,6 +222,7 @@ const filterElementsInDrag = (
   const candidates = new Set<Element>();
   const candidateBoundsByElement = new Map<Element, ElementBounds>();
   const inspectedThreeCanvasElements = new Set<Element>();
+  const resolvedThreeCanvasElements = new Set<Element>();
   const sampleCoordinates = createSampleCoordinates(dragRect, intentPoint);
 
   suspendPointerEventsFreeze();
@@ -236,16 +237,34 @@ const filterElementsInDrag = (
         sampleCoordinates[coordinateIndex + 1],
       );
       for (const candidateElement of elementsAtPoint) {
-        candidates.add(candidateElement);
-        if (
-          candidateElement.tagName === "CANVAS" &&
-          !inspectedThreeCanvasElements.has(candidateElement)
-        ) {
+        if (candidateElement.tagName === "CANVAS") {
+          if (resolvedThreeCanvasElements.has(candidateElement)) continue;
+          if (inspectedThreeCanvasElements.has(candidateElement)) {
+            candidates.add(candidateElement);
+            continue;
+          }
           inspectedThreeCanvasElements.add(candidateElement);
-          for (const threeElement of getThreeSelectionElements(candidateElement)) {
-            candidates.add(threeElement);
+          const threeElements = getThreeSelectionElements(candidateElement);
+          const endpointThreeElement =
+            coordinateIndex === 0
+              ? resolveThreeElementAtPoint(
+                  candidateElement,
+                  sampleCoordinates[coordinateIndex],
+                  sampleCoordinates[coordinateIndex + 1],
+                )
+              : candidateElement;
+          if (threeElements.length > 0 || endpointThreeElement !== candidateElement) {
+            resolvedThreeCanvasElements.add(candidateElement);
+            for (const threeElement of threeElements) {
+              candidates.add(threeElement);
+            }
+            if (threeElements.length === 0 && endpointThreeElement !== candidateElement) {
+              candidates.add(endpointThreeElement);
+            }
+            continue;
           }
         }
+        candidates.add(candidateElement);
       }
 
       if (coordinateIndex === 0) {

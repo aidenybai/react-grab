@@ -10,7 +10,10 @@ import { getLocalContentElementAtPoint } from "../src/utils/get-local-content-el
 import { isIframeElement } from "../src/utils/is-iframe-element.js";
 import { isRootElement } from "../src/utils/is-root-element.js";
 import { isShadowRoot } from "../src/utils/is-shadow-root.js";
-import { getThreeSelectionElements } from "../src/core/three-selection.js";
+import {
+  getThreeSelectionElements,
+  resolveThreeElementAtPoint,
+} from "../src/core/three-selection.js";
 import {
   resumePointerEventsFreeze,
   suspendPointerEventsFreeze,
@@ -28,6 +31,7 @@ vi.mock("../src/utils/compare-element-document-order.js", () => ({
 
 vi.mock("../src/core/three-selection.js", () => ({
   getThreeSelectionElements: vi.fn(() => []),
+  resolveThreeElementAtPoint: vi.fn((element) => element),
 }));
 
 vi.mock("../src/utils/create-element-bounds.js", () => ({
@@ -108,6 +112,7 @@ beforeEach(() => {
   vi.mocked(getDeepElementsAtPoint).mockReturnValue([]);
   vi.mocked(getLocalContentElementAtPoint).mockReturnValue(null);
   vi.mocked(getThreeSelectionElements).mockReturnValue([]);
+  vi.mocked(resolveThreeElementAtPoint).mockImplementation((element) => element);
   vi.mocked(isIframeElement).mockReturnValue(false);
   vi.mocked(isRootElement).mockReturnValue(false);
   vi.mocked(isShadowRoot).mockReturnValue(false);
@@ -210,21 +215,63 @@ describe("getElementsInDrag", () => {
     vi.mocked(getThreeSelectionElements).mockReturnValue([leftMeshElement, rightMeshElement]);
     setElementBounds(
       new Map([
-        [canvasElement, { x: 0, y: 0, width: 300, height: 300, borderRadius: "0px" }],
+        [canvasElement, { x: 50, y: 50, width: 200, height: 200, borderRadius: "0px" }],
         [leftMeshElement, { x: 80, y: 100, width: 40, height: 40, borderRadius: "0px" }],
         [rightMeshElement, { x: 180, y: 100, width: 40, height: 40, borderRadius: "0px" }],
       ]),
     );
 
     const elements = getElementsInDrag(
-      { x: 70, y: 90, width: 160, height: 60 },
-      { x: 225, y: 145 },
+      { x: 50, y: 50, width: 200, height: 200 },
+      { x: 245, y: 245 },
       () => true,
     );
 
     expect(elements).toEqual([leftMeshElement, rightMeshElement]);
     expect(getThreeSelectionElements).toHaveBeenCalledOnce();
     expect(getThreeSelectionElements).toHaveBeenCalledWith(canvasElement);
+  });
+
+  it("uses the endpoint raycast when a Three.js scene is too large to enumerate", () => {
+    const canvasElement = createElement();
+    const instanceElement = createElement();
+    Object.assign(canvasElement, { tagName: "CANVAS" });
+    Object.assign(instanceElement, { tagName: "INSTANCEDMESH" });
+    vi.mocked(getDeepElementsAtPoint).mockReturnValue([canvasElement]);
+    vi.mocked(resolveThreeElementAtPoint).mockReturnValue(instanceElement);
+    setElementBounds(
+      new Map([
+        [canvasElement, { x: 50, y: 50, width: 200, height: 200, borderRadius: "0px" }],
+        [instanceElement, { x: 180, y: 180, width: 30, height: 30, borderRadius: "0px" }],
+      ]),
+    );
+
+    const elements = getElementsInDrag(
+      { x: 175, y: 175, width: 40, height: 40 },
+      { x: 200, y: 200 },
+      () => true,
+    );
+
+    expect(elements).toEqual([instanceElement]);
+    expect(resolveThreeElementAtPoint).toHaveBeenCalledOnce();
+    expect(resolveThreeElementAtPoint).toHaveBeenCalledWith(canvasElement, 200, 200);
+  });
+
+  it("keeps an ordinary canvas when it has no Three.js targets", () => {
+    const canvasElement = createElement();
+    Object.assign(canvasElement, { tagName: "CANVAS" });
+    vi.mocked(getDeepElementsAtPoint).mockReturnValue([canvasElement]);
+    setElementBounds(
+      new Map([[canvasElement, { x: 50, y: 50, width: 200, height: 200, borderRadius: "0px" }]]),
+    );
+
+    const elements = getElementsInDrag(
+      { x: 50, y: 50, width: 200, height: 200 },
+      { x: 245, y: 245 },
+      () => true,
+    );
+
+    expect(elements).toEqual([canvasElement]);
   });
 
   it("looks through invalid stack layers for local content at the endpoint", () => {
