@@ -101,6 +101,7 @@ interface ThreeRootState {
 
 interface ThreeRoot {
   getState: () => ThreeRootState;
+  selectableObjects: ThreeObjectLike[] | null;
 }
 
 interface ThreeFiberRootLike {
@@ -312,11 +313,13 @@ export const handleReactThreeFiberRootCommit = (root: ThreeFiberRootLike): void 
       canvas,
       root: {
         getState: getRootState,
+        selectableObjects: null,
       },
     };
     registrationByReactThreeFiberRoot.set(root, registration);
   } else {
     registration.root.getState = getRootState;
+    registration.root.selectableObjects = null;
   }
   threeRootByCanvas.set(canvas, registration.root);
   registerThreeRendererFreeze(canvas);
@@ -355,6 +358,15 @@ const isThreeObjectInScene = (object: ThreeObjectLike, scene: ThreeSceneLike): b
     currentObject = currentObject.parent;
   }
   return false;
+};
+
+const isThreeObjectVisible = (object: ThreeObjectLike): boolean => {
+  let currentObject: ThreeObjectLike | null = object;
+  while (currentObject) {
+    if (!currentObject.visible) return false;
+    currentObject = currentObject.parent;
+  }
+  return true;
 };
 
 const getOrCreateSelectionElement = (
@@ -459,6 +471,33 @@ export const resolveThreeElementAtPoint = (
     }
   } catch {}
   return candidateElement;
+};
+
+export const getThreeSelectionElements = (candidateElement: Element): Element[] => {
+  if (!isCanvasElement(candidateElement)) return [];
+  const root = threeRootByCanvas.get(candidateElement);
+  if (!root) return [];
+  const rootState = root.getState();
+
+  if (!root.selectableObjects) {
+    const selectableObjects: ThreeObjectLike[] = [];
+    const objectQueue = [...rootState.scene.children];
+    for (let objectIndex = 0; objectIndex < objectQueue.length; objectIndex += 1) {
+      const object = objectQueue[objectIndex];
+      if (object.children) objectQueue.push(...object.children);
+      if (!getReactThreeFiberInstance(object) || !getGeometryBoundingBox(object)) continue;
+      selectableObjects.push(object);
+    }
+    root.selectableObjects = selectableObjects;
+  }
+
+  const elements: Element[] = [];
+  for (const object of root.selectableObjects) {
+    if (!isThreeObjectVisible(object) || !isThreeObjectInScene(object, rootState.scene)) continue;
+    const element = getOrCreateSelectionElement(rootState, object, { object });
+    if (element) elements.push(element);
+  }
+  return elements;
 };
 
 const formatPropValue = (value: unknown): string | null => {

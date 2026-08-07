@@ -24,6 +24,7 @@ import { compareElementDocumentOrder } from "./compare-element-document-order.js
 import { getAccessibleIframeDocument } from "./get-accessible-iframe-document.js";
 import { isIframeElement } from "./is-iframe-element.js";
 import { isShadowRoot } from "./is-shadow-root.js";
+import { getThreeSelectionElements } from "../core/three-selection.js";
 
 const sortByDocumentOrder = (elements: Element[]): Element[] =>
   elements.sort(compareElementDocumentOrder);
@@ -220,6 +221,7 @@ const filterElementsInDrag = (
 
   const candidates = new Set<Element>();
   const candidateBoundsByElement = new Map<Element, ElementBounds>();
+  const inspectedThreeCanvasElements = new Set<Element>();
   const sampleCoordinates = createSampleCoordinates(dragRect, intentPoint);
 
   suspendPointerEventsFreeze();
@@ -235,6 +237,15 @@ const filterElementsInDrag = (
       );
       for (const candidateElement of elementsAtPoint) {
         candidates.add(candidateElement);
+        if (
+          candidateElement.tagName === "CANVAS" &&
+          !inspectedThreeCanvasElements.has(candidateElement)
+        ) {
+          inspectedThreeCanvasElements.add(candidateElement);
+          for (const threeElement of getThreeSelectionElements(candidateElement)) {
+            candidates.add(threeElement);
+          }
+        }
       }
 
       if (coordinateIndex === 0) {

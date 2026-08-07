@@ -1,6 +1,7 @@
 import { expect, test } from "./fixtures.js";
 import { moveToThreeObject } from "./move-to-three-object.js";
 import {
+  THREE_DRAG_SELECTION_OUTSET_PX,
   THREE_ELAPSED_TIME_WINDOW_PROPERTY,
   THREE_FRAME_COUNT_WINDOW_PROPERTY,
   THREE_LEFT_OBJECT_HORIZONTAL_RATIO,
@@ -108,5 +109,39 @@ test.describe("React Three Fiber selection", () => {
     await expect.poll(() => reactGrab.getClipboardContent()).toContain('<mesh name="right-cube"');
     const clipboardContent = await reactGrab.getClipboardContent();
     expect(clipboardContent).not.toContain('<mesh name="left-cube"');
+  });
+
+  test("drag-selects adjacent meshes from one canvas", async ({ reactGrab, page }) => {
+    await reactGrab.activate();
+    await moveToThreeObject(page, "three-fiber-canvas", THREE_LEFT_OBJECT_HORIZONTAL_RATIO);
+    await reactGrab.waitForSelectionBox();
+    const leftSelectionBounds = await reactGrab.getSelectionBoxBounds();
+
+    await moveToThreeObject(page, "three-fiber-canvas", THREE_RIGHT_OBJECT_HORIZONTAL_RATIO);
+    await reactGrab.waitForSelectionBox();
+    const rightSelectionBounds = await reactGrab.getSelectionBoxBounds();
+    if (!leftSelectionBounds || !rightSelectionBounds) {
+      throw new Error("Three.js selection bounds were not rendered");
+    }
+
+    const dragStartX = leftSelectionBounds.x - THREE_DRAG_SELECTION_OUTSET_PX;
+    const dragStartY =
+      Math.min(leftSelectionBounds.y, rightSelectionBounds.y) - THREE_DRAG_SELECTION_OUTSET_PX;
+    const dragEndX =
+      rightSelectionBounds.x + rightSelectionBounds.width + THREE_DRAG_SELECTION_OUTSET_PX;
+    const dragEndY =
+      Math.max(
+        leftSelectionBounds.y + leftSelectionBounds.height,
+        rightSelectionBounds.y + rightSelectionBounds.height,
+      ) + THREE_DRAG_SELECTION_OUTSET_PX;
+
+    await page.mouse.move(dragStartX, dragStartY);
+    await page.mouse.down();
+    await page.mouse.move(dragEndX, dragEndY, { steps: 10 });
+    await page.mouse.up();
+
+    await expect.poll(() => reactGrab.getClipboardContent()).toContain('<mesh name="left-cube"');
+    const clipboardContent = await reactGrab.getClipboardContent();
+    expect(clipboardContent).toContain('<mesh name="right-cube"');
   });
 });
