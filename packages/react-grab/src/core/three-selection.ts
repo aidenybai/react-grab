@@ -135,6 +135,7 @@ interface ThreeSelection {
 }
 
 const selectionsByObject = new WeakMap<ThreeObjectLike, Map<number | null, ThreeSelection>>();
+const selectionByElement = new WeakMap<Element, ThreeSelection>();
 const threeRootByCanvas = new WeakMap<HTMLCanvasElement, ThreeRoot>();
 const rendererFreezeCleanupByCanvas = new WeakMap<HTMLCanvasElement, () => void>();
 const registrationByReactThreeFiberRoot = new WeakMap<
@@ -468,6 +469,7 @@ const getOrCreateSelectionElement = (
       isThreeObjectInScene(selection.object, selection.rootState.scene),
   });
   selectionsByInstance.set(instanceId, selection);
+  selectionByElement.set(createdElement, selection);
   return createdElement;
 };
 
@@ -479,17 +481,17 @@ export const resolveThreeElementAtPoint = (
   if (!isCanvasElement(candidateElement)) return candidateElement;
   const root = threeRootByCanvas.get(candidateElement);
   if (!root) return candidateElement;
-  const rootState = root.getState();
-
-  const canvasBounds = createElementBounds(candidateElement);
-  if (canvasBounds.width <= 0 || canvasBounds.height <= 0) return candidateElement;
-  const pointerX = ((clientX - canvasBounds.x) / canvasBounds.width) * 2 - 1;
-  const pointerY = -((clientY - canvasBounds.y) / canvasBounds.height) * 2 + 1;
-  if (pointerX < -1 || pointerX > 1 || pointerY < -1 || pointerY > 1) {
-    return candidateElement;
-  }
 
   try {
+    const rootState = root.getState();
+    const canvasBounds = createElementBounds(candidateElement);
+    if (canvasBounds.width <= 0 || canvasBounds.height <= 0) return candidateElement;
+    const pointerX = ((clientX - canvasBounds.x) / canvasBounds.width) * 2 - 1;
+    const pointerY = -((clientY - canvasBounds.y) / canvasBounds.height) * 2 + 1;
+    if (pointerX < -1 || pointerX > 1 || pointerY < -1 || pointerY > 1) {
+      return candidateElement;
+    }
+
     rootState.pointer.set(pointerX, pointerY);
     rootState.raycaster.setFromCamera(rootState.pointer, rootState.camera);
     const intersections = rootState.raycaster.intersectObjects(rootState.scene.children, true);
@@ -510,12 +512,16 @@ export const resolveThreeElementAtPoint = (
   return candidateElement;
 };
 
-export const getThreeSelectionElements = (candidateElement: Element): Element[] => {
+export const getThreeSelectionElements = (
+  candidateElement: Element,
+  endpointElement?: Element,
+): Element[] => {
   if (!isCanvasElement(candidateElement)) return [];
   const root = threeRootByCanvas.get(candidateElement);
   if (!root) return [];
   try {
     const rootState = root.getState();
+    const endpointSelection = endpointElement ? selectionByElement.get(endpointElement) : null;
 
     if (!root.selectableObjects) {
       const selectableObjects: ThreeObjectLike[] = [];
@@ -540,6 +546,14 @@ export const getThreeSelectionElements = (candidateElement: Element): Element[] 
         for (let instanceId = 0; instanceId < instanceCount; instanceId += 1) {
           appendThreeSelectionElement(elements, rootState, object, instanceId);
         }
+        continue;
+      }
+      if (
+        instanceCount > THREE_DRAG_SELECTION_MAX_INDIVIDUAL_INSTANCES &&
+        endpointSelection?.object === object &&
+        endpointSelection.instanceId !== null
+      ) {
+        elements.push(endpointSelection.element);
         continue;
       }
       appendThreeSelectionElement(elements, rootState, object);

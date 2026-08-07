@@ -208,14 +208,16 @@ describe("getElementsInDrag", () => {
     const canvasElement = createElement();
     const leftMeshElement = createElement();
     const rightMeshElement = createElement();
+    const canvasContainerElement = createElement([canvasElement]);
     Object.assign(canvasElement, { tagName: "CANVAS" });
     Object.assign(leftMeshElement, { tagName: "MESH" });
     Object.assign(rightMeshElement, { tagName: "MESH" });
-    vi.mocked(getDeepElementsAtPoint).mockReturnValue([canvasElement]);
+    vi.mocked(getDeepElementsAtPoint).mockReturnValue([canvasElement, canvasContainerElement]);
     vi.mocked(getThreeSelectionElements).mockReturnValue([leftMeshElement, rightMeshElement]);
     setElementBounds(
       new Map([
         [canvasElement, { x: 50, y: 50, width: 200, height: 200, borderRadius: "0px" }],
+        [canvasContainerElement, { x: 0, y: 0, width: 300, height: 300, borderRadius: "0px" }],
         [leftMeshElement, { x: 80, y: 100, width: 40, height: 40, borderRadius: "0px" }],
         [rightMeshElement, { x: 180, y: 100, width: 40, height: 40, borderRadius: "0px" }],
       ]),
@@ -229,19 +231,25 @@ describe("getElementsInDrag", () => {
 
     expect(elements).toEqual([leftMeshElement, rightMeshElement]);
     expect(getThreeSelectionElements).toHaveBeenCalledOnce();
-    expect(getThreeSelectionElements).toHaveBeenCalledWith(canvasElement);
+    expect(getThreeSelectionElements).toHaveBeenCalledWith(canvasElement, canvasElement);
   });
 
-  it("uses the endpoint raycast when a Three.js scene is too large to enumerate", () => {
+  it("prefers the endpoint instance over a large Three.js aggregate", () => {
     const canvasElement = createElement();
+    const aggregateElement = createElement();
     const instanceElement = createElement();
     Object.assign(canvasElement, { tagName: "CANVAS" });
+    Object.assign(aggregateElement, { tagName: "INSTANCEDMESH" });
     Object.assign(instanceElement, { tagName: "INSTANCEDMESH" });
     vi.mocked(getDeepElementsAtPoint).mockReturnValue([canvasElement]);
     vi.mocked(resolveThreeElementAtPoint).mockReturnValue(instanceElement);
+    vi.mocked(getThreeSelectionElements).mockImplementation((_canvasElement, endpointElement) =>
+      endpointElement === instanceElement ? [instanceElement] : [aggregateElement],
+    );
     setElementBounds(
       new Map([
         [canvasElement, { x: 50, y: 50, width: 200, height: 200, borderRadius: "0px" }],
+        [aggregateElement, { x: 50, y: 50, width: 200, height: 200, borderRadius: "0px" }],
         [instanceElement, { x: 180, y: 180, width: 30, height: 30, borderRadius: "0px" }],
       ]),
     );
@@ -255,6 +263,27 @@ describe("getElementsInDrag", () => {
     expect(elements).toEqual([instanceElement]);
     expect(resolveThreeElementAtPoint).toHaveBeenCalledOnce();
     expect(resolveThreeElementAtPoint).toHaveBeenCalledWith(canvasElement, 200, 200);
+    expect(getThreeSelectionElements).toHaveBeenCalledWith(canvasElement, instanceElement);
+  });
+
+  it("keeps the canvas when Three.js endpoint resolution fails", () => {
+    const canvasElement = createElement();
+    Object.assign(canvasElement, { tagName: "CANVAS" });
+    vi.mocked(getDeepElementsAtPoint).mockReturnValue([canvasElement]);
+    vi.mocked(resolveThreeElementAtPoint).mockImplementation(() => {
+      throw new Error("renderer state is unreadable");
+    });
+    setElementBounds(
+      new Map([[canvasElement, { x: 50, y: 50, width: 200, height: 200, borderRadius: "0px" }]]),
+    );
+
+    const elements = getElementsInDrag(
+      { x: 50, y: 50, width: 200, height: 200 },
+      { x: 245, y: 245 },
+      () => true,
+    );
+
+    expect(elements).toEqual([canvasElement]);
   });
 
   it("keeps an ordinary canvas when it has no Three.js targets", () => {

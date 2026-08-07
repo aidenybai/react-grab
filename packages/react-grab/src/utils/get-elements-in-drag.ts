@@ -47,8 +47,11 @@ const addIntersectingNeighbors = (
   candidates: Set<Element>,
   dragRect: DragRect,
   candidateBoundsByElement: Map<Element, ElementBounds>,
+  excludedElements: Set<Element>,
 ): void => {
-  const candidateQueue = [...candidates];
+  const candidateQueue = [...candidates].filter(
+    (candidateElement) => !excludedElements.has(candidateElement),
+  );
   const tableRowQueue = candidateQueue.filter(
     (candidateElement) => candidateElement.tagName === "TR",
   );
@@ -72,6 +75,7 @@ const addIntersectingNeighbors = (
     if (
       !candidateElement ||
       candidates.has(candidateElement) ||
+      excludedElements.has(candidateElement) ||
       inspectedNeighborCount >= DRAG_SELECTION_MAX_NEIGHBOR_SCAN_ELEMENTS
     ) {
       return;
@@ -244,21 +248,23 @@ const filterElementsInDrag = (
             continue;
           }
           inspectedThreeCanvasElements.add(candidateElement);
-          const threeElements = getThreeSelectionElements(candidateElement);
-          const endpointThreeElement =
-            coordinateIndex === 0
-              ? resolveThreeElementAtPoint(
-                  candidateElement,
-                  sampleCoordinates[coordinateIndex],
-                  sampleCoordinates[coordinateIndex + 1],
-                )
-              : candidateElement;
+          let endpointThreeElement = candidateElement;
+          if (coordinateIndex === 0) {
+            try {
+              endpointThreeElement = resolveThreeElementAtPoint(
+                candidateElement,
+                sampleCoordinates[coordinateIndex],
+                sampleCoordinates[coordinateIndex + 1],
+              );
+            } catch {}
+          }
+          const threeElements = getThreeSelectionElements(candidateElement, endpointThreeElement);
           if (threeElements.length > 0 || endpointThreeElement !== candidateElement) {
             resolvedThreeCanvasElements.add(candidateElement);
             for (const threeElement of threeElements) {
               candidates.add(threeElement);
             }
-            if (threeElements.length === 0 && endpointThreeElement !== candidateElement) {
+            if (endpointThreeElement !== candidateElement) {
               candidates.add(endpointThreeElement);
             }
             continue;
@@ -286,7 +292,13 @@ const filterElementsInDrag = (
     resumePointerEventsFreeze();
   }
 
-  addIntersectingNeighbors(candidates, dragRect, candidateBoundsByElement);
+  for (const canvasElement of resolvedThreeCanvasElements) candidates.delete(canvasElement);
+  addIntersectingNeighbors(
+    candidates,
+    dragRect,
+    candidateBoundsByElement,
+    resolvedThreeCanvasElements,
+  );
 
   const matchingElements: Element[] = [];
   let nearestFallbackElement: Element | null = null;
