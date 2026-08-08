@@ -1,6 +1,61 @@
 import { test, expect } from "./fixtures.js";
+import type { ReactGrabPageObject } from "./fixtures.js";
 
 const TODO_LIST_ITEM_SELECTOR = "[data-testid='todo-list'] li";
+
+const configureWideTextTarget = async (reactGrab: ReactGrabPageObject): Promise<void> => {
+  await reactGrab.page.evaluate(() => {
+    const paragraphElement = document.querySelector("[data-testid='main-description']");
+    if (!(paragraphElement instanceof HTMLElement)) {
+      throw new Error("Could not find a text target inside the app scope");
+    }
+    for (const pageElement of document.body.querySelectorAll("*")) {
+      if (
+        pageElement instanceof HTMLElement &&
+        pageElement !== paragraphElement &&
+        !pageElement.closest("[data-react-grab]")
+      ) {
+        pageElement.style.visibility = "hidden";
+      }
+    }
+    paragraphElement.id = "wide-text-drag-target";
+    paragraphElement.textContent = "Short label";
+    Object.assign(paragraphElement.style, {
+      font: "20px sans-serif",
+      height: "40px",
+      left: "20px",
+      lineHeight: "40px",
+      margin: "0",
+      position: "fixed",
+      top: "80px",
+      visibility: "visible",
+      width: "500px",
+      zIndex: "10000",
+    });
+
+    const trackingWindow = window as Window & { __WIDE_TEXT_DRAG_TARGET_IDS__?: string[] };
+    trackingWindow.__WIDE_TEXT_DRAG_TARGET_IDS__ = [];
+    const api = window.__REACT_GRAB__;
+    api?.unregisterPlugin("wide-text-drag-tracking");
+    api?.registerPlugin({
+      name: "wide-text-drag-tracking",
+      hooks: {
+        onDragEnd: (selectedElements: Element[]) => {
+          trackingWindow.__WIDE_TEXT_DRAG_TARGET_IDS__ = selectedElements.map(
+            (selectedElement) => selectedElement.id,
+          );
+        },
+      },
+    });
+  });
+};
+
+const getWideTextDragTargetIds = async (reactGrab: ReactGrabPageObject): Promise<string[]> =>
+  reactGrab.page.evaluate(
+    () =>
+      (window as Window & { __WIDE_TEXT_DRAG_TARGET_IDS__?: string[] })
+        .__WIDE_TEXT_DRAG_TARGET_IDS__ ?? [],
+  );
 
 test.describe("Drag Selection", () => {
   test("should keep drag active when releasing Space in hold mode with Space activation key", async ({
@@ -126,6 +181,47 @@ test.describe("Drag Selection", () => {
     const clipboardContent = await reactGrab.getClipboardContent();
     expect(clipboardContent).toBeTruthy();
     expect(clipboardContent.length).toBeGreaterThan(0);
+  });
+
+  test("should ignore empty space inside a wide text layout box", async ({ reactGrab }) => {
+    await configureWideTextTarget(reactGrab);
+    await reactGrab.activate();
+
+    const paragraphBounds = await reactGrab.page.locator("#wide-text-drag-target").boundingBox();
+    if (!paragraphBounds) throw new Error("Could not get wide text bounds");
+
+    await reactGrab.page.mouse.move(paragraphBounds.x + 300, paragraphBounds.y + 5);
+    await reactGrab.page.mouse.down();
+    await reactGrab.page.mouse.move(paragraphBounds.x + 450, paragraphBounds.y + 35, {
+      steps: 5,
+    });
+    await reactGrab.page.mouse.up();
+
+    expect(await getWideTextDragTargetIds(reactGrab)).not.toContain("wide-text-drag-target");
+  });
+
+  test("should drag-select the painted part of a wide text element", async ({ reactGrab }) => {
+    await configureWideTextTarget(reactGrab);
+    await reactGrab.activate();
+
+    const textBounds = await reactGrab.page
+      .locator("#wide-text-drag-target")
+      .evaluate((element) => {
+        const textNode = element.firstChild;
+        if (!textNode) return null;
+        const range = document.createRange();
+        range.selectNodeContents(textNode);
+        const bounds = range.getBoundingClientRect();
+        return { bottom: bounds.bottom, left: bounds.left, right: bounds.right, top: bounds.top };
+      });
+    if (!textBounds) throw new Error("Could not get painted text bounds");
+
+    await reactGrab.page.mouse.move(textBounds.left - 10, textBounds.top - 5);
+    await reactGrab.page.mouse.down();
+    await reactGrab.page.mouse.move(textBounds.right + 10, textBounds.bottom + 5, { steps: 5 });
+    await reactGrab.page.mouse.up();
+
+    expect(await getWideTextDragTargetIds(reactGrab)).toContain("wide-text-drag-target");
   });
 
   test("should copy all selected elements to clipboard", async ({ reactGrab }) => {

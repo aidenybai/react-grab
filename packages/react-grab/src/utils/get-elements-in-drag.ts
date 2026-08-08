@@ -19,6 +19,7 @@ import { clampToRange } from "./clamp-to-range.js";
 import { getDeepElementsAtPoint } from "./get-deep-elements-at-point.js";
 import { getLocalContentElementAtPoint } from "./get-local-content-element-at-point.js";
 import { createElementBounds } from "./create-element-bounds.js";
+import { getElementTextBounds } from "./get-element-text-bounds.js";
 import { getComposedParentElement } from "./get-composed-parent-element.js";
 import { compareElementDocumentOrder } from "./compare-element-document-order.js";
 import { getAccessibleIframeDocument } from "./get-accessible-iframe-document.js";
@@ -333,35 +334,73 @@ const filterElementsInDrag = (
       Math.min(viewportHeight, candidateBottom) - Math.max(0, candidateTop) >= viewportCoverHeight;
     if (coversViewport) continue;
 
-    const intersectionWidth = Math.max(
+    const candidateIntersectionWidth = Math.max(
       0,
       Math.min(dragRight, candidateRight) - Math.max(dragLeft, candidateLeft),
     );
-    const intersectionHeight = Math.max(
+    const candidateIntersectionHeight = Math.max(
       0,
       Math.min(dragBottom, candidateBottom) - Math.max(dragTop, candidateTop),
     );
-    const intersectionArea = intersectionWidth * intersectionHeight;
+    const candidateArea = candidateBounds.width * candidateBounds.height;
+    if (candidateIntersectionWidth <= 0 || candidateIntersectionHeight <= 0 || candidateArea <= 0) {
+      continue;
+    }
+
+    const textBounds = getElementTextBounds(candidateElement);
+    let intersectionArea = 0;
+    let intentDistanceSquared = Number.POSITIVE_INFINITY;
+    if (textBounds) {
+      for (const textFragmentBounds of textBounds) {
+        const fragmentLeft = textFragmentBounds.x;
+        const fragmentTop = textFragmentBounds.y;
+        const fragmentRight = fragmentLeft + textFragmentBounds.width;
+        const fragmentBottom = fragmentTop + textFragmentBounds.height;
+        const intersectionWidth = Math.max(
+          0,
+          Math.min(dragRight, fragmentRight) - Math.max(dragLeft, fragmentLeft),
+        );
+        const intersectionHeight = Math.max(
+          0,
+          Math.min(dragBottom, fragmentBottom) - Math.max(dragTop, fragmentTop),
+        );
+        intersectionArea += intersectionWidth * intersectionHeight;
+
+        const intentDistanceX = Math.max(
+          fragmentLeft - intentPoint.x,
+          0,
+          intentPoint.x - fragmentRight,
+        );
+        const intentDistanceY = Math.max(
+          fragmentTop - intentPoint.y,
+          0,
+          intentPoint.y - fragmentBottom,
+        );
+        const fragmentIntentDistanceSquared =
+          intentDistanceX * intentDistanceX + intentDistanceY * intentDistanceY;
+        intentDistanceSquared = Math.min(intentDistanceSquared, fragmentIntentDistanceSquared);
+      }
+    } else {
+      intersectionArea = candidateIntersectionWidth * candidateIntersectionHeight;
+
+      const intentDistanceX = Math.max(
+        candidateLeft - intentPoint.x,
+        0,
+        intentPoint.x - candidateRight,
+      );
+      const intentDistanceY = Math.max(
+        candidateTop - intentPoint.y,
+        0,
+        intentPoint.y - candidateBottom,
+      );
+      intentDistanceSquared = intentDistanceX * intentDistanceX + intentDistanceY * intentDistanceY;
+    }
     if (intersectionArea <= 0) continue;
 
-    const candidateArea = candidateBounds.width * candidateBounds.height;
     if (intersectionArea / candidateArea >= DRAG_SELECTION_COVERAGE_THRESHOLD) {
       matchingElements.push(candidateElement);
       continue;
     }
-
-    const intentDistanceX = Math.max(
-      candidateLeft - intentPoint.x,
-      0,
-      intentPoint.x - candidateRight,
-    );
-    const intentDistanceY = Math.max(
-      candidateTop - intentPoint.y,
-      0,
-      intentPoint.y - candidateBottom,
-    );
-    const intentDistanceSquared =
-      intentDistanceX * intentDistanceX + intentDistanceY * intentDistanceY;
     const isNearerFallback = intentDistanceSquared < nearestFallbackDistanceSquared;
     const isSmallerEquidistantFallback =
       intentDistanceSquared === nearestFallbackDistanceSquared &&

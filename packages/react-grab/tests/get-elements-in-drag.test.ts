@@ -3,6 +3,7 @@ import type { ElementBounds } from "../src/types.js";
 import { getElementsInDrag } from "../src/utils/get-elements-in-drag.js";
 import { compareElementDocumentOrder } from "../src/utils/compare-element-document-order.js";
 import { createElementBounds } from "../src/utils/create-element-bounds.js";
+import { getElementTextBounds } from "../src/utils/get-element-text-bounds.js";
 import { getAccessibleIframeDocument } from "../src/utils/get-accessible-iframe-document.js";
 import { getComposedParentElement } from "../src/utils/get-composed-parent-element.js";
 import { getDeepElementsAtPoint } from "../src/utils/get-deep-elements-at-point.js";
@@ -36,6 +37,10 @@ vi.mock("../src/core/three-selection.js", () => ({
 
 vi.mock("../src/utils/create-element-bounds.js", () => ({
   createElementBounds: vi.fn(),
+}));
+
+vi.mock("../src/utils/get-element-text-bounds.js", () => ({
+  getElementTextBounds: vi.fn(() => null),
 }));
 
 vi.mock("../src/utils/get-accessible-iframe-document.js", () => ({
@@ -108,6 +113,7 @@ beforeEach(() => {
   vi.mocked(compareElementDocumentOrder).mockReturnValue(0);
   vi.mocked(createElementBounds).mockReset();
   vi.mocked(getAccessibleIframeDocument).mockReturnValue(null);
+  vi.mocked(getElementTextBounds).mockReturnValue(null);
   vi.mocked(getComposedParentElement).mockReturnValue(null);
   vi.mocked(getDeepElementsAtPoint).mockReturnValue([]);
   vi.mocked(getLocalContentElementAtPoint).mockReturnValue(null);
@@ -630,6 +636,112 @@ describe("getElementsInDrag", () => {
     expect(elements).toEqual([candidateElement]);
   });
 
+  it("does not select empty space inside a wide text element", () => {
+    const textElement = createElement();
+    vi.mocked(getDeepElementsAtPoint).mockReturnValue([textElement]);
+    vi.mocked(getElementTextBounds).mockReturnValue([
+      { x: 10, y: 10, width: 100, height: 20, borderRadius: "0px" },
+    ]);
+    setElementBounds(
+      new Map([[textElement, { x: 10, y: 10, width: 280, height: 20, borderRadius: "0px" }]]),
+    );
+
+    const elements = getElementsInDrag(
+      { x: 220, y: 10, width: 60, height: 20 },
+      { x: 275, y: 20 },
+      () => true,
+    );
+
+    expect(elements).toEqual([]);
+  });
+
+  it("selects a wide text element when the drag covers its painted text", () => {
+    const textElement = createElement();
+    vi.mocked(getDeepElementsAtPoint).mockReturnValue([textElement]);
+    vi.mocked(getElementTextBounds).mockReturnValue([
+      { x: 10, y: 10, width: 100, height: 20, borderRadius: "0px" },
+    ]);
+    setElementBounds(
+      new Map([[textElement, { x: 10, y: 10, width: 280, height: 20, borderRadius: "0px" }]]),
+    );
+
+    const elements = getElementsInDrag(
+      { x: 10, y: 10, width: 100, height: 20 },
+      { x: 105, y: 20 },
+      () => true,
+    );
+
+    expect(elements).toEqual([textElement]);
+  });
+
+  it("keeps wrapped text line gaps out of drag geometry", () => {
+    const textElement = createElement();
+    vi.mocked(getDeepElementsAtPoint).mockReturnValue([textElement]);
+    vi.mocked(getElementTextBounds).mockReturnValue([
+      { x: 10, y: 10, width: 100, height: 20, borderRadius: "0px" },
+      { x: 10, y: 30, width: 40, height: 20, borderRadius: "0px" },
+    ]);
+    setElementBounds(
+      new Map([[textElement, { x: 10, y: 10, width: 280, height: 40, borderRadius: "0px" }]]),
+    );
+
+    const elements = getElementsInDrag(
+      { x: 60, y: 30, width: 40, height: 20 },
+      { x: 95, y: 40 },
+      () => true,
+    );
+
+    expect(elements).toEqual([]);
+  });
+
+  it("does not promote small text behind a covered foreground target", () => {
+    const backgroundTextElement = createElement();
+    const foregroundElement = createElement();
+    vi.mocked(getDeepElementsAtPoint).mockReturnValue([foregroundElement, backgroundTextElement]);
+    vi.mocked(getElementTextBounds).mockImplementation((element) =>
+      element === backgroundTextElement
+        ? [{ x: 20, y: 20, width: 60, height: 20, borderRadius: "0px" }]
+        : null,
+    );
+    setElementBounds(
+      new Map([
+        [backgroundTextElement, { x: 0, y: 0, width: 300, height: 100, borderRadius: "0px" }],
+        [foregroundElement, { x: 40, y: 40, width: 20, height: 20, borderRadius: "0px" }],
+      ]),
+    );
+
+    const elements = getElementsInDrag(
+      { x: 0, y: 0, width: 100, height: 100 },
+      { x: 50, y: 50 },
+      () => true,
+    );
+
+    expect(elements).toEqual([foregroundElement]);
+  });
+
+  it("prefers a text child over its text-flow parent for a partial drag", () => {
+    const labelElement = createElement();
+    const containerElement = createElement([labelElement]);
+    const sharedTextBounds = [{ x: 150, y: 110, width: 110, height: 30, borderRadius: "0px" }];
+    vi.mocked(getDeepElementsAtPoint).mockReturnValue([containerElement]);
+    vi.mocked(getLocalContentElementAtPoint).mockReturnValue(labelElement);
+    vi.mocked(getElementTextBounds).mockReturnValue(sharedTextBounds);
+    setElementBounds(
+      new Map([
+        [containerElement, { x: 40, y: 80, width: 220, height: 80, borderRadius: "0px" }],
+        [labelElement, { x: 150, y: 110, width: 120, height: 30, borderRadius: "0px" }],
+      ]),
+    );
+
+    const elements = getElementsInDrag(
+      { x: 100, y: 90, width: 90, height: 35 },
+      { x: 190, y: 125 },
+      () => true,
+    );
+
+    expect(elements).toEqual([labelElement]);
+  });
+
   it("excludes a candidate that only touches the drag edge", () => {
     const candidateElement = createElement();
     vi.mocked(getDeepElementsAtPoint).mockReturnValue([candidateElement]);
@@ -644,6 +756,7 @@ describe("getElementsInDrag", () => {
     );
 
     expect(elements).toEqual([]);
+    expect(getElementTextBounds).not.toHaveBeenCalled();
   });
 
   it("returns all covered candidates in document order", () => {
