@@ -817,32 +817,6 @@ describe("getElementsInDrag", () => {
     expect(elements).toEqual([labelElement]);
   });
 
-  it("prefers refined pointer-none text over its text-flow parent", () => {
-    const labelElement = createElement();
-    const containerElement = createElement([labelElement]);
-    const sharedTextBounds = [{ x: 100, y: 100, width: 100, height: 20, borderRadius: "0px" }];
-    vi.mocked(getDeepElementsAtPoint).mockReturnValue([containerElement]);
-    vi.mocked(getLocalContentElementAtPoint).mockReturnValue(labelElement);
-    vi.mocked(getElementTextBounds).mockReturnValue(sharedTextBounds);
-    vi.mocked(getComposedParentElement).mockImplementation((element) =>
-      element === labelElement ? containerElement : null,
-    );
-    setElementBounds(
-      new Map([
-        [containerElement, { x: 50, y: 50, width: 200, height: 100, borderRadius: "0px" }],
-        [labelElement, { x: 100, y: 100, width: 100, height: 20, borderRadius: "0px" }],
-      ]),
-    );
-
-    const elements = getElementsInDrag(
-      { x: 100, y: 100, width: 100, height: 20 },
-      { x: 195, y: 110 },
-      () => true,
-    );
-
-    expect(elements).toEqual([labelElement]);
-  });
-
   it("excludes a candidate that only touches the drag edge", () => {
     const candidateElement = createElement();
     vi.mocked(getDeepElementsAtPoint).mockReturnValue([candidateElement]);

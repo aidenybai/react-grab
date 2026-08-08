@@ -2005,8 +2005,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           }
           if (store.detectedElement && !isElementConnected(store.detectedElement)) {
             actions.relinkLiveElements();
-            elementDetectionState.pendingDetectionScheduledAt = 0;
-            return;
+            clearElementPositionCache();
           }
           elementDetectionState.lastDetectionTimestamp = performance.now();
           const candidate = getElementAtPosition(

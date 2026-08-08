@@ -14,6 +14,7 @@ const SELECTION_TEXT_ATTEMPTS = 4;
 const HOVER_MOVE_STEPS = 5;
 const SELECTION_TEXT_POLL_TIMEOUT_MS = 1_000;
 const SELECTION_SETTLE_DELAY_MS = 50;
+const DISCONNECTED_HOVER_REDETECTION_TIMEOUT_MS = 130;
 
 const getSelectionTargetText = () =>
   (window as unknown as FiberSwapWindow).__REACT_GRAB__
@@ -54,6 +55,50 @@ const hoverUntilSelectionTextIs = async (page: Page, selector: string, expectedT
 };
 
 test.describe("Fiber-latched selection", () => {
+  test("redetects under the pointer when the hovered element disconnects", async ({
+    reactGrab,
+    page,
+  }) => {
+    await page.evaluate(() => {
+      const disconnectedElement = document.createElement("button");
+      disconnectedElement.dataset.testid = "disconnected-hover-target";
+      disconnectedElement.textContent = "Disconnecting hover target";
+      disconnectedElement.style.cssText =
+        "position:fixed;left:20px;top:80px;width:180px;height:40px;z-index:2147480000";
+
+      const replacementElement = document.createElement("button");
+      replacementElement.dataset.testid = "replacement-hover-target";
+      replacementElement.textContent = "Replacement hover target";
+      replacementElement.style.cssText =
+        "position:fixed;left:220px;top:80px;width:180px;height:40px;z-index:2147480000";
+      document.body.append(disconnectedElement, replacementElement);
+    });
+
+    await reactGrab.activate();
+    await hoverUntilSelectionTextIs(
+      page,
+      "[data-testid='disconnected-hover-target']",
+      "Disconnecting hover target",
+    );
+
+    await page.locator("[data-testid='disconnected-hover-target']").evaluate((element) => {
+      element.remove();
+    });
+    const replacementElement = page.locator("[data-testid='replacement-hover-target']");
+    const replacementBounds = await replacementElement.boundingBox();
+    if (!replacementBounds) throw new Error("Could not get replacement hover target bounds");
+    await page.mouse.move(
+      replacementBounds.x + replacementBounds.width / 2,
+      replacementBounds.y + replacementBounds.height / 2,
+    );
+
+    await expect
+      .poll(() => page.evaluate(getSelectionTargetText), {
+        timeout: DISCONNECTED_HOVER_REDETECTION_TIMEOUT_MS,
+      })
+      .toBe("Replacement hover target");
+  });
+
   // When React swaps the DOM node backing a held selection (a keyed remount
   // here), the originally captured Element detaches. Without fiber latching the
   // selection drops; with it, react-grab re-resolves the live node from the

@@ -224,6 +224,26 @@ describe("getElementAtPosition", () => {
     expect(getDeepElementAtPoint).toHaveBeenCalledOnce();
   });
 
+  it("falls through cached text when local content is outside its painted fragment", () => {
+    const textElement = createHtmlElement("p");
+    const localTextElement = createHtmlElement("span");
+    const cardElement = createHtmlElement("div");
+    vi.mocked(getDeepElementAtPoint).mockReturnValue(textElement);
+    vi.mocked(getLocalContentElementAtPoint).mockReturnValue(localTextElement);
+    vi.mocked(getDeepFallbackElementAtPoint).mockReturnValue(cardElement);
+    vi.mocked(getElementTextBounds).mockImplementation((element) =>
+      element === textElement || element === localTextElement
+        ? [{ x: 0, y: 0, width: 10, height: 20, borderRadius: "0px" }]
+        : null,
+    );
+
+    expect(getElementAtPosition(10, 10)).toBe(localTextElement);
+    vi.mocked(performance.now).mockReturnValue(1);
+    expect(getElementAtPosition(11, 10)).toBe(cardElement);
+    expect(getDeepElementAtPoint).toHaveBeenCalledOnce();
+    expect(getDeepFallbackElementAtPoint).toHaveBeenCalledOnce();
+  });
+
   it("falls back to the native hit when refined local content is invalid", () => {
     const nativeElement = createHtmlElement("button");
     const localContentElement = createHtmlElement("span");

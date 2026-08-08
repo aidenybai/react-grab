@@ -31,13 +31,20 @@ const createElement = (styleOverrides: object = {}): Element =>
   });
 
 describe("hasElementBoxPaint", () => {
-  it("treats transparent text layout boxes as unpainted", () => {
-    expect(hasElementBoxPaint(createElement())).toBe(false);
-    expect(hasElementBoxPaint(createElement({ backgroundColor: "rgba(0, 0, 0, 0)" }))).toBe(false);
+  it.each([
+    "transparent",
+    "rgba(0, 0, 0, 0)",
+    "rgba(255, 0, 0, 0.000)",
+    "rgb(255 0 0 / 0)",
+    "color(display-p3 1 0 0 / 0%)",
+    "oklch(62% 0.2 20 / 0)",
+  ])("treats a %s background as unpainted", (backgroundColor) => {
+    expect(hasElementBoxPaint(createElement({ backgroundColor }))).toBe(false);
   });
 
   it.each([
     { backgroundColor: "rgb(34, 34, 34)" },
+    { backgroundColor: "rgba(34, 34, 34, 0.01)" },
     { backgroundImage: "linear-gradient(red, blue)" },
     { borderTopStyle: "solid", borderTopWidth: "1px" },
     { boxShadow: "rgb(0, 0, 0) 0px 1px 2px" },
