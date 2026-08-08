@@ -1,5 +1,6 @@
 import { test, expect } from "./fixtures.js";
 import type { Page } from "@playwright/test";
+import { getTextInteractionPosition } from "./get-text-interaction-position.js";
 
 interface FiberSwapWindow {
   __triggerFiberSwap?: () => void;
@@ -12,6 +13,7 @@ interface FiberSwapWindow {
 const SELECTION_TEXT_ATTEMPTS = 4;
 const HOVER_MOVE_STEPS = 5;
 const SELECTION_TEXT_POLL_TIMEOUT_MS = 1_000;
+const SELECTION_SETTLE_DELAY_MS = 50;
 
 const getSelectionTargetText = () =>
   (window as unknown as FiberSwapWindow).__REACT_GRAB__
@@ -29,10 +31,13 @@ const hoverUntilSelectionTextIs = async (page: Page, selector: string, expectedT
   for (let attempt = 1; attempt <= SELECTION_TEXT_ATTEMPTS; attempt++) {
     const bounds = await target.boundingBox();
     if (bounds) {
+      const textPosition = await getTextInteractionPosition(target);
       await page.mouse.move(bounds.x - 5, bounds.y - 5);
-      await page.mouse.move(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2, {
-        steps: HOVER_MOVE_STEPS,
-      });
+      await page.mouse.move(
+        bounds.x + (textPosition?.x ?? bounds.width / 2),
+        bounds.y + (textPosition?.y ?? bounds.height / 2),
+        { steps: HOVER_MOVE_STEPS },
+      );
     }
     try {
       await expect
@@ -40,7 +45,8 @@ const hoverUntilSelectionTextIs = async (page: Page, selector: string, expectedT
           timeout: SELECTION_TEXT_POLL_TIMEOUT_MS,
         })
         .toBe(expectedText);
-      return;
+      await page.waitForTimeout(SELECTION_SETTLE_DELAY_MS);
+      if ((await page.evaluate(getSelectionTargetText)) === expectedText) return;
     } catch (error) {
       if (attempt === SELECTION_TEXT_ATTEMPTS) throw error;
     }

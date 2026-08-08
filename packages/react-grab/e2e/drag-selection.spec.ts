@@ -15,19 +15,16 @@ const configureWideTextTarget = async (
   shouldAddEmptySpaceSentinel = false,
 ): Promise<void> => {
   await reactGrab.page.evaluate((shouldAddSentinel) => {
-    const paragraphElement = document.querySelector("[data-testid='main-description']");
-    if (!(paragraphElement instanceof HTMLElement)) {
-      throw new Error("Could not find a text target inside the app scope");
-    }
     for (const pageElement of document.body.querySelectorAll("*")) {
-      if (
-        pageElement instanceof HTMLElement &&
-        pageElement !== paragraphElement &&
-        !pageElement.closest("[data-react-grab]")
-      ) {
+      if (pageElement instanceof HTMLElement && !pageElement.closest("[data-react-grab]")) {
         pageElement.style.visibility = "hidden";
       }
     }
+    const cardElement = document.createElement("div");
+    cardElement.id = "wide-text-drag-card";
+    cardElement.style.cssText =
+      "position:fixed;left:20px;top:80px;width:500px;height:80px;background:#222;visibility:visible;z-index:10000";
+    const paragraphElement = document.createElement("p");
     paragraphElement.id = "wide-text-drag-target";
     paragraphElement.textContent = "Short label";
     Object.assign(paragraphElement.style, {
@@ -40,8 +37,9 @@ const configureWideTextTarget = async (
       top: "80px",
       visibility: "visible",
       width: "500px",
-      zIndex: "10000",
     });
+    cardElement.append(paragraphElement);
+    document.body.append(cardElement);
     if (shouldAddSentinel) {
       const sentinelElement = document.createElement("button");
       sentinelElement.id = "wide-text-drag-sentinel";
@@ -243,6 +241,20 @@ test.describe("Drag Selection", () => {
     await reactGrab.page.mouse.up();
 
     expect(await getWideTextDragTargetIds(reactGrab)).toContain("wide-text-drag-target");
+  });
+
+  test("should hover the card through empty width beside its text", async ({ reactGrab }) => {
+    await configureWideTextTarget(reactGrab);
+    await reactGrab.activate();
+
+    const paragraphBounds = await reactGrab.page.locator("#wide-text-drag-target").boundingBox();
+    if (!paragraphBounds) throw new Error("Could not get wide text bounds");
+
+    await reactGrab.page.mouse.move(paragraphBounds.x + 20, paragraphBounds.y + 20);
+    await expect.poll(async () => (await reactGrab.getSelectionLabelInfo()).tagName).toBe("p");
+
+    await reactGrab.page.mouse.move(paragraphBounds.x + 300, paragraphBounds.y + 20);
+    await expect.poll(async () => (await reactGrab.getSelectionLabelInfo()).tagName).toBe("div");
   });
 
   test("should copy all selected elements to clipboard", async ({ reactGrab }) => {

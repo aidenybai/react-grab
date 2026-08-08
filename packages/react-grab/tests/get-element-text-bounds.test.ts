@@ -7,6 +7,7 @@ import {
   getElementTextBounds,
   invalidateElementTextBoundsCache,
 } from "../src/utils/get-element-text-bounds.js";
+import { isElementPaintedAtPosition } from "../src/utils/is-element-painted-at-position.js";
 import { convertClientPositionToTopWindow } from "../src/utils/convert-client-position-to-top-window.js";
 
 vi.mock("../src/utils/convert-client-position-to-top-window.js", () => ({
@@ -21,6 +22,7 @@ const createElement = (
   childNodes: Node[],
   createRange: () => unknown,
   role: string | null = null,
+  hasBoxPaint = false,
 ): Element =>
   Object.assign(Object.create(null), {
     childNodes,
@@ -28,7 +30,26 @@ const createElement = (
     isContentEditable: false,
     namespaceURI: "http://www.w3.org/1999/xhtml",
     nodeType: 1,
-    ownerDocument: { createRange, defaultView: Object.create(null) },
+    ownerDocument: {
+      createRange,
+      defaultView: {
+        getComputedStyle: () => ({
+          backgroundClip: "border-box",
+          backgroundColor: hasBoxPaint ? "rgb(240, 240, 240)" : "transparent",
+          backgroundImage: "none",
+          borderBottomStyle: "none",
+          borderBottomWidth: "0px",
+          borderLeftStyle: "none",
+          borderLeftWidth: "0px",
+          borderRightStyle: "none",
+          borderRightWidth: "0px",
+          borderTopStyle: "none",
+          borderTopWidth: "0px",
+          boxShadow: "none",
+          outlineStyle: "none",
+        }),
+      },
+    },
     tagName,
   });
 
@@ -72,6 +93,17 @@ describe("getElementTextBounds", () => {
       { x: 20, y: 10, width: 140, height: 24, borderRadius: "0px" },
     ]);
     expect(rangeHarness.selectNodeContents).toHaveBeenCalledWith(textNode);
+    expect(isElementPaintedAtPosition(element, 40, 20)).toBe(true);
+    expect(isElementPaintedAtPosition(element, 200, 20)).toBe(false);
+  });
+
+  it("keeps a painted text container on its element box", () => {
+    const textNode = createTextNode("Painted label");
+    const rangeHarness = createRangeHarness(new Map([[textNode, [createRect(10, 10, 40, 20)]]]));
+    const element = createElement("DIV", [textNode], rangeHarness.createRange, null, true);
+
+    expect(getElementTextBounds(element)).toBeNull();
+    expect(rangeHarness.createRange).not.toHaveBeenCalled();
   });
 
   it("keeps wrapped fragments separate through inline formatting", () => {

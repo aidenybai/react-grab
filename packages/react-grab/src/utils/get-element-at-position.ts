@@ -10,10 +10,12 @@ import { getDeepElementAtPoint } from "./get-deep-element-at-point.js";
 import { getDeepFallbackElementAtPoint } from "./get-deep-fallback-element-at-point.js";
 import { getDeepElementsAtPoint } from "./get-deep-elements-at-point.js";
 import { getComposedParentElement } from "./get-composed-parent-element.js";
+import { getElementTextBounds } from "./get-element-text-bounds.js";
 import { getLocalContentElementAtPoint } from "./get-local-content-element-at-point.js";
 import { getScopeContainer, isWithinScope } from "./runtime-mode.js";
 import { isIframeElement } from "./is-iframe-element.js";
 import { isPointInsideRect } from "./is-point-inside-rect.js";
+import { isElementPaintedAtPosition } from "./is-element-painted-at-position.js";
 import { isValidGrabbableElement } from "./is-valid-grabbable-element.js";
 import { resumePointerEventsFreeze, suspendPointerEventsFreeze } from "./pointer-events-freeze.js";
 import { resolveThreeElementAtPoint } from "../core/three-selection.js";
@@ -23,7 +25,8 @@ interface PositionCache {
   clientY: number;
   element: Element | null;
   fallbackElement: Element | null;
-  localHitElement: Element | null;
+  preciseHitElement: Element | null;
+  usesTextHitTesting: boolean;
   timestamp: number;
 }
 
@@ -69,7 +72,9 @@ const resolveValidElementAtPoint = (
   clientY: number,
 ): Element | null => {
   const resolvedElement = resolveThreeElementAtPoint(element, clientX, clientY);
-  return isValidGrabbableElement(resolvedElement) && isWithinScope(element)
+  return isValidGrabbableElement(resolvedElement) &&
+    isWithinScope(element) &&
+    isElementPaintedAtPosition(element, clientX, clientY)
     ? resolvedElement
     : null;
 };
@@ -86,21 +91,24 @@ export const getElementsAtPoint = (clientX: number, clientY: number): Element[] 
     let didResolveLocalContent = false;
     for (const element of scopedElements) {
       let preciseElement = element;
+      let isPreciseElementPainted = isElementPaintedAtPosition(element, clientX, clientY);
       if (!didResolveLocalContent) {
         const localContentElement = getLocalContentElementAtPoint(element, clientX, clientY);
         if (
           localContentElement &&
           isWithinScope(localContentElement) &&
-          isValidGrabbableElement(localContentElement)
+          isValidGrabbableElement(localContentElement) &&
+          isElementPaintedAtPosition(localContentElement, clientX, clientY)
         ) {
           preciseElement = localContentElement;
+          isPreciseElementPainted = true;
           didResolveLocalContent = true;
-        } else if (isValidGrabbableElement(element)) {
+        } else if (isValidGrabbableElement(element) && isPreciseElementPainted) {
           didResolveLocalContent = true;
         }
       }
       const resolvedPreciseElement = resolveThreeElementAtPoint(preciseElement, clientX, clientY);
-      if (!includedElements.has(resolvedPreciseElement)) {
+      if (isPreciseElementPainted && !includedElements.has(resolvedPreciseElement)) {
         includedElements.add(resolvedPreciseElement);
         resolvedElements.push(resolvedPreciseElement);
       }
@@ -113,7 +121,10 @@ export const getElementsAtPoint = (clientX: number, clientY: number): Element[] 
           clientX,
           clientY,
         );
-        if (!includedElements.has(resolvedAncestorElement)) {
+        if (
+          isElementPaintedAtPosition(ancestorElement, clientX, clientY) &&
+          !includedElements.has(resolvedAncestorElement)
+        ) {
           includedElements.add(resolvedAncestorElement);
           resolvedElements.push(resolvedAncestorElement);
         }
@@ -161,17 +172,24 @@ export const getElementAtPosition = (clientX: number, clientY: number): Element 
     const isWithinThrottle = now - positionCache.timestamp < ELEMENT_POSITION_THROTTLE_MS;
 
     if (isPositionClose && isWithinThrottle) {
-      if (!positionCache.localHitElement) return positionCache.element;
+      if (!positionCache.preciseHitElement) return positionCache.element;
 
       const localContentElement = getLocalContentElementAtPoint(
-        positionCache.localHitElement,
+        positionCache.preciseHitElement,
         clientX,
         clientY,
       );
-      return localContentElement
-        ? (resolveValidElementAtPoint(localContentElement, clientX, clientY) ??
-            positionCache.fallbackElement)
-        : positionCache.fallbackElement;
+      if (localContentElement) {
+        return (
+          resolveValidElementAtPoint(localContentElement, clientX, clientY) ??
+          positionCache.fallbackElement
+        );
+      }
+      if (!positionCache.usesTextHitTesting) return positionCache.fallbackElement;
+      return (
+        resolveValidElementAtPoint(positionCache.preciseHitElement, clientX, clientY) ??
+        getDeepFallbackElementAtPoint(clientX, clientY)
+      );
     }
   }
 
@@ -198,6 +216,7 @@ export const getElementAtPosition = (clientX: number, clientY: number): Element 
     // overlapping the scoped container) we fall back to elementsFromPoint, which
     // returns the full z-ordered stack, and take the first grabbable in-scope one.
     const topElement = getDeepElementAtPoint(clientX, clientY);
+    const usesTextHitTesting = topElement ? getElementTextBounds(topElement) !== null : false;
     const localContentElement = topElement
       ? getLocalContentElementAtPoint(topElement, clientX, clientY)
       : null;
@@ -228,10 +247,13 @@ export const getElementAtPosition = (clientX: number, clientY: number): Element 
       clientY,
       element: result,
       fallbackElement: fallbackResult,
-      localHitElement:
-        topElement?.namespaceURI === "http://www.w3.org/2000/svg" || localContentElement
+      preciseHitElement:
+        topElement?.namespaceURI === "http://www.w3.org/2000/svg" ||
+        localContentElement ||
+        usesTextHitTesting
           ? topElement
           : null,
+      usesTextHitTesting,
       timestamp: now,
     };
     return result;

@@ -66,12 +66,7 @@ test.describe("Touch Mode", () => {
       await reactGrab.activate();
 
       await reactGrab.hoverUntilSelected("[data-testid='todo-list'] h1");
-
-      const element = reactGrab.page.locator("[data-testid='todo-list'] h1");
-      const box = await element.boundingBox();
-      if (!box) throw new Error("Could not get bounding box");
-
-      await reactGrab.page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2);
+      await reactGrab.touchTap("[data-testid='todo-list'] h1");
 
       await expect
         .poll(() => reactGrab.getClipboardContent(), { timeout: 5000 })

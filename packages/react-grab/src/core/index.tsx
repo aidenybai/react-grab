@@ -1992,18 +1992,23 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       // discards the result anyway, and each hit-test costs a full
       // elementFromPoint pass (~20ms on 100k-node DOMs). cancelActiveDrag
       // redetects on cancel; a committed drag enters the frozen phase.
-      if (
-        !isDraggingBeyondThreshold() &&
-        now - elementDetectionState.lastDetectionTimestamp >= ELEMENT_DETECTION_THROTTLE_MS &&
-        !isDetectionPending
-      ) {
-        elementDetectionState.lastDetectionTimestamp = now;
+      if (!isDraggingBeyondThreshold() && !isDetectionPending) {
         elementDetectionState.pendingDetectionScheduledAt = now;
+        const detectionDelay = Math.max(
+          0,
+          ELEMENT_DETECTION_THROTTLE_MS - (now - elementDetectionState.lastDetectionTimestamp),
+        );
         setTimeout(() => {
-          if (isElementDetectionBlocked() || isDraggingBeyondThreshold()) {
+          if (isElementDetectionBlocked() || isFrozenPhase() || isDraggingBeyondThreshold()) {
             elementDetectionState.pendingDetectionScheduledAt = 0;
             return;
           }
+          if (store.detectedElement && !isElementConnected(store.detectedElement)) {
+            actions.relinkLiveElements();
+            elementDetectionState.pendingDetectionScheduledAt = 0;
+            return;
+          }
+          elementDetectionState.lastDetectionTimestamp = performance.now();
           const candidate = getElementAtPosition(
             elementDetectionState.latestPointerX,
             elementDetectionState.latestPointerY,
@@ -2012,7 +2017,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             actions.setDetectedElement(candidate);
           }
           elementDetectionState.pendingDetectionScheduledAt = 0;
-        });
+        }, detectionDelay);
       }
 
       if (isDragging()) {

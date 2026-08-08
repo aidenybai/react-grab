@@ -10,6 +10,7 @@ import { getAccessibleIframeDocument } from "../src/utils/get-accessible-iframe-
 import { getDeepElementAtPoint } from "../src/utils/get-deep-element-at-point.js";
 import { getDeepElementsAtPoint } from "../src/utils/get-deep-elements-at-point.js";
 import { getDeepFallbackElementAtPoint } from "../src/utils/get-deep-fallback-element-at-point.js";
+import { getElementTextBounds } from "../src/utils/get-element-text-bounds.js";
 import { getLocalContentElementAtPoint } from "../src/utils/get-local-content-element-at-point.js";
 import { isIframeElement } from "../src/utils/is-iframe-element.js";
 import { isValidGrabbableElement } from "../src/utils/is-valid-grabbable-element.js";
@@ -42,6 +43,10 @@ vi.mock("../src/utils/get-deep-elements-at-point.js", () => ({
 
 vi.mock("../src/utils/get-deep-fallback-element-at-point.js", () => ({
   getDeepFallbackElementAtPoint: vi.fn(() => null),
+}));
+
+vi.mock("../src/utils/get-element-text-bounds.js", () => ({
+  getElementTextBounds: vi.fn(() => null),
 }));
 
 vi.mock("../src/utils/get-local-content-element-at-point.js", () => ({
@@ -91,6 +96,7 @@ beforeEach(() => {
   vi.mocked(getDeepElementAtPoint).mockReturnValue(null);
   vi.mocked(getDeepElementsAtPoint).mockReturnValue([]);
   vi.mocked(getDeepFallbackElementAtPoint).mockReturnValue(null);
+  vi.mocked(getElementTextBounds).mockReturnValue(null);
   vi.mocked(getLocalContentElementAtPoint).mockReturnValue(null);
   vi.mocked(getScopeContainer).mockReturnValue(null);
   vi.mocked(isIframeElement).mockReturnValue(false);
@@ -157,6 +163,35 @@ describe("getElementAtPosition", () => {
 
     expect(getElementAtPosition(10, 10)).toBe(targetElement);
     expect(getDeepFallbackElementAtPoint).toHaveBeenCalledWith(10, 10);
+  });
+
+  it("uses the lower layer in empty width beside painted text", () => {
+    const textElement = createHtmlElement("p");
+    const cardElement = createHtmlElement("div");
+    vi.mocked(getDeepElementAtPoint).mockReturnValue(textElement);
+    vi.mocked(getDeepFallbackElementAtPoint).mockReturnValue(cardElement);
+    vi.mocked(getElementTextBounds).mockImplementation((element) =>
+      element === textElement
+        ? [{ x: 10, y: 10, width: 80, height: 20, borderRadius: "0px" }]
+        : null,
+    );
+
+    expect(getElementAtPosition(150, 20)).toBe(cardElement);
+  });
+
+  it("leaves painted text when a cached pointer crosses into its empty width", () => {
+    const textElement = createHtmlElement("p");
+    const cardElement = createHtmlElement("div");
+    vi.mocked(getDeepElementAtPoint).mockReturnValue(textElement);
+    vi.mocked(getDeepFallbackElementAtPoint).mockReturnValue(cardElement);
+    vi.mocked(getElementTextBounds).mockImplementation((element) =>
+      element === textElement ? [{ x: 0, y: 0, width: 10, height: 20, borderRadius: "0px" }] : null,
+    );
+
+    expect(getElementAtPosition(10, 10)).toBe(textElement);
+    vi.mocked(performance.now).mockReturnValue(1);
+    expect(getElementAtPosition(11, 10)).toBe(cardElement);
+    expect(getDeepElementAtPoint).toHaveBeenCalledOnce();
   });
 
   it("falls back to the native hit when refined local content is invalid", () => {
@@ -300,6 +335,17 @@ describe("getElementAtPosition", () => {
 });
 
 describe("getElementsAtPoint", () => {
+  it("skips text-flow layers where the point is outside painted text", () => {
+    const textElement = createHtmlElement("p");
+    const cardElement = createHtmlElement("div");
+    vi.mocked(getDeepElementsAtPoint).mockReturnValue([textElement, cardElement]);
+    vi.mocked(getElementTextBounds).mockImplementation((element) =>
+      element === textElement ? [{ x: 0, y: 0, width: 10, height: 20, borderRadius: "0px" }] : null,
+    );
+
+    expect(getElementsAtPoint(50, 10)).toEqual([cardElement]);
+  });
+
   it("replaces lower native layers with the refined hierarchy", () => {
     const ignoredOverlayElement = createHtmlElement("div");
     const localContentElement = createHtmlElement("span");

@@ -6,6 +6,7 @@ import {
   DRAG_SELECTION_MAX_TEXT_RECTS,
 } from "../constants.js";
 import { convertClientPositionToTopWindow } from "./convert-client-position-to-top-window.js";
+import { hasElementBoxPaint } from "./has-element-box-paint.js";
 import { isElementNode } from "./is-element-node.js";
 import { isHtmlElement } from "./is-html-element.js";
 
@@ -158,6 +159,7 @@ export const getElementTextBounds = (element: Element): ElementBounds[] | null =
   }
 
   if (textNodes.length === 0) return cacheTextBounds(element, null, now);
+  if (hasElementBoxPaint(element)) return cacheTextBounds(element, null, now);
 
   try {
     const range = element.ownerDocument.createRange();

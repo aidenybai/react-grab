@@ -274,7 +274,7 @@ test.describe("Open File", () => {
       });
 
       await reactGrab.activate();
-      await reactGrab.hoverUntilSelected("li:first-child");
+      await reactGrab.hoverUntilSelected("li:first-child span");
       await reactGrab.waitForSelectionSource();
 
       await reactGrab.page.evaluate((attrName) => {
