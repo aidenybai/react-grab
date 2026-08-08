@@ -294,6 +294,7 @@ const filterElementsInDrag = (
           );
           if (localContentElement && isCandidateValid(localContentElement)) {
             candidates.add(localContentElement);
+            if (localContentElement !== hitElement) coveredCandidates.add(hitElement);
             candidateElement = localContentElement;
           }
         }
