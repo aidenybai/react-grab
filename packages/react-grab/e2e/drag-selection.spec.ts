@@ -257,6 +257,22 @@ test.describe("Drag Selection", () => {
     await expect.poll(async () => (await reactGrab.getSelectionLabelInfo()).tagName).toBe("div");
   });
 
+  test("should keep the full box targetable when a wide text element has paint", async ({
+    reactGrab,
+  }) => {
+    await configureWideTextTarget(reactGrab);
+    await reactGrab.page.locator("#wide-text-drag-target").evaluate((paragraphElement) => {
+      paragraphElement.style.background = "rgb(34, 34, 34)";
+    });
+    await reactGrab.activate();
+
+    const paragraphBounds = await reactGrab.page.locator("#wide-text-drag-target").boundingBox();
+    if (!paragraphBounds) throw new Error("Could not get wide text bounds");
+
+    await reactGrab.page.mouse.move(paragraphBounds.x + 300, paragraphBounds.y + 20);
+    await expect.poll(async () => (await reactGrab.getSelectionLabelInfo()).tagName).toBe("p");
+  });
+
   test("should copy all selected elements to clipboard", async ({ reactGrab }) => {
     await reactGrab.activate();
 

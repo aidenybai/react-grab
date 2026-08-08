@@ -84,18 +84,21 @@ afterEach(() => {
 });
 
 describe("getElementTextBounds", () => {
-  it("measures the painted fragment instead of the text container box", () => {
-    const textNode = createTextNode("Syncing workspace…");
-    const rangeHarness = createRangeHarness(new Map([[textNode, [createRect(20, 10, 140, 24)]]]));
-    const element = createElement("P", [textNode], rangeHarness.createRange);
+  it.each(["DIV", "P", "SPAN"])(
+    "measures the painted fragment instead of the %s container box",
+    (tagName) => {
+      const textNode = createTextNode("Syncing workspace…");
+      const rangeHarness = createRangeHarness(new Map([[textNode, [createRect(20, 10, 140, 24)]]]));
+      const element = createElement(tagName, [textNode], rangeHarness.createRange);
 
-    expect(getElementTextBounds(element)).toEqual([
-      { x: 20, y: 10, width: 140, height: 24, borderRadius: "0px" },
-    ]);
-    expect(rangeHarness.selectNodeContents).toHaveBeenCalledWith(textNode);
-    expect(isElementPaintedAtPosition(element, 40, 20)).toBe(true);
-    expect(isElementPaintedAtPosition(element, 200, 20)).toBe(false);
-  });
+      expect(getElementTextBounds(element)).toEqual([
+        { x: 20, y: 10, width: 140, height: 24, borderRadius: "0px" },
+      ]);
+      expect(rangeHarness.selectNodeContents).toHaveBeenCalledWith(textNode);
+      expect(isElementPaintedAtPosition(element, 40, 20)).toBe(true);
+      expect(isElementPaintedAtPosition(element, 200, 20)).toBe(false);
+    },
+  );
 
   it("keeps a painted text container on its element box", () => {
     const textNode = createTextNode("Painted label");
@@ -122,6 +125,9 @@ describe("getElementTextBounds", () => {
       { x: 10, y: 10, width: 120, height: 20, borderRadius: "0px" },
       { x: 10, y: 30, width: 60, height: 20, borderRadius: "0px" },
     ]);
+    expect(isElementPaintedAtPosition(element, 100, 20)).toBe(true);
+    expect(isElementPaintedAtPosition(element, 100, 40)).toBe(false);
+    expect(isElementPaintedAtPosition(element, 50, 40)).toBe(true);
   });
 
   it("converts iframe fragments to top-window coordinates once per element", () => {

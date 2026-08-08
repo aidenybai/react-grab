@@ -179,6 +179,21 @@ describe("getElementAtPosition", () => {
     expect(getElementAtPosition(150, 20)).toBe(cardElement);
   });
 
+  it("keeps a text layer when the point is inside its painted fragment", () => {
+    const textElement = createHtmlElement("p");
+    const cardElement = createHtmlElement("div");
+    vi.mocked(getDeepElementAtPoint).mockReturnValue(textElement);
+    vi.mocked(getDeepFallbackElementAtPoint).mockReturnValue(cardElement);
+    vi.mocked(getElementTextBounds).mockImplementation((element) =>
+      element === textElement
+        ? [{ x: 10, y: 10, width: 80, height: 20, borderRadius: "0px" }]
+        : null,
+    );
+
+    expect(getElementAtPosition(50, 20)).toBe(textElement);
+    expect(getDeepFallbackElementAtPoint).not.toHaveBeenCalled();
+  });
+
   it("leaves painted text when a cached pointer crosses into its empty width", () => {
     const textElement = createHtmlElement("p");
     const cardElement = createHtmlElement("div");
@@ -191,6 +206,21 @@ describe("getElementAtPosition", () => {
     expect(getElementAtPosition(10, 10)).toBe(textElement);
     vi.mocked(performance.now).mockReturnValue(1);
     expect(getElementAtPosition(11, 10)).toBe(cardElement);
+    expect(getDeepElementAtPoint).toHaveBeenCalledOnce();
+  });
+
+  it("re-enters painted text from cached empty width", () => {
+    const textElement = createHtmlElement("p");
+    const cardElement = createHtmlElement("div");
+    vi.mocked(getDeepElementAtPoint).mockReturnValue(textElement);
+    vi.mocked(getDeepFallbackElementAtPoint).mockReturnValue(cardElement);
+    vi.mocked(getElementTextBounds).mockImplementation((element) =>
+      element === textElement ? [{ x: 10, y: 0, width: 1, height: 20, borderRadius: "0px" }] : null,
+    );
+
+    expect(getElementAtPosition(12, 10)).toBe(cardElement);
+    vi.mocked(performance.now).mockReturnValue(1);
+    expect(getElementAtPosition(11, 10)).toBe(textElement);
     expect(getDeepElementAtPoint).toHaveBeenCalledOnce();
   });
 
@@ -344,6 +374,17 @@ describe("getElementsAtPoint", () => {
     );
 
     expect(getElementsAtPoint(50, 10)).toEqual([cardElement]);
+  });
+
+  it("keeps text-flow layers where the point is inside painted text", () => {
+    const textElement = createHtmlElement("span");
+    const cardElement = createHtmlElement("div");
+    vi.mocked(getDeepElementsAtPoint).mockReturnValue([textElement, cardElement]);
+    vi.mocked(getElementTextBounds).mockImplementation((element) =>
+      element === textElement ? [{ x: 0, y: 0, width: 40, height: 20, borderRadius: "0px" }] : null,
+    );
+
+    expect(getElementsAtPoint(20, 10)).toEqual([textElement, cardElement]);
   });
 
   it("replaces lower native layers with the refined hierarchy", () => {
