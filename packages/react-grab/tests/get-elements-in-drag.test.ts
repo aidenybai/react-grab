@@ -674,6 +674,37 @@ describe("getElementsInDrag", () => {
     expect(elements).toEqual([textElement]);
   });
 
+  it("selects painted text from multiple exposed wide elements", () => {
+    const firstTextElement = createElement();
+    const secondTextElement = createElement();
+    vi.mocked(compareElementDocumentOrder).mockImplementation((firstElement, secondElement) => {
+      if (firstElement === secondElement) return 0;
+      return firstElement === firstTextElement ? -1 : 1;
+    });
+    vi.mocked(getDeepElementsAtPoint).mockImplementation((_clientX, clientY) =>
+      clientY < 50 ? [firstTextElement] : [secondTextElement],
+    );
+    vi.mocked(getElementTextBounds).mockImplementation((element) =>
+      element === firstTextElement
+        ? [{ x: 0, y: 10, width: 100, height: 20, borderRadius: "0px" }]
+        : [{ x: 0, y: 70, width: 100, height: 20, borderRadius: "0px" }],
+    );
+    setElementBounds(
+      new Map([
+        [firstTextElement, { x: 0, y: 0, width: 280, height: 40, borderRadius: "0px" }],
+        [secondTextElement, { x: 0, y: 60, width: 280, height: 40, borderRadius: "0px" }],
+      ]),
+    );
+
+    const elements = getElementsInDrag(
+      { x: 0, y: 0, width: 100, height: 100 },
+      { x: 95, y: 95 },
+      () => true,
+    );
+
+    expect(elements).toEqual([firstTextElement, secondTextElement]);
+  });
+
   it("keeps wrapped text line gaps out of drag geometry", () => {
     const textElement = createElement();
     vi.mocked(getDeepElementsAtPoint).mockReturnValue([textElement]);
@@ -717,6 +748,50 @@ describe("getElementsInDrag", () => {
     );
 
     expect(elements).toEqual([foregroundElement]);
+  });
+
+  it("does not promote wide text that is exposed at one sample but covered at another", () => {
+    const backgroundTextElement = createElement();
+    const foregroundElement = createElement();
+    vi.mocked(getDeepElementsAtPoint).mockImplementation((clientX) =>
+      clientX < 50 ? [foregroundElement, backgroundTextElement] : [backgroundTextElement],
+    );
+    vi.mocked(getElementTextBounds).mockImplementation((element) =>
+      element === backgroundTextElement
+        ? [{ x: 0, y: 0, width: 100, height: 100, borderRadius: "0px" }]
+        : null,
+    );
+    setElementBounds(
+      new Map([
+        [backgroundTextElement, { x: 0, y: 0, width: 300, height: 100, borderRadius: "0px" }],
+        [foregroundElement, { x: 0, y: 0, width: 50, height: 100, borderRadius: "0px" }],
+      ]),
+    );
+
+    const elements = getElementsInDrag(
+      { x: 0, y: 0, width: 100, height: 100 },
+      { x: 95, y: 50 },
+      () => true,
+    );
+
+    expect(elements).toEqual([foregroundElement]);
+  });
+
+  it("validates a sampled candidate once across the drag", () => {
+    const candidateElement = createElement();
+    const isValidGrabbableElement = vi.fn(() => true);
+    vi.mocked(getDeepElementsAtPoint).mockReturnValue([candidateElement]);
+    setElementBounds(
+      new Map([[candidateElement, { x: 0, y: 0, width: 100, height: 100, borderRadius: "0px" }]]),
+    );
+
+    getElementsInDrag(
+      { x: 0, y: 0, width: 100, height: 100 },
+      { x: 95, y: 95 },
+      isValidGrabbableElement,
+    );
+
+    expect(isValidGrabbableElement).toHaveBeenCalledOnce();
   });
 
   it("prefers a text child over its text-flow parent for a partial drag", () => {

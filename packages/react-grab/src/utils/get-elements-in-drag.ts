@@ -226,9 +226,18 @@ const filterElementsInDrag = (
 
   const candidates = new Set<Element>();
   const candidateBoundsByElement = new Map<Element, ElementBounds>();
+  const candidateValidityByElement = new Map<Element, boolean>();
   const inspectedThreeCanvasElements = new Set<Element>();
   const resolvedThreeCanvasElements = new Set<Element>();
+  const coveredCandidates = new Set<Element>();
   const sampleCoordinates = createSampleCoordinates(dragRect, intentPoint);
+  const isCandidateValid = (candidateElement: Element): boolean => {
+    const cachedValidity = candidateValidityByElement.get(candidateElement);
+    if (cachedValidity !== undefined) return cachedValidity;
+    const isValid = isValidGrabbableElement(candidateElement);
+    candidateValidityByElement.set(candidateElement, isValid);
+    return isValid;
+  };
 
   suspendPointerEventsFreeze();
   try {
@@ -274,19 +283,26 @@ const filterElementsInDrag = (
         candidates.add(candidateElement);
       }
 
-      if (coordinateIndex === 0) {
-        for (const candidateElement of elementsAtPoint) {
+      let didFindFrontmostCandidate = false;
+      for (const hitElement of elementsAtPoint) {
+        let candidateElement = hitElement;
+        if (coordinateIndex === 0 && !didFindFrontmostCandidate) {
           const localContentElement = getLocalContentElementAtPoint(
-            candidateElement,
+            hitElement,
             sampleCoordinates[coordinateIndex],
             sampleCoordinates[coordinateIndex + 1],
           );
-          if (localContentElement && isValidGrabbableElement(localContentElement)) {
+          if (localContentElement && isCandidateValid(localContentElement)) {
             candidates.add(localContentElement);
-            break;
+            candidateElement = localContentElement;
           }
-          if (isValidGrabbableElement(candidateElement)) break;
         }
+        if (!isCandidateValid(candidateElement)) continue;
+        if (!didFindFrontmostCandidate) {
+          didFindFrontmostCandidate = true;
+          continue;
+        }
+        coveredCandidates.add(candidateElement);
       }
     }
   } finally {
@@ -316,7 +332,7 @@ const filterElementsInDrag = (
     }
     if (isRootElement(candidateElement)) continue;
     if (!isWithinScope(candidateElement)) continue;
-    if (!isValidGrabbableElement(candidateElement)) continue;
+    if (!isCandidateValid(candidateElement)) continue;
 
     const candidateBounds =
       candidateBoundsByElement.get(candidateElement) ?? createElementBounds(candidateElement);
@@ -349,6 +365,7 @@ const filterElementsInDrag = (
 
     const textBounds = getElementTextBounds(candidateElement);
     let intersectionArea = 0;
+    let textArea = 0;
     let intentDistanceSquared = Number.POSITIVE_INFINITY;
     if (textBounds) {
       for (const textFragmentBounds of textBounds) {
@@ -365,6 +382,7 @@ const filterElementsInDrag = (
           Math.min(dragBottom, fragmentBottom) - Math.max(dragTop, fragmentTop),
         );
         intersectionArea += intersectionWidth * intersectionHeight;
+        textArea += textFragmentBounds.width * textFragmentBounds.height;
 
         const intentDistanceX = Math.max(
           fragmentLeft - intentPoint.x,
@@ -397,7 +415,9 @@ const filterElementsInDrag = (
     }
     if (intersectionArea <= 0) continue;
 
-    if (intersectionArea / candidateArea >= DRAG_SELECTION_COVERAGE_THRESHOLD) {
+    const coverageArea =
+      textBounds && !coveredCandidates.has(candidateElement) ? textArea : candidateArea;
+    if (intersectionArea / coverageArea >= DRAG_SELECTION_COVERAGE_THRESHOLD) {
       matchingElements.push(candidateElement);
       continue;
     }

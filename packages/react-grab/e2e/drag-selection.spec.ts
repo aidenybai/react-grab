@@ -3,8 +3,18 @@ import type { ReactGrabPageObject } from "./fixtures.js";
 
 const TODO_LIST_ITEM_SELECTOR = "[data-testid='todo-list'] li";
 
-const configureWideTextTarget = async (reactGrab: ReactGrabPageObject): Promise<void> => {
-  await reactGrab.page.evaluate(() => {
+declare global {
+  interface Window {
+    __DID_WIDE_TEXT_DRAG_END__?: boolean;
+    __WIDE_TEXT_DRAG_TARGET_IDS__?: string[];
+  }
+}
+
+const configureWideTextTarget = async (
+  reactGrab: ReactGrabPageObject,
+  shouldAddEmptySpaceSentinel = false,
+): Promise<void> => {
+  await reactGrab.page.evaluate((shouldAddSentinel) => {
     const paragraphElement = document.querySelector("[data-testid='main-description']");
     if (!(paragraphElement instanceof HTMLElement)) {
       throw new Error("Could not find a text target inside the app scope");
@@ -32,30 +42,38 @@ const configureWideTextTarget = async (reactGrab: ReactGrabPageObject): Promise<
       width: "500px",
       zIndex: "10000",
     });
+    if (shouldAddSentinel) {
+      const sentinelElement = document.createElement("button");
+      sentinelElement.id = "wide-text-drag-sentinel";
+      sentinelElement.textContent = "Sentinel";
+      sentinelElement.style.cssText =
+        "position:fixed;left:370px;top:90px;width:40px;height:20px;z-index:10001";
+      document.body.append(sentinelElement);
+    }
 
-    const trackingWindow = window as Window & { __WIDE_TEXT_DRAG_TARGET_IDS__?: string[] };
-    trackingWindow.__WIDE_TEXT_DRAG_TARGET_IDS__ = [];
+    window.__DID_WIDE_TEXT_DRAG_END__ = false;
+    window.__WIDE_TEXT_DRAG_TARGET_IDS__ = [];
     const api = window.__REACT_GRAB__;
     api?.unregisterPlugin("wide-text-drag-tracking");
     api?.registerPlugin({
       name: "wide-text-drag-tracking",
       hooks: {
         onDragEnd: (selectedElements: Element[]) => {
-          trackingWindow.__WIDE_TEXT_DRAG_TARGET_IDS__ = selectedElements.map(
+          window.__DID_WIDE_TEXT_DRAG_END__ = true;
+          window.__WIDE_TEXT_DRAG_TARGET_IDS__ = selectedElements.map(
             (selectedElement) => selectedElement.id,
           );
         },
       },
     });
-  });
+  }, shouldAddEmptySpaceSentinel);
 };
 
 const getWideTextDragTargetIds = async (reactGrab: ReactGrabPageObject): Promise<string[]> =>
-  reactGrab.page.evaluate(
-    () =>
-      (window as Window & { __WIDE_TEXT_DRAG_TARGET_IDS__?: string[] })
-        .__WIDE_TEXT_DRAG_TARGET_IDS__ ?? [],
-  );
+  reactGrab.page.evaluate(() => window.__WIDE_TEXT_DRAG_TARGET_IDS__ ?? []);
+
+const didWideTextDragEnd = async (reactGrab: ReactGrabPageObject): Promise<boolean> =>
+  reactGrab.page.evaluate(() => window.__DID_WIDE_TEXT_DRAG_END__ ?? false);
 
 test.describe("Drag Selection", () => {
   test("should keep drag active when releasing Space in hold mode with Space activation key", async ({
@@ -184,7 +202,7 @@ test.describe("Drag Selection", () => {
   });
 
   test("should ignore empty space inside a wide text layout box", async ({ reactGrab }) => {
-    await configureWideTextTarget(reactGrab);
+    await configureWideTextTarget(reactGrab, true);
     await reactGrab.activate();
 
     const paragraphBounds = await reactGrab.page.locator("#wide-text-drag-target").boundingBox();
@@ -197,7 +215,10 @@ test.describe("Drag Selection", () => {
     });
     await reactGrab.page.mouse.up();
 
-    expect(await getWideTextDragTargetIds(reactGrab)).not.toContain("wide-text-drag-target");
+    expect(await didWideTextDragEnd(reactGrab)).toBe(true);
+    const selectedTargetIds = await getWideTextDragTargetIds(reactGrab);
+    expect(selectedTargetIds).toContain("wide-text-drag-sentinel");
+    expect(selectedTargetIds).not.toContain("wide-text-drag-target");
   });
 
   test("should drag-select the painted part of a wide text element", async ({ reactGrab }) => {
