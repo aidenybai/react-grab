@@ -116,13 +116,14 @@ test.describe("React Three Fiber selection", () => {
     await moveToThreeObject(page, "three-fiber-canvas", THREE_LEFT_OBJECT_HORIZONTAL_RATIO);
     await reactGrab.waitForSelectionBox();
     const leftSelectionBounds = await reactGrab.getSelectionBoxBounds();
+    if (!leftSelectionBounds) throw new Error("Left Three.js selection bounds were not rendered");
 
     await moveToThreeObject(page, "three-fiber-canvas", THREE_RIGHT_OBJECT_HORIZONTAL_RATIO);
-    await reactGrab.waitForSelectionBox();
+    await expect
+      .poll(async () => (await reactGrab.getSelectionBoxBounds())?.x ?? leftSelectionBounds.x)
+      .toBeGreaterThan(leftSelectionBounds.x);
     const rightSelectionBounds = await reactGrab.getSelectionBoxBounds();
-    if (!leftSelectionBounds || !rightSelectionBounds) {
-      throw new Error("Three.js selection bounds were not rendered");
-    }
+    if (!rightSelectionBounds) throw new Error("Right Three.js selection bounds were not rendered");
 
     const dragStartX = leftSelectionBounds.x - THREE_DRAG_SELECTION_OUTSET_PX;
     const dragStartY =

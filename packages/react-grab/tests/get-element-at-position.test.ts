@@ -244,6 +244,29 @@ describe("getElementAtPosition", () => {
     expect(getDeepFallbackElementAtPoint).toHaveBeenCalledOnce();
   });
 
+  it("keeps a cached native text hit when refined local content is unpainted", () => {
+    const textElement = createHtmlElement("p");
+    const localTextElement = createHtmlElement("span");
+    const cardElement = createHtmlElement("div");
+    vi.mocked(getDeepElementAtPoint).mockReturnValue(textElement);
+    vi.mocked(getLocalContentElementAtPoint).mockReturnValue(localTextElement);
+    vi.mocked(getDeepFallbackElementAtPoint).mockReturnValue(cardElement);
+    vi.mocked(getElementTextBounds).mockImplementation((element) => {
+      if (element === textElement) {
+        return [{ x: 0, y: 0, width: 20, height: 20, borderRadius: "0px" }];
+      }
+      return element === localTextElement
+        ? [{ x: 0, y: 0, width: 10, height: 20, borderRadius: "0px" }]
+        : null;
+    });
+
+    expect(getElementAtPosition(10, 10)).toBe(localTextElement);
+    vi.mocked(performance.now).mockReturnValue(1);
+    expect(getElementAtPosition(11, 10)).toBe(textElement);
+    expect(getDeepElementAtPoint).toHaveBeenCalledOnce();
+    expect(getDeepFallbackElementAtPoint).not.toHaveBeenCalled();
+  });
+
   it("falls back to the native hit when refined local content is invalid", () => {
     const nativeElement = createHtmlElement("button");
     const localContentElement = createHtmlElement("span");

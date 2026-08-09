@@ -186,9 +186,6 @@ export const getElementAtPosition = (clientX: number, clientY: number): Element 
           clientY,
         );
         if (localContentResult) return localContentResult;
-        return positionCache.usesTextHitTesting
-          ? getDeepFallbackElementAtPoint(clientX, clientY)
-          : positionCache.fallbackElement;
       }
       if (!positionCache.usesTextHitTesting) return positionCache.fallbackElement;
       return (
