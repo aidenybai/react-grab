@@ -34,9 +34,9 @@ test.describe("Keyboard Shortcuts", () => {
 
   test("should copy list item when clicked", async ({ reactGrab }) => {
     await reactGrab.activate();
-    await reactGrab.hoverUntilSelected("[data-testid='todo-list'] li:nth-child(2)");
+    await reactGrab.hoverUntilSelected("[data-testid='todo-list'] li:nth-child(2) span");
 
-    await reactGrab.clickElement("[data-testid='todo-list'] li:nth-child(2)");
+    await reactGrab.clickElement("[data-testid='todo-list'] li:nth-child(2) span");
     await reactGrab.page.waitForTimeout(500);
 
     const clipboardContent = await reactGrab.getClipboardContent();

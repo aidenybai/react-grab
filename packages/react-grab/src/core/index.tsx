@@ -77,6 +77,8 @@ import {
   PENDING_DETECTION_STALENESS_MS,
   COMPONENT_NAME_DEBOUNCE_MS,
   DRAG_PREVIEW_DEBOUNCE_MS,
+  DRAG_PREVIEW_MAX_WAIT_MS,
+  DRAG_PREVIEW_FRAME_BUDGET_MS,
   MODIFIER_KEYS,
   BLUR_DEACTIVATION_THRESHOLD_MS,
   BOUNDS_RECALC_INTERVAL_MS,
@@ -129,6 +131,7 @@ import type {
   Plugin,
   ToolbarState,
   DropdownAnchor,
+  DragRect,
   ElementLabelVariant,
 } from "../types.js";
 import { createPluginRegistry } from "./plugin-registry.js";
@@ -487,28 +490,71 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       latestPointerX: 0,
       latestPointerY: 0,
     };
-    let dragPreviewDebounceTimerId: number | null = null;
-    const [debouncedDragPointer, setDebouncedDragPointer] = createSignal<{
-      x: number;
-      y: number;
-    } | null>(null);
+    let dragPreviewUpdateTimerId: number | null = null;
+    const latestDragPreviewPointer: Position = { x: 0, y: 0 };
+    let lastDragPreviewUpdateTimestampMs = 0;
+    let lastDragPreviewComputationDurationMs = 0;
+    const [dragPreviewPointer, setDragPreviewPointer] = createSignal<Position | null>(null);
     const [scrollVersion, setScrollVersion] = createSignal(0);
-    const scheduleDragPreviewUpdate = (clientX: number, clientY: number) => {
-      if (dragPreviewDebounceTimerId !== null) {
-        clearTimeout(dragPreviewDebounceTimerId);
-      }
-      setDebouncedDragPointer(null);
-      dragPreviewDebounceTimerId = window.setTimeout(() => {
-        setDebouncedDragPointer({ x: clientX, y: clientY });
-        dragPreviewDebounceTimerId = null;
-      }, DRAG_PREVIEW_DEBOUNCE_MS);
+    const cancelScheduledDragPreviewUpdate = () => {
+      if (dragPreviewUpdateTimerId === null) return;
+      clearTimeout(dragPreviewUpdateTimerId);
+      dragPreviewUpdateTimerId = null;
     };
-    const releaseDragPreview = () => {
-      if (dragPreviewDebounceTimerId !== null) {
-        clearTimeout(dragPreviewDebounceTimerId);
-        dragPreviewDebounceTimerId = null;
+    const publishDragPreviewPointer = (timestampMs: number) => {
+      setDragPreviewPointer({
+        x: latestDragPreviewPointer.x,
+        y: latestDragPreviewPointer.y,
+      });
+      lastDragPreviewUpdateTimestampMs = timestampMs;
+    };
+    const scheduleDragPreviewUpdate = (clientX: number, clientY: number) => {
+      if (!isDraggingBeyondThreshold()) return;
+
+      latestDragPreviewPointer.x = clientX;
+      latestDragPreviewPointer.y = clientY;
+      const timestampMs = performance.now();
+      const timeSinceLastUpdateMs = timestampMs - lastDragPreviewUpdateTimestampMs;
+      const isPreviewComputationExpensive =
+        lastDragPreviewComputationDurationMs >= DRAG_PREVIEW_FRAME_BUDGET_MS;
+
+      if (
+        lastDragPreviewUpdateTimestampMs === 0 ||
+        (!isPreviewComputationExpensive && timeSinceLastUpdateMs >= DRAG_PREVIEW_MAX_WAIT_MS)
+      ) {
+        cancelScheduledDragPreviewUpdate();
+        publishDragPreviewPointer(timestampMs);
+        return;
       }
-      setDebouncedDragPointer(null);
+
+      cancelScheduledDragPreviewUpdate();
+      dragPreviewUpdateTimerId = window.setTimeout(
+        () => {
+          if (isDraggingBeyondThreshold()) publishDragPreviewPointer(performance.now());
+          dragPreviewUpdateTimerId = null;
+        },
+        isPreviewComputationExpensive
+          ? DRAG_PREVIEW_DEBOUNCE_MS
+          : Math.min(DRAG_PREVIEW_DEBOUNCE_MS, DRAG_PREVIEW_MAX_WAIT_MS - timeSinceLastUpdateMs),
+      );
+    };
+    const resolveDragSelectionAtRelease = (
+      dragSelectionRect: DragRect,
+      clientX: number,
+      clientY: number,
+    ): Element[] => {
+      cancelScheduledDragPreviewUpdate();
+      return getElementsInDrag(
+        dragSelectionRect,
+        { x: clientX, y: clientY },
+        isValidGrabbableElement,
+      );
+    };
+    const clearDragPreview = () => {
+      cancelScheduledDragPreviewUpdate();
+      lastDragPreviewUpdateTimestampMs = 0;
+      lastDragPreviewComputationDurationMs = 0;
+      setDragPreviewPointer(null);
       // Memos hold their last value until re-read. Once the drag is over
       // nothing may render the preview again, which would pin the captured
       // Element[] (and any since-detached subtrees) in memory — reading the
@@ -1348,11 +1394,14 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
       if (!isDraggingBeyondThreshold()) return [];
 
-      const pointer = debouncedDragPointer();
+      const pointer = dragPreviewPointer();
       if (!pointer) return [];
 
       const drag = calculateDragRectangle(pointer.x, pointer.y);
-      return getElementsInDrag(drag, isValidGrabbableElement);
+      const computationStartTimestampMs = performance.now();
+      const elements = getElementsInDrag(drag, pointer, isValidGrabbableElement);
+      lastDragPreviewComputationDurationMs = performance.now() - computationStartTimestampMs;
+      return elements;
     });
 
     const dragPreviewBounds = createMemo((): OverlayBounds[] => {
@@ -1686,7 +1735,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       setPendingToolbarActionId(null);
       if (wasDragging) {
         restoreHostBodyStyle("userSelect");
-        releaseDragPreview();
+        clearDragPreview();
       }
       if (keydownSpamTimerId) window.clearTimeout(keydownSpamTimerId);
       autoScroller.stop();
@@ -1943,18 +1992,22 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       // discards the result anyway, and each hit-test costs a full
       // elementFromPoint pass (~20ms on 100k-node DOMs). cancelActiveDrag
       // redetects on cancel; a committed drag enters the frozen phase.
-      if (
-        !isDraggingBeyondThreshold() &&
-        now - elementDetectionState.lastDetectionTimestamp >= ELEMENT_DETECTION_THROTTLE_MS &&
-        !isDetectionPending
-      ) {
-        elementDetectionState.lastDetectionTimestamp = now;
+      if (!isDraggingBeyondThreshold() && !isDetectionPending) {
         elementDetectionState.pendingDetectionScheduledAt = now;
+        const detectionDelay = Math.max(
+          0,
+          ELEMENT_DETECTION_THROTTLE_MS - (now - elementDetectionState.lastDetectionTimestamp),
+        );
         setTimeout(() => {
-          if (isElementDetectionBlocked() || isDraggingBeyondThreshold()) {
+          if (isElementDetectionBlocked() || isFrozenPhase() || isDraggingBeyondThreshold()) {
             elementDetectionState.pendingDetectionScheduledAt = 0;
             return;
           }
+          if (store.detectedElement && !isElementConnected(store.detectedElement)) {
+            actions.relinkLiveElements();
+            clearElementPositionCache();
+          }
+          elementDetectionState.lastDetectionTimestamp = performance.now();
           const candidate = getElementAtPosition(
             elementDetectionState.latestPointerX,
             elementDetectionState.latestPointerY,
@@ -1963,7 +2016,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             actions.setDetectedElement(candidate);
           }
           elementDetectionState.pendingDetectionScheduledAt = 0;
-        });
+        }, detectionDelay);
       }
 
       if (isDragging()) {
@@ -2002,8 +2055,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       actions.startDrag({ x: clientX, y: clientY }, isShiftHeld || shouldPreserveKeyboardSelection);
       actions.setPointer({ x: clientX, y: clientY });
       setHostBodyStyle("userSelect", "none");
-
-      scheduleDragPreviewUpdate(clientX, clientY);
 
       pluginRegistry.hooks.onDragStart(clientX + window.scrollX, clientY + window.scrollY);
 
@@ -2097,11 +2148,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     const handleDragSelection = (
       dragSelectionRect: ReturnType<typeof calculateDragRectangle>,
+      selectedElements: Element[],
       hasModifierKeyHeld: boolean,
       isShiftHeld: boolean,
     ) => {
-      const selectedElements = getElementsInDrag(dragSelectionRect, isValidGrabbableElement);
-
       if (selectedElements.length === 0) return;
 
       const isShiftAccumulating =
@@ -2279,7 +2329,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const cancelActiveDrag = () => {
       if (!isDragging()) return;
       stopSpaceDragRepositioning();
-      releaseDragPreview();
+      clearDragPreview();
       actions.cancelDrag();
       autoScroller.stop();
       restoreHostBodyStyle("userSelect");
@@ -2296,8 +2346,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     ) => {
       if (!isDragging()) return;
 
-      releaseDragPreview();
-
       const dragDistance = calculateDragDistance(clientX, clientY);
       const wasDragGesture =
         dragDistance.x > DRAG_THRESHOLD_PX || dragDistance.y > DRAG_THRESHOLD_PX;
@@ -2305,6 +2353,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       // The rectangle needs to be calculated before endDrag() because endDrag
       // resets dragStart in the store, which would zero out the rectangle.
       const dragSelectionRect = wasDragGesture ? calculateDragRectangle(clientX, clientY) : null;
+      const dragSelectionElements = dragSelectionRect
+        ? resolveDragSelectionAtRelease(dragSelectionRect, clientX, clientY)
+        : [];
+
+      clearDragPreview();
 
       if (wasDragGesture) {
         actions.endDrag();
@@ -2316,7 +2369,12 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       restoreHostBodyStyle("userSelect");
 
       if (dragSelectionRect) {
-        handleDragSelection(dragSelectionRect, hasModifierKeyHeld, isShiftHeld);
+        handleDragSelection(
+          dragSelectionRect,
+          dragSelectionElements,
+          hasModifierKeyHeld,
+          isShiftHeld,
+        );
       } else {
         handleSingleClick(clientX, clientY, hasModifierKeyHeld, isShiftHeld);
       }
@@ -3344,9 +3402,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       const cleanupErrors: unknown[] = [];
       collectCleanupError(stopForwardingSameOriginFrameEvents, cleanupErrors);
       collectCleanupError(() => eventListenerManager.abort(), cleanupErrors);
-      if (dragPreviewDebounceTimerId !== null) {
-        window.clearTimeout(dragPreviewDebounceTimerId);
-      }
+      cancelScheduledDragPreviewUpdate();
       if (keydownSpamTimerId) window.clearTimeout(keydownSpamTimerId);
       collectCleanupError(clearCopyFeedbackCooldown, cleanupErrors);
       if (stopToolbarMenuTracking) {

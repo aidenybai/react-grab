@@ -58,6 +58,12 @@ const showKeyboardSelectionDiscardPrompt = async (reactGrab: ReactGrabPageObject
   await expect.poll(() => reactGrab.isPendingDismissVisible()).toBe(true);
 };
 
+const selectTodoListItem = async (reactGrab: ReactGrabPageObject, selector: string) => {
+  await reactGrab.hoverUntilSelected(`${selector} span`);
+  await reactGrab.page.keyboard.press("ArrowUp");
+  await reactGrab.waitForSelectionBox();
+};
+
 test.describe("Keyboard Navigation", () => {
   test("should navigate to next element with ArrowDown", async ({ reactGrab }) => {
     await reactGrab.activate();
@@ -83,7 +89,7 @@ test.describe("Keyboard Navigation", () => {
 
   test("should navigate to a sibling with ArrowLeft", async ({ reactGrab }) => {
     await reactGrab.activate();
-    await reactGrab.hoverUntilSelected("[data-testid='todo-list'] li:nth-child(2)");
+    await selectTodoListItem(reactGrab, "[data-testid='todo-list'] li:nth-child(2)");
 
     await reactGrab.page.keyboard.press("ArrowLeft");
     await reactGrab.waitForSelectionBox();
@@ -96,7 +102,7 @@ test.describe("Keyboard Navigation", () => {
 
   test("should navigate to a sibling with ArrowRight", async ({ reactGrab }) => {
     await reactGrab.activate();
-    await reactGrab.hoverUntilSelected("[data-testid='todo-list'] li:first-child");
+    await selectTodoListItem(reactGrab, "[data-testid='todo-list'] li:first-child");
 
     await reactGrab.page.keyboard.press("ArrowRight");
     await reactGrab.waitForSelectionBox();
@@ -110,7 +116,7 @@ test.describe("Keyboard Navigation", () => {
 
   test("Tab should navigate to the next sibling like ArrowRight", async ({ reactGrab }) => {
     await reactGrab.activate();
-    await reactGrab.hoverUntilSelected("[data-testid='todo-list'] li:first-child");
+    await selectTodoListItem(reactGrab, "[data-testid='todo-list'] li:first-child");
 
     await reactGrab.page.keyboard.press("Tab");
     await reactGrab.waitForSelectionBox();
@@ -124,7 +130,7 @@ test.describe("Keyboard Navigation", () => {
     reactGrab,
   }) => {
     await reactGrab.activate();
-    await reactGrab.hoverUntilSelected("[data-testid='todo-list'] li:nth-child(2)");
+    await selectTodoListItem(reactGrab, "[data-testid='todo-list'] li:nth-child(2)");
 
     await reactGrab.page.keyboard.press("Shift+Tab");
     await reactGrab.waitForSelectionBox();
@@ -526,7 +532,7 @@ test.describe("Navigation History and Wrapping", () => {
 test.describe("ArrowUp Vertical Traversal", () => {
   test("ArrowUp should reach parent element from child", async ({ reactGrab }) => {
     await reactGrab.activate();
-    await reactGrab.hoverUntilSelected("[data-testid='todo-list'] li:first-child");
+    await selectTodoListItem(reactGrab, "[data-testid='todo-list'] li:first-child");
 
     const initialLabel = await reactGrab.getSelectionLabelInfo();
 
@@ -542,7 +548,7 @@ test.describe("ArrowUp Vertical Traversal", () => {
 
   test("repeated ArrowUp should not oscillate between elements", async ({ reactGrab }) => {
     await reactGrab.activate();
-    await reactGrab.hoverUntilSelected("[data-testid='todo-list'] li:first-child");
+    await selectTodoListItem(reactGrab, "[data-testid='todo-list'] li:first-child");
 
     const visitedTags: string[] = [];
     for (let step = 0; step < 8; step++) {
@@ -567,7 +573,7 @@ test.describe("ArrowUp Vertical Traversal", () => {
 
   test("ArrowUp bounds should never shrink", async ({ reactGrab }) => {
     await reactGrab.activate();
-    await reactGrab.hoverUntilSelected("[data-testid='todo-list'] li:first-child");
+    await selectTodoListItem(reactGrab, "[data-testid='todo-list'] li:first-child");
 
     let previousBounds = await reactGrab.getSelectionBoxBounds();
     expect(previousBounds).not.toBeNull();
@@ -593,7 +599,7 @@ test.describe("ArrowUp Vertical Traversal", () => {
 
   test("ArrowDown should reverse ArrowUp and maintain selection", async ({ reactGrab }) => {
     await reactGrab.activate();
-    await reactGrab.hoverUntilSelected("[data-testid='todo-list'] li:first-child");
+    await selectTodoListItem(reactGrab, "[data-testid='todo-list'] li:first-child");
 
     await reactGrab.pressArrowUp();
     await reactGrab.waitForSelectionBox();

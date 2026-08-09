@@ -1,4 +1,5 @@
 import { invalidateBoundsCache } from "./create-element-bounds.js";
+import { invalidateElementTextBoundsCache } from "./get-element-text-bounds.js";
 import { clearElementPositionCache } from "./get-element-at-position.js";
 
 // The visibility cache is intentionally NOT cleared here: this runs on every
@@ -10,5 +11,6 @@ import { clearElementPositionCache } from "./get-element-at-position.js";
 // mutations already have when they fire outside a scroll event.
 export const invalidateInteractionCaches = (): void => {
   invalidateBoundsCache();
+  invalidateElementTextBoundsCache();
   clearElementPositionCache();
 };

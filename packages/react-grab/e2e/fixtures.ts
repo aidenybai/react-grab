@@ -5,6 +5,7 @@ import {
   UI_STATE_TIMEOUT_MS,
 } from "./constants.js";
 import { COVERAGE_RAW_DIR } from "./coverage-config.js";
+import { getTextInteractionPosition } from "./get-text-interaction-position.js";
 
 const COVERAGE_ENABLED = Boolean(process.env.COVERAGE);
 
@@ -320,13 +321,15 @@ const createReactGrabPageObject = (
 
   const hoverElement = async (selector: string) => {
     const element = page.locator(selector).first();
-    await element.hover({ force: true });
+    const position = await getTextInteractionPosition(element);
+    await element.hover({ force: true, position });
     await page.waitForTimeout(350);
   };
 
   const clickElement = async (selector: string) => {
     const element = page.locator(selector).first();
-    await element.click({ force: true });
+    const position = await getTextInteractionPosition(element);
+    await element.click({ force: true, position });
   };
 
   const dragSelect = async (startSelector: string, endSelector: string) => {
@@ -522,7 +525,8 @@ const createReactGrabPageObject = (
   const rightClickElement = async (selector: string) => {
     const wasActive = await isOverlayVisible();
     const element = page.locator(selector).first();
-    await element.click({ button: "right", force: true });
+    const position = await getTextInteractionPosition(element);
+    await element.click({ button: "right", force: true, position });
     if (wasActive) {
       await waitForContextMenu(true);
     }
@@ -1544,7 +1548,11 @@ const createReactGrabPageObject = (
     const element = page.locator(selector).first();
     const box = await element.boundingBox();
     if (box) {
-      await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2);
+      const position = await getTextInteractionPosition(element);
+      await page.touchscreen.tap(
+        box.x + (position?.x ?? box.width / 2),
+        box.y + (position?.y ?? box.height / 2),
+      );
     }
   };
 

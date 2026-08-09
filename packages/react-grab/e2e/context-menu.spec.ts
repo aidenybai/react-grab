@@ -255,9 +255,9 @@ test.describe("Context Menu", () => {
   test.describe("Keyboard Navigation Integration", () => {
     test("should show context menu after keyboard navigation", async ({ reactGrab }) => {
       await reactGrab.activate();
-      await reactGrab.hoverUntilSelected("li:first-child");
+      await reactGrab.hoverUntilSelected("li:first-child span");
 
-      await reactGrab.pressArrowDown();
+      await reactGrab.pressArrowUp();
       await reactGrab.waitForSelectionBox();
 
       await reactGrab.rightClickElement("li:nth-child(2)");
@@ -270,13 +270,14 @@ test.describe("Context Menu", () => {
       reactGrab,
     }) => {
       await reactGrab.activate();
-      await reactGrab.hoverUntilSelected("li:first-child");
+      await reactGrab.hoverUntilSelected("li:first-child span");
 
-      await reactGrab.pressArrowDown();
-      await reactGrab.page.waitForTimeout(100);
+      await reactGrab.pressArrowUp();
       await reactGrab.waitForSelectionBox();
+      await reactGrab.page.waitForTimeout(100);
 
-      await reactGrab.rightClickElement("li:nth-child(2)");
+      await reactGrab.page.keyboard.press("Shift+F10");
+      await expect.poll(() => reactGrab.isContextMenuVisible()).toBe(true);
       await reactGrab.clickContextMenuItem("Copy");
 
       await reactGrab.page.waitForTimeout(500);
@@ -706,7 +707,7 @@ test.describe("Context Menu", () => {
               enabled: (context: { element: Element }) => {
                 (window as { __enabledTagName?: string }).__enabledTagName =
                   context.element.tagName;
-                return context.element.tagName.toLowerCase() === "li";
+                return context.element.tagName.toLowerCase() === "button";
               },
               onAction: () => {},
             },
@@ -715,13 +716,13 @@ test.describe("Context Menu", () => {
       });
 
       await reactGrab.activate();
-      await reactGrab.hoverUntilSelected("li:first-child");
-      await reactGrab.rightClickElement("li:first-child");
+      await reactGrab.hoverUntilSelected("[data-testid='plain-button']");
+      await reactGrab.rightClickElement("[data-testid='plain-button']");
 
       const enabledTagName = await reactGrab.page.evaluate(
         () => (window as { __enabledTagName?: string }).__enabledTagName,
       );
-      expect(enabledTagName).toBe("LI");
+      expect(enabledTagName).toBe("BUTTON");
 
       const menuInfo = await reactGrab.getContextMenuInfo();
       const lowerMenuItems = menuInfo.menuItems.map((item: string) => item.toLowerCase());

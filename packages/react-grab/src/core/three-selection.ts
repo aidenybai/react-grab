@@ -1,6 +1,7 @@
 import { getFiberFromHostInstance, getLatestFiber, instrument, type Fiber } from "bippy";
 import type { OverlayBounds } from "../types.js";
 import {
+  THREE_DRAG_SELECTION_MAX_INDIVIDUAL_INSTANCES,
   THREE_PREVIEW_ARRAY_MAX_LENGTH,
   THREE_SELECTION_FALLBACK_BOUNDS_PX,
 } from "../constants.js";
@@ -47,14 +48,19 @@ interface ReactThreeFiberInstanceLike {
 interface ThreeObjectLike {
   isObject3D: boolean;
   isScene?: boolean;
+  isInstancedMesh?: boolean;
   uuid: string;
   name: string;
   type: string;
   visible: boolean;
   parent: ThreeObjectLike | null;
+  boundingBox?: ThreeBoxLike | null;
+  computeBoundingBox?: () => void;
   geometry?: ThreeGeometryLike;
+  position?: ThreeVectorLike;
   matrixWorld: ThreeMatrixLike;
   updateWorldMatrix: (updateParents: boolean, updateChildren: boolean) => void;
+  count?: number;
   getMatrixAt?: (instanceId: number, matrix: ThreeMatrixLike) => void;
   children?: ThreeObjectLike[];
   __r3f?: ReactThreeFiberInstanceLike;
@@ -101,6 +107,7 @@ interface ThreeRootState {
 
 interface ThreeRoot {
   getState: () => ThreeRootState;
+  selectableObjects: ThreeObjectLike[] | null;
 }
 
 interface ThreeFiberRootLike {
@@ -128,6 +135,7 @@ interface ThreeSelection {
 }
 
 const selectionsByObject = new WeakMap<ThreeObjectLike, Map<number | null, ThreeSelection>>();
+const selectionByElement = new WeakMap<Element, ThreeSelection>();
 const threeRootByCanvas = new WeakMap<HTMLCanvasElement, ThreeRoot>();
 const rendererFreezeCleanupByCanvas = new WeakMap<HTMLCanvasElement, () => void>();
 const registrationByReactThreeFiberRoot = new WeakMap<
@@ -312,11 +320,13 @@ export const handleReactThreeFiberRootCommit = (root: ThreeFiberRootLike): void 
       canvas,
       root: {
         getState: getRootState,
+        selectableObjects: null,
       },
     };
     registrationByReactThreeFiberRoot.set(root, registration);
   } else {
     registration.root.getState = getRootState;
+    registration.root.selectableObjects = null;
   }
   threeRootByCanvas.set(canvas, registration.root);
   registerThreeRendererFreeze(canvas);
@@ -355,6 +365,46 @@ const isThreeObjectInScene = (object: ThreeObjectLike, scene: ThreeSceneLike): b
     currentObject = currentObject.parent;
   }
   return false;
+};
+
+const isThreeObjectVisible = (object: ThreeObjectLike): boolean => {
+  let currentObject: ThreeObjectLike | null = object;
+  while (currentObject) {
+    if (!currentObject.visible) return false;
+    currentObject = currentObject.parent;
+  }
+  return true;
+};
+
+const isThreeDragSelectableObject = (object: ThreeObjectLike): boolean =>
+  Boolean(getReactThreeFiberInstance(object)) &&
+  (isThreeGeometry(object.geometry) || object.type.toLowerCase() === "sprite");
+
+const getThreeObjectInstanceCount = (object: ThreeObjectLike): number => {
+  if (
+    object.isInstancedMesh !== true ||
+    typeof object.count !== "number" ||
+    !Number.isInteger(object.count) ||
+    object.count <= 0 ||
+    !object.getMatrixAt
+  ) {
+    return 0;
+  }
+  return object.count;
+};
+
+const appendThreeSelectionElement = (
+  elements: Element[],
+  rootState: ThreeRootState,
+  object: ThreeObjectLike,
+  instanceId?: number,
+): void => {
+  try {
+    const intersection: ThreeIntersectionLike = { object };
+    if (instanceId !== undefined) intersection.instanceId = instanceId;
+    const element = getOrCreateSelectionElement(rootState, object, intersection);
+    if (element) elements.push(element);
+  } catch {}
 };
 
 const getOrCreateSelectionElement = (
@@ -419,6 +469,7 @@ const getOrCreateSelectionElement = (
       isThreeObjectInScene(selection.object, selection.rootState.scene),
   });
   selectionsByInstance.set(instanceId, selection);
+  selectionByElement.set(createdElement, selection);
   return createdElement;
 };
 
@@ -430,17 +481,17 @@ export const resolveThreeElementAtPoint = (
   if (!isCanvasElement(candidateElement)) return candidateElement;
   const root = threeRootByCanvas.get(candidateElement);
   if (!root) return candidateElement;
-  const rootState = root.getState();
-
-  const canvasBounds = createElementBounds(candidateElement);
-  if (canvasBounds.width <= 0 || canvasBounds.height <= 0) return candidateElement;
-  const pointerX = ((clientX - canvasBounds.x) / canvasBounds.width) * 2 - 1;
-  const pointerY = -((clientY - canvasBounds.y) / canvasBounds.height) * 2 + 1;
-  if (pointerX < -1 || pointerX > 1 || pointerY < -1 || pointerY > 1) {
-    return candidateElement;
-  }
 
   try {
+    const rootState = root.getState();
+    const canvasBounds = createElementBounds(candidateElement);
+    if (canvasBounds.width <= 0 || canvasBounds.height <= 0) return candidateElement;
+    const pointerX = ((clientX - canvasBounds.x) / canvasBounds.width) * 2 - 1;
+    const pointerY = -((clientY - canvasBounds.y) / canvasBounds.height) * 2 + 1;
+    if (pointerX < -1 || pointerX > 1 || pointerY < -1 || pointerY > 1) {
+      return candidateElement;
+    }
+
     rootState.pointer.set(pointerX, pointerY);
     rootState.raycaster.setFromCamera(rootState.pointer, rootState.camera);
     const intersections = rootState.raycaster.intersectObjects(rootState.scene.children, true);
@@ -459,6 +510,58 @@ export const resolveThreeElementAtPoint = (
     }
   } catch {}
   return candidateElement;
+};
+
+export const getThreeSelectionElements = (
+  candidateElement: Element,
+  endpointElement?: Element,
+): Element[] => {
+  if (!isCanvasElement(candidateElement)) return [];
+  const root = threeRootByCanvas.get(candidateElement);
+  if (!root) return [];
+  try {
+    const rootState = root.getState();
+    const endpointSelection = endpointElement ? selectionByElement.get(endpointElement) : null;
+
+    if (!root.selectableObjects) {
+      const selectableObjects: ThreeObjectLike[] = [];
+      const objectQueue = [...rootState.scene.children];
+      for (let objectIndex = 0; objectIndex < objectQueue.length; objectIndex += 1) {
+        const object = objectQueue[objectIndex];
+        if (object.children) {
+          for (const childObject of object.children) objectQueue.push(childObject);
+        }
+        if (!isThreeDragSelectableObject(object)) continue;
+        selectableObjects.push(object);
+      }
+      root.selectableObjects = selectableObjects;
+    }
+
+    const elements: Element[] = [];
+    for (const object of root.selectableObjects) {
+      if (!isThreeObjectVisible(object) || !isThreeObjectInScene(object, rootState.scene)) continue;
+      if (object.isInstancedMesh === true && object.count === 0) continue;
+      const instanceCount = getThreeObjectInstanceCount(object);
+      if (instanceCount > 0 && instanceCount <= THREE_DRAG_SELECTION_MAX_INDIVIDUAL_INSTANCES) {
+        for (let instanceId = 0; instanceId < instanceCount; instanceId += 1) {
+          appendThreeSelectionElement(elements, rootState, object, instanceId);
+        }
+        continue;
+      }
+      if (
+        instanceCount > THREE_DRAG_SELECTION_MAX_INDIVIDUAL_INSTANCES &&
+        endpointSelection?.object === object &&
+        endpointSelection.instanceId !== null
+      ) {
+        elements.push(endpointSelection.element);
+        continue;
+      }
+      appendThreeSelectionElement(elements, rootState, object);
+    }
+    return elements;
+  } catch {
+    return [];
+  }
 };
 
 const formatPropValue = (value: unknown): string | null => {
@@ -509,13 +612,41 @@ const getObjectMatrix = (selection: ThreeSelection): ThreeMatrixLike => {
 
 const getGeometryBoundingBox = (object: ThreeObjectLike): ThreeBoxLike | null => {
   if (!isThreeGeometry(object.geometry)) return null;
-  if (!object.geometry.boundingBox) object.geometry.computeBoundingBox();
+  if (!object.geometry.boundingBox) {
+    try {
+      object.geometry.computeBoundingBox();
+    } catch {
+      return null;
+    }
+  }
   const boundingBox = object.geometry.boundingBox;
   if (!boundingBox || !isThreeVector(boundingBox.min) || !isThreeVector(boundingBox.max)) {
     return null;
   }
   return boundingBox;
 };
+
+const getInstancedObjectBoundingBox = (object: ThreeObjectLike): ThreeBoxLike | null => {
+  if (object.isInstancedMesh !== true || typeof object.computeBoundingBox !== "function")
+    return null;
+  if (!object.boundingBox) {
+    try {
+      object.computeBoundingBox();
+    } catch {
+      return null;
+    }
+  }
+  const boundingBox = object.boundingBox;
+  if (!boundingBox || !isThreeVector(boundingBox.min) || !isThreeVector(boundingBox.max)) {
+    return null;
+  }
+  return boundingBox;
+};
+
+const getSelectionBoundingBox = (selection: ThreeSelection): ThreeBoxLike | null =>
+  selection.instanceId === null
+    ? (getInstancedObjectBoundingBox(selection.object) ?? getGeometryBoundingBox(selection.object))
+    : getGeometryBoundingBox(selection.object);
 
 const createFallbackBounds = (
   selection: ThreeSelection,
@@ -524,13 +655,20 @@ const createFallbackBounds = (
   const fallbackSize = THREE_SELECTION_FALLBACK_BOUNDS_PX;
   let centerX = canvasBounds.x + canvasBounds.width / 2;
   let centerY = canvasBounds.y + canvasBounds.height / 2;
-  if (selection.intersectionPoint) {
-    const projectedPoint = selection.intersectionPoint.clone().project(selection.rootState.camera);
-    if (Number.isFinite(projectedPoint.x) && Number.isFinite(projectedPoint.y)) {
-      centerX = canvasBounds.x + ((projectedPoint.x + 1) / 2) * canvasBounds.width;
-      centerY = canvasBounds.y + ((1 - projectedPoint.y) / 2) * canvasBounds.height;
+  try {
+    const projectedPoint = selection.intersectionPoint
+      ? selection.intersectionPoint.clone()
+      : isThreeVector(selection.object.position)
+        ? selection.object.position.clone().set(0, 0, 0).applyMatrix4(getObjectMatrix(selection))
+        : null;
+    if (projectedPoint) {
+      projectedPoint.project(selection.rootState.camera);
+      if (Number.isFinite(projectedPoint.x) && Number.isFinite(projectedPoint.y)) {
+        centerX = canvasBounds.x + ((projectedPoint.x + 1) / 2) * canvasBounds.width;
+        centerY = canvasBounds.y + ((1 - projectedPoint.y) / 2) * canvasBounds.height;
+      }
     }
-  }
+  } catch {}
   return {
     x: centerX - fallbackSize / 2,
     y: centerY - fallbackSize / 2,
@@ -542,57 +680,61 @@ const createFallbackBounds = (
 
 const createThreeSelectionBounds = (selection: ThreeSelection): OverlayBounds => {
   const canvasBounds = createElementBounds(selection.canvas);
-  const boundingBox = getGeometryBoundingBox(selection.object);
-  if (!boundingBox) return createFallbackBounds(selection, canvasBounds);
+  try {
+    const boundingBox = getSelectionBoundingBox(selection);
+    if (!boundingBox) return createFallbackBounds(selection, canvasBounds);
 
-  const matrix = getObjectMatrix(selection);
-  const xValues = [boundingBox.min.x, boundingBox.max.x];
-  const yValues = [boundingBox.min.y, boundingBox.max.y];
-  const zValues = [boundingBox.min.z, boundingBox.max.z];
-  let minX = Number.POSITIVE_INFINITY;
-  let minY = Number.POSITIVE_INFINITY;
-  let maxX = Number.NEGATIVE_INFINITY;
-  let maxY = Number.NEGATIVE_INFINITY;
-  const projectedCorner = boundingBox.min.clone();
+    const matrix = getObjectMatrix(selection);
+    const xValues = [boundingBox.min.x, boundingBox.max.x];
+    const yValues = [boundingBox.min.y, boundingBox.max.y];
+    const zValues = [boundingBox.min.z, boundingBox.max.z];
+    let minX = Number.POSITIVE_INFINITY;
+    let minY = Number.POSITIVE_INFINITY;
+    let maxX = Number.NEGATIVE_INFINITY;
+    let maxY = Number.NEGATIVE_INFINITY;
+    const projectedCorner = boundingBox.min.clone();
 
-  for (const xValue of xValues) {
-    for (const yValue of yValues) {
-      for (const zValue of zValues) {
-        projectedCorner
-          .set(xValue, yValue, zValue)
-          .applyMatrix4(matrix)
-          .project(selection.rootState.camera);
-        if (!Number.isFinite(projectedCorner.x) || !Number.isFinite(projectedCorner.y)) continue;
-        const cornerX = canvasBounds.x + ((projectedCorner.x + 1) / 2) * canvasBounds.width;
-        const cornerY = canvasBounds.y + ((1 - projectedCorner.y) / 2) * canvasBounds.height;
-        minX = Math.min(minX, cornerX);
-        minY = Math.min(minY, cornerY);
-        maxX = Math.max(maxX, cornerX);
-        maxY = Math.max(maxY, cornerY);
+    for (const xValue of xValues) {
+      for (const yValue of yValues) {
+        for (const zValue of zValues) {
+          projectedCorner
+            .set(xValue, yValue, zValue)
+            .applyMatrix4(matrix)
+            .project(selection.rootState.camera);
+          if (!Number.isFinite(projectedCorner.x) || !Number.isFinite(projectedCorner.y)) continue;
+          const cornerX = canvasBounds.x + ((projectedCorner.x + 1) / 2) * canvasBounds.width;
+          const cornerY = canvasBounds.y + ((1 - projectedCorner.y) / 2) * canvasBounds.height;
+          minX = Math.min(minX, cornerX);
+          minY = Math.min(minY, cornerY);
+          maxX = Math.max(maxX, cornerX);
+          maxY = Math.max(maxY, cornerY);
+        }
       }
     }
-  }
 
-  if (
-    !Number.isFinite(minX) ||
-    !Number.isFinite(minY) ||
-    !Number.isFinite(maxX) ||
-    !Number.isFinite(maxY)
-  ) {
+    if (
+      !Number.isFinite(minX) ||
+      !Number.isFinite(minY) ||
+      !Number.isFinite(maxX) ||
+      !Number.isFinite(maxY)
+    ) {
+      return createFallbackBounds(selection, canvasBounds);
+    }
+    const clampedMinX = Math.max(canvasBounds.x, minX);
+    const clampedMinY = Math.max(canvasBounds.y, minY);
+    const clampedMaxX = Math.min(canvasBounds.x + canvasBounds.width, maxX);
+    const clampedMaxY = Math.min(canvasBounds.y + canvasBounds.height, maxY);
+    if (clampedMaxX <= clampedMinX || clampedMaxY <= clampedMinY) {
+      return createFallbackBounds(selection, canvasBounds);
+    }
+    return {
+      x: clampedMinX,
+      y: clampedMinY,
+      width: clampedMaxX - clampedMinX,
+      height: clampedMaxY - clampedMinY,
+      borderRadius: "0px",
+    };
+  } catch {
     return createFallbackBounds(selection, canvasBounds);
   }
-  const clampedMinX = Math.max(canvasBounds.x, minX);
-  const clampedMinY = Math.max(canvasBounds.y, minY);
-  const clampedMaxX = Math.min(canvasBounds.x + canvasBounds.width, maxX);
-  const clampedMaxY = Math.min(canvasBounds.y + canvasBounds.height, maxY);
-  if (clampedMaxX <= clampedMinX || clampedMaxY <= clampedMinY) {
-    return createFallbackBounds(selection, canvasBounds);
-  }
-  return {
-    x: clampedMinX,
-    y: clampedMinY,
-    width: clampedMaxX - clampedMinX,
-    height: clampedMaxY - clampedMinY,
-    borderRadius: "0px",
-  };
 };

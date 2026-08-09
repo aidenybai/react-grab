@@ -49,7 +49,7 @@ test.describe("Overlay Filtering", () => {
 
     test("should select page elements through react-grab overlay", async ({ reactGrab }) => {
       await reactGrab.activate();
-      await reactGrab.hoverUntilSelected("li:first-child");
+      await reactGrab.hoverUntilSelected("li:first-child span");
 
       const tagName = await reactGrab.page.evaluate(() => {
         const api = (
@@ -63,7 +63,7 @@ test.describe("Overlay Filtering", () => {
         return state?.targetElement?.tagName?.toLowerCase() ?? null;
       });
 
-      expect(tagName).toBe("li");
+      expect(tagName).toBe("span");
     });
   });
 

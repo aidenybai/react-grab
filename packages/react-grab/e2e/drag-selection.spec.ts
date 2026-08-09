@@ -1,6 +1,77 @@
 import { test, expect } from "./fixtures.js";
+import type { ReactGrabPageObject } from "./fixtures.js";
 
 const TODO_LIST_ITEM_SELECTOR = "[data-testid='todo-list'] li";
+
+declare global {
+  interface Window {
+    __DID_WIDE_TEXT_DRAG_END__?: boolean;
+    __WIDE_TEXT_DRAG_TARGET_IDS__?: string[];
+  }
+}
+
+const configureWideTextTarget = async (
+  reactGrab: ReactGrabPageObject,
+  shouldAddEmptySpaceSentinel = false,
+): Promise<void> => {
+  await reactGrab.page.evaluate((shouldAddSentinel) => {
+    for (const pageElement of document.body.querySelectorAll("*")) {
+      if (pageElement instanceof HTMLElement && !pageElement.closest("[data-react-grab]")) {
+        pageElement.style.visibility = "hidden";
+      }
+    }
+    const cardElement = document.createElement("div");
+    cardElement.id = "wide-text-drag-card";
+    cardElement.style.cssText =
+      "position:fixed;left:20px;top:80px;width:500px;height:80px;background:#222;visibility:visible;z-index:10000";
+    const paragraphElement = document.createElement("p");
+    paragraphElement.id = "wide-text-drag-target";
+    paragraphElement.textContent = "Short label";
+    Object.assign(paragraphElement.style, {
+      font: "20px sans-serif",
+      height: "40px",
+      left: "20px",
+      lineHeight: "40px",
+      margin: "0",
+      position: "fixed",
+      top: "80px",
+      visibility: "visible",
+      width: "500px",
+    });
+    cardElement.append(paragraphElement);
+    document.body.append(cardElement);
+    if (shouldAddSentinel) {
+      const sentinelElement = document.createElement("button");
+      sentinelElement.id = "wide-text-drag-sentinel";
+      sentinelElement.textContent = "Sentinel";
+      sentinelElement.style.cssText =
+        "position:fixed;left:370px;top:90px;width:40px;height:20px;z-index:10001";
+      document.body.append(sentinelElement);
+    }
+
+    window.__DID_WIDE_TEXT_DRAG_END__ = false;
+    window.__WIDE_TEXT_DRAG_TARGET_IDS__ = [];
+    const api = window.__REACT_GRAB__;
+    api?.unregisterPlugin("wide-text-drag-tracking");
+    api?.registerPlugin({
+      name: "wide-text-drag-tracking",
+      hooks: {
+        onDragEnd: (selectedElements: Element[]) => {
+          window.__DID_WIDE_TEXT_DRAG_END__ = true;
+          window.__WIDE_TEXT_DRAG_TARGET_IDS__ = selectedElements.map(
+            (selectedElement) => selectedElement.id,
+          );
+        },
+      },
+    });
+  }, shouldAddEmptySpaceSentinel);
+};
+
+const getWideTextDragTargetIds = async (reactGrab: ReactGrabPageObject): Promise<string[]> =>
+  reactGrab.page.evaluate(() => window.__WIDE_TEXT_DRAG_TARGET_IDS__ ?? []);
+
+const didWideTextDragEnd = async (reactGrab: ReactGrabPageObject): Promise<boolean> =>
+  reactGrab.page.evaluate(() => window.__DID_WIDE_TEXT_DRAG_END__ ?? false);
 
 test.describe("Drag Selection", () => {
   test("should keep drag active when releasing Space in hold mode with Space activation key", async ({
@@ -126,6 +197,80 @@ test.describe("Drag Selection", () => {
     const clipboardContent = await reactGrab.getClipboardContent();
     expect(clipboardContent).toBeTruthy();
     expect(clipboardContent.length).toBeGreaterThan(0);
+  });
+
+  test("should ignore empty space inside a wide text layout box", async ({ reactGrab }) => {
+    await configureWideTextTarget(reactGrab, true);
+    await reactGrab.activate();
+
+    const paragraphBounds = await reactGrab.page.locator("#wide-text-drag-target").boundingBox();
+    if (!paragraphBounds) throw new Error("Could not get wide text bounds");
+
+    await reactGrab.page.mouse.move(paragraphBounds.x + 300, paragraphBounds.y + 5);
+    await reactGrab.page.mouse.down();
+    await reactGrab.page.mouse.move(paragraphBounds.x + 450, paragraphBounds.y + 35, {
+      steps: 5,
+    });
+    await reactGrab.page.mouse.up();
+
+    expect(await didWideTextDragEnd(reactGrab)).toBe(true);
+    const selectedTargetIds = await getWideTextDragTargetIds(reactGrab);
+    expect(selectedTargetIds).toContain("wide-text-drag-sentinel");
+    expect(selectedTargetIds).not.toContain("wide-text-drag-target");
+  });
+
+  test("should drag-select the painted part of a wide text element", async ({ reactGrab }) => {
+    await configureWideTextTarget(reactGrab);
+    await reactGrab.activate();
+
+    const textBounds = await reactGrab.page
+      .locator("#wide-text-drag-target")
+      .evaluate((element) => {
+        const textNode = element.firstChild;
+        if (!textNode) return null;
+        const range = document.createRange();
+        range.selectNodeContents(textNode);
+        const bounds = range.getBoundingClientRect();
+        return { bottom: bounds.bottom, left: bounds.left, right: bounds.right, top: bounds.top };
+      });
+    if (!textBounds) throw new Error("Could not get painted text bounds");
+
+    await reactGrab.page.mouse.move(textBounds.left - 10, textBounds.top - 5);
+    await reactGrab.page.mouse.down();
+    await reactGrab.page.mouse.move(textBounds.right + 10, textBounds.bottom + 5, { steps: 5 });
+    await reactGrab.page.mouse.up();
+
+    expect(await getWideTextDragTargetIds(reactGrab)).toContain("wide-text-drag-target");
+  });
+
+  test("should hover the card through empty width beside its text", async ({ reactGrab }) => {
+    await configureWideTextTarget(reactGrab);
+    await reactGrab.activate();
+
+    const paragraphBounds = await reactGrab.page.locator("#wide-text-drag-target").boundingBox();
+    if (!paragraphBounds) throw new Error("Could not get wide text bounds");
+
+    await reactGrab.page.mouse.move(paragraphBounds.x + 20, paragraphBounds.y + 20);
+    await expect.poll(async () => (await reactGrab.getSelectionLabelInfo()).tagName).toBe("p");
+
+    await reactGrab.page.mouse.move(paragraphBounds.x + 300, paragraphBounds.y + 20);
+    await expect.poll(async () => (await reactGrab.getSelectionLabelInfo()).tagName).toBe("div");
+  });
+
+  test("should keep the full box targetable when a wide text element has paint", async ({
+    reactGrab,
+  }) => {
+    await configureWideTextTarget(reactGrab);
+    await reactGrab.page.locator("#wide-text-drag-target").evaluate((paragraphElement) => {
+      paragraphElement.style.background = "rgb(34, 34, 34)";
+    });
+    await reactGrab.activate();
+
+    const paragraphBounds = await reactGrab.page.locator("#wide-text-drag-target").boundingBox();
+    if (!paragraphBounds) throw new Error("Could not get wide text bounds");
+
+    await reactGrab.page.mouse.move(paragraphBounds.x + 300, paragraphBounds.y + 20);
+    await expect.poll(async () => (await reactGrab.getSelectionLabelInfo()).tagName).toBe("p");
   });
 
   test("should copy all selected elements to clipboard", async ({ reactGrab }) => {

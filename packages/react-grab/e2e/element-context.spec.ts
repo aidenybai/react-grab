@@ -189,6 +189,76 @@ test.describe("Element Context Fallback", () => {
       expect(clipboard).toContain('<text id="svg-visible-label">Quarterly revenue</text>');
     });
 
+    test("should hover and copy pointer-events-none SVG text instead of its chart root", async ({
+      reactGrab,
+    }) => {
+      await reactGrab.page.evaluate(() => {
+        const wrapperElement = document.createElement("div");
+        Object.assign(wrapperElement.style, {
+          left: "200px",
+          position: "fixed",
+          top: "200px",
+          zIndex: "999",
+        });
+        const svgElement = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        svgElement.setAttribute("height", "100");
+        svgElement.setAttribute("width", "400");
+        const textElement = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        textElement.id = "pointer-events-none-svg-label";
+        textElement.setAttribute("font-size", "24");
+        textElement.setAttribute("x", "20");
+        textElement.setAttribute("y", "50");
+        textElement.style.pointerEvents = "none";
+        textElement.textContent = "composer-2.5";
+        svgElement.appendChild(textElement);
+        wrapperElement.appendChild(svgElement);
+        document.body.appendChild(wrapperElement);
+      });
+
+      await reactGrab.activate();
+      await reactGrab.hoverUntilTargetSelected("#pointer-events-none-svg-label");
+      await reactGrab.clickElement("#pointer-events-none-svg-label");
+
+      const clipboard = await reactGrab.getClipboardContent();
+      expect(clipboard).toContain('<text id="pointer-events-none-svg-label">composer-2.5</text>');
+
+      await reactGrab.activate();
+      await reactGrab.hoverUntilTargetSelected("#pointer-events-none-svg-label");
+      await reactGrab.pressArrowUp();
+      await expect.poll(async () => (await reactGrab.getSelectionLabelInfo()).tagName).toBe("svg");
+      await reactGrab.pressArrowDown();
+      await expect.poll(async () => (await reactGrab.getSelectionLabelInfo()).tagName).toBe("text");
+    });
+
+    test("should refine a native container hit to pointer-events-none HTML text", async ({
+      reactGrab,
+    }) => {
+      await reactGrab.page.evaluate(() => {
+        const buttonElement = document.createElement("button");
+        Object.assign(buttonElement.style, {
+          fontSize: "24px",
+          left: "200px",
+          padding: "20px",
+          position: "fixed",
+          top: "200px",
+          zIndex: "999",
+        });
+        const labelElement = document.createElement("span");
+        labelElement.id = "pointer-events-none-html-label";
+        labelElement.style.pointerEvents = "none";
+        labelElement.textContent = "Nested label";
+        buttonElement.appendChild(labelElement);
+        document.body.appendChild(buttonElement);
+      });
+
+      await reactGrab.activate();
+      await reactGrab.hoverUntilTargetSelected("#pointer-events-none-html-label");
+      await reactGrab.clickElement("#pointer-events-none-html-label");
+
+      const clipboard = await reactGrab.getClipboardContent();
+      expect(clipboard).toContain('<span id="pointer-events-none-html-label">Nested label</span>');
+    });
+
     test("should use a semantic link selector for a source-less SVG path", async ({
       reactGrab,
     }) => {

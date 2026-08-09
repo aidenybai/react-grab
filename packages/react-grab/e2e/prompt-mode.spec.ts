@@ -192,7 +192,7 @@ test.describe("Prompt Mode", () => {
   test.describe("Keyboard Shortcuts in Prompt Mode", () => {
     test("arrow keys should not navigate elements in prompt mode", async ({ reactGrab }) => {
       await reactGrab.registerCommentAction();
-      await reactGrab.enterPromptMode("li:first-child");
+      await reactGrab.enterPromptMode("li:first-child span");
       await reactGrab.typeInInput("Line 1\nLine 2");
 
       await reactGrab.pressArrowDown();
@@ -201,7 +201,7 @@ test.describe("Prompt Mode", () => {
       expect(isPromptMode).toBe(true);
       expect(await reactGrab.getInputValue()).toBe("Line 1\nLine 2");
       const isFirstItemStillSelected = await reactGrab.page.evaluate(() => {
-        const firstItem = document.querySelector("li:first-child");
+        const firstItem = document.querySelector("li:first-child span");
         return window.__REACT_GRAB__?.getState().targetElement === firstItem;
       });
       expect(isFirstItemStillSelected).toBe(true);

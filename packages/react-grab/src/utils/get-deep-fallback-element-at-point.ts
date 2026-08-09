@@ -3,12 +3,15 @@ import { getAccessibleIframeDocument } from "./get-accessible-iframe-document.js
 import { isIframeElement } from "./is-iframe-element.js";
 import { isUserIgnoredElement } from "./is-user-ignored-element.js";
 import { isValidGrabbableElement } from "./is-valid-grabbable-element.js";
+import { isElementPaintedAtPosition } from "./is-element-painted-at-position.js";
 import { isWithinScope } from "./runtime-mode.js";
 
 const findDeepFallbackElementAtPoint = (
   root: Document | ShadowRoot,
   clientX: number,
   clientY: number,
+  topClientX: number,
+  topClientY: number,
 ): Element | null => {
   let canDescendIntoNestedRoots = true;
 
@@ -18,7 +21,13 @@ const findDeepFallbackElementAtPoint = (
 
     const shadowRoot = candidateElement.shadowRoot;
     if (canDescendIntoNestedRoots && shadowRoot && shadowRoot !== root) {
-      const shadowTarget = findDeepFallbackElementAtPoint(shadowRoot, clientX, clientY);
+      const shadowTarget = findDeepFallbackElementAtPoint(
+        shadowRoot,
+        clientX,
+        clientY,
+        topClientX,
+        topClientY,
+      );
       if (shadowTarget) return shadowTarget;
     }
 
@@ -30,12 +39,15 @@ const findDeepFallbackElementAtPoint = (
           iframeDocument,
           iframePosition.x,
           iframePosition.y,
+          topClientX,
+          topClientY,
         );
         if (iframeTarget) return iframeTarget;
       }
     }
 
     if (!isValidGrabbableElement(candidateElement)) continue;
+    if (!isElementPaintedAtPosition(candidateElement, topClientX, topClientY)) continue;
     return candidateElement;
   }
 
@@ -43,4 +55,4 @@ const findDeepFallbackElementAtPoint = (
 };
 
 export const getDeepFallbackElementAtPoint = (clientX: number, clientY: number): Element | null =>
-  findDeepFallbackElementAtPoint(document, clientX, clientY);
+  findDeepFallbackElementAtPoint(document, clientX, clientY, clientX, clientY);
