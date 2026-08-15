@@ -6,12 +6,10 @@ import {
   createSignal,
   onCleanup,
   createEffect,
-  createResource,
-  on,
   mapArray,
   untrack,
 } from "solid-js";
-import { render } from "solid-js/web";
+import { render } from "@solidjs/web";
 import { createGrabStore } from "./store.js";
 import { CopyFailedError, RecoverableError } from "../errors.js";
 import {
@@ -340,19 +338,17 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       originalHostBodyStyles.delete(property);
     };
 
-    createEffect(
-      on(isActivated, (activated, previousActivated) => {
-        if (activated && !previousActivated) {
-          // Demo-safe: the collect/apply phases inside are gated on IS_DEMO at
-          // the util level, so this never freezes the host page in demo builds.
-          freezeGlobalInteractions(pointer().x, pointer().y);
-          setHostBodyStyle("touchAction", "none");
-        } else if (!activated && previousActivated) {
-          unfreezeGlobalInteractions();
-          restoreHostBodyStyle("touchAction");
-        }
-      }),
-    );
+    createEffect(isActivated, (activated, previousActivated) => {
+      if (activated && !previousActivated) {
+        // Demo-safe: the collect/apply phases inside are gated on IS_DEMO at
+        // the util level, so this never freezes the host page in demo builds.
+        freezeGlobalInteractions(pointer().x, pointer().y);
+        setHostBodyStyle("touchAction", "none");
+      } else if (!activated && previousActivated) {
+        unfreezeGlobalInteractions();
+        restoreHostBodyStyle("touchAction");
+      }
+    });
 
     const initialToolbarState = loadToolbarState();
     const [isEnabled, setIsEnabled] = createSignal(
@@ -423,51 +419,51 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     // The hold timer does not call activate when copyWaiting is true (the user
     // held the activation key and pressed Ctrl+C). Instead it sets holdTimerFired
     // so the keyup handler can activate after the clipboard operation finishes.
-    createEffect(() => {
-      if (current().state !== "holding") {
-        clearHoldTimer();
-        return;
-      }
-      activationHoldState.startTimestamp = Date.now();
-      activationHoldState.timerId = window.setTimeout(() => {
-        activationHoldState.timerId = null;
-        if (activationHoldState.copyWaiting) {
-          activationHoldState.holdTimerFired = true;
+    createEffect(
+      () => [current(), store.keyHoldDuration] as const,
+      ([currentState, keyHoldDuration]) => {
+        if (currentState.state !== "holding") {
+          clearHoldTimer();
           return;
         }
-        actions.activate();
-      }, store.keyHoldDuration);
-      onCleanup(clearHoldTimer);
-    });
+        activationHoldState.startTimestamp = Date.now();
+        activationHoldState.timerId = window.setTimeout(() => {
+          activationHoldState.timerId = null;
+          if (activationHoldState.copyWaiting) {
+            activationHoldState.holdTimerFired = true;
+            return;
+          }
+          actions.activate();
+        }, keyHoldDuration);
+        return clearHoldTimer;
+      },
+    );
 
-    createEffect(() => {
-      const currentState = current();
+    createEffect(current, (currentState) => {
       if (currentState.state !== "active" || currentState.phase !== "justDragged") return;
       const timerId = setTimeout(() => {
         actions.finishJustDragged();
       }, FEEDBACK_DURATION_MS);
-      onCleanup(() => clearTimeout(timerId));
+      return () => clearTimeout(timerId);
     });
 
-    createEffect(() => {
-      if (current().state !== "justCopied") return;
+    createEffect(current, (currentState) => {
+      if (currentState.state !== "justCopied") return;
       const timerId = setTimeout(() => {
         actions.finishJustCopied();
       }, FEEDBACK_DURATION_MS);
-      onCleanup(() => clearTimeout(timerId));
+      return () => clearTimeout(timerId);
     });
 
-    createEffect(
-      on(isHoldingKeys, (currentlyHolding, previouslyHolding = false) => {
-        if (!previouslyHolding || currentlyHolding || !isActivated()) {
-          return;
-        }
-        if (pluginRegistry.store.options.activationMode !== "hold") {
-          actions.setWasActivatedByToggle(true);
-        }
-        pluginRegistry.hooks.onActivate();
-      }),
-    );
+    createEffect(isHoldingKeys, (currentlyHolding, previouslyHolding = false) => {
+      if (!previouslyHolding || currentlyHolding || !isActivated()) {
+        return;
+      }
+      if (pluginRegistry.store.options.activationMode !== "hold") {
+        actions.setWasActivatedByToggle(true);
+      }
+      pluginRegistry.hooks.onActivate();
+    });
 
     const preparePromptMode = (element: Element, positionX: number, positionY: number) => {
       actions.setCopyStart({ x: positionX, y: positionY }, element);
@@ -1125,51 +1121,51 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     });
     const hasHierarchySource = createMemo(() => hierarchySourceElement() !== null);
 
-    createEffect(() => {
-      const element = store.detectedElement;
-      if (!element) return;
-      let remainingRelinkGraceAttempts = ELEMENT_RELINK_GRACE_ATTEMPTS;
-
-      const intervalId = setInterval(() => {
-        // The hovered node can be swapped out by a re-render the freeze didn't
-        // catch (e.g. a dangerouslySetInnerHTML block re-highlighting). Fiber
-        // recovery is attempted on demand here because the bounds-recalc
-        // interval — the periodic relink owner — only runs while the overlay is
-        // active; if recovery can't relink it, re-detect under the pointer so
-        // the selection latches onto its replacement instead of vanishing.
-        if (!isElementConnected(store.detectedElement)) {
-          actions.relinkLiveElements();
-        }
-        if (!isElementConnected(store.detectedElement)) {
-          if (remainingRelinkGraceAttempts > 0) {
-            remainingRelinkGraceAttempts -= 1;
-            return;
-          }
-          redetectElementUnderPointer();
-        }
-      }, BOUNDS_RECALC_INTERVAL_MS);
-
-      onCleanup(() => clearInterval(intervalId));
-    });
-
     createEffect(
-      on(effectiveElement, (element) => {
-        if (componentNameDebounceTimerId !== null) {
-          clearTimeout(componentNameDebounceTimerId);
-          componentNameDebounceTimerId = null;
-        }
+      () => store.detectedElement,
+      (element) => {
+        if (!element) return;
+        let remainingRelinkGraceAttempts = ELEMENT_RELINK_GRACE_ATTEMPTS;
 
-        if (!element) {
-          setDebouncedElementForComponentName(null);
-          return;
-        }
+        const intervalId = setInterval(() => {
+          // The hovered node can be swapped out by a re-render the freeze didn't
+          // catch (e.g. a dangerouslySetInnerHTML block re-highlighting). Fiber
+          // recovery is attempted on demand here because the bounds-recalc
+          // interval — the periodic relink owner — only runs while the overlay is
+          // active; if recovery can't relink it, re-detect under the pointer so
+          // the selection latches onto its replacement instead of vanishing.
+          if (!isElementConnected(store.detectedElement)) {
+            actions.relinkLiveElements();
+          }
+          if (!isElementConnected(store.detectedElement)) {
+            if (remainingRelinkGraceAttempts > 0) {
+              remainingRelinkGraceAttempts -= 1;
+              return;
+            }
+            redetectElementUnderPointer();
+          }
+        }, BOUNDS_RECALC_INTERVAL_MS);
 
-        componentNameDebounceTimerId = window.setTimeout(() => {
-          componentNameDebounceTimerId = null;
-          setDebouncedElementForComponentName(element);
-        }, COMPONENT_NAME_DEBOUNCE_MS);
-      }),
+        return () => clearInterval(intervalId);
+      },
     );
+
+    createEffect(effectiveElement, (element) => {
+      if (componentNameDebounceTimerId !== null) {
+        clearTimeout(componentNameDebounceTimerId);
+        componentNameDebounceTimerId = null;
+      }
+
+      if (!element) {
+        setDebouncedElementForComponentName(null);
+        return;
+      }
+
+      componentNameDebounceTimerId = window.setTimeout(() => {
+        componentNameDebounceTimerId = null;
+        setDebouncedElementForComponentName(element);
+      }, COMPONENT_NAME_DEBOUNCE_MS);
+    });
 
     onCleanup(() => {
       if (componentNameDebounceTimerId !== null) {
@@ -1178,20 +1174,16 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
     });
 
-    createEffect(() => {
-      const elements = store.frozenElements;
-      const cleanup = freezeAnimations(elements);
-      onCleanup(cleanup);
-    });
-
     createEffect(
-      on(isActivated, (activated) => {
-        if (!activated) return;
-        if (!pluginRegistry.store.options.freezeReactUpdates) return;
-        const unfreezeUpdates = freezeUpdates();
-        onCleanup(unfreezeUpdates);
-      }),
+      () => [...store.frozenElements],
+      (elements) => freezeAnimations(elements),
     );
+
+    createEffect(isActivated, (activated) => {
+      if (!activated) return;
+      if (!pluginRegistry.store.options.freezeReactUpdates) return;
+      return freezeUpdates();
+    });
 
     // In touch mode during a drag, effectiveElement() is null because pointer
     // events are captured by the drag handler. We fall back to detectedElement,
@@ -1449,53 +1441,46 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     });
 
     createEffect(
-      on(
-        () => [targetElement(), store.lastGrabbedElement] as const,
-        ([currentElement, lastElement]) => {
-          if (lastElement && currentElement && lastElement !== currentElement) {
-            actions.setLastGrabbed(null);
-          }
-          if (currentElement) {
-            pluginRegistry.hooks.onElementHover(currentElement);
-          }
-        },
-      ),
+      () => [targetElement(), store.lastGrabbedElement] as const,
+      ([currentElement, lastElement]) => {
+        if (lastElement && currentElement && lastElement !== currentElement) {
+          actions.setLastGrabbed(null);
+        }
+        if (currentElement) {
+          pluginRegistry.hooks.onElementHover(currentElement);
+        }
+      },
     );
 
-    createEffect(
-      on(
-        () => targetElement(),
-        (element) => {
-          const currentVersion = ++selectionSourceRequestVersion;
+    createEffect(targetElement, (element) => {
+      const currentVersion = ++selectionSourceRequestVersion;
 
-          const clearSource = () => {
-            if (selectionSourceRequestVersion === currentVersion) {
-              actions.setSelectionSource(null, null);
-            }
-          };
+      const clearSource = () => {
+        if (selectionSourceRequestVersion === currentVersion) {
+          actions.setSelectionSource(null, null);
+        }
+      };
 
-          if (!element) {
+      if (!element) {
+        clearSource();
+        return;
+      }
+
+      resolveSource(element)
+        .then((source) => {
+          if (selectionSourceRequestVersion !== currentVersion) return;
+          if (!source) {
             clearSource();
             return;
           }
-
-          resolveSource(element)
-            .then((source) => {
-              if (selectionSourceRequestVersion !== currentVersion) return;
-              if (!source) {
-                clearSource();
-                return;
-              }
-              actions.setSelectionSource(source.filePath, source.lineNumber);
-            })
-            .catch(() => {
-              if (selectionSourceRequestVersion === currentVersion) {
-                actions.setSelectionSource(null, null);
-              }
-            });
-        },
-      ),
-    );
+          actions.setSelectionSource(source.filePath, source.lineNumber);
+        })
+        .catch(() => {
+          if (selectionSourceRequestVersion === currentVersion) {
+            actions.setSelectionSource(null, null);
+          }
+        });
+    });
 
     const publicGrabbedBoxes = createMemo(() =>
       store.grabbedBoxes.map((box) => ({
@@ -1558,75 +1543,26 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       };
     });
 
-    createEffect(
-      on(derivedStateForHook, (state) => {
-        pluginRegistry.hooks.onStateChange(state);
-      }),
-    );
+    createEffect(derivedStateForHook, (state) => {
+      pluginRegistry.hooks.onStateChange(state);
+    });
 
     createEffect(
-      on(
-        () => {
-          const inputMode = isPromptMode();
-          return {
-            inputMode,
-            position: inputMode ? pointer() : untrack(pointer),
-            target: inputMode ? targetElement() : untrack(targetElement),
-          };
-        },
-        ({ inputMode, position, target }) => {
-          pluginRegistry.hooks.onPromptModeChange(inputMode, {
-            x: position.x,
-            y: position.y,
-            targetElement: target,
-          });
-        },
-      ),
-    );
-
-    createEffect(
-      on(
-        () => [selectionVisible(), selectionBounds(), targetElement()] as const,
-        ([visible, bounds, element]) => {
-          pluginRegistry.hooks.onSelectionBox(Boolean(visible), bounds ?? null, element);
-        },
-      ),
-    );
-
-    createEffect(
-      on(
-        () => [dragVisible(), dragBounds()] as const,
-        ([visible, bounds]) => {
-          pluginRegistry.hooks.onDragBox(Boolean(visible), bounds ?? null);
-        },
-      ),
-    );
-
-    createEffect(
-      on(
-        () => {
-          const visible = labelVisible();
-          return [
-            visible,
-            labelVariant(),
-            visible ? cursorPosition() : untrack(cursorPosition),
-            visible ? targetElement() : untrack(targetElement),
-            store.selectionFilePath,
-            store.selectionLineNumber,
-          ] as const;
-        },
-        ([visible, variant, position, element, filePath, lineNumber]) => {
-          pluginRegistry.hooks.onElementLabel(visible, variant, {
-            x: position.x,
-            y: position.y,
-            content: "",
-            element: element ?? undefined,
-            tagName: element ? getTagName(element) || undefined : undefined,
-            filePath: filePath ?? undefined,
-            lineNumber: lineNumber ?? undefined,
-          });
-        },
-      ),
+      () => {
+        const inputMode = isPromptMode();
+        return {
+          inputMode,
+          position: inputMode ? pointer() : untrack(pointer),
+          target: inputMode ? targetElement() : untrack(targetElement),
+        };
+      },
+      ({ inputMode, position, target }) => {
+        pluginRegistry.hooks.onPromptModeChange(inputMode, {
+          x: position.x,
+          y: position.y,
+          targetElement: target,
+        });
+      },
     );
 
     let cursorStyleElement: HTMLStyleElement | null = null;
@@ -1650,18 +1586,16 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     };
 
     createEffect(
-      on(
-        () => [isActivated(), isCopying(), isPromptMode()] as const,
-        ([activated, copying, promptMode]) => {
-          if (copying) {
-            setCursorOverride("progress");
-          } else if (activated && !promptMode) {
-            setCursorOverride("crosshair");
-          } else {
-            setCursorOverride(null);
-          }
-        },
-      ),
+      () => [isActivated(), isCopying(), isPromptMode()] as const,
+      ([activated, copying, promptMode]) => {
+        if (copying) {
+          setCursorOverride("progress");
+        } else if (activated && !promptMode) {
+          setCursorOverride("crosshair");
+        } else {
+          setCursorOverride(null);
+        }
+      },
     );
 
     const activateRenderer = () => {
@@ -3289,34 +3223,35 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       });
     };
 
-    createEffect(() => {
-      const shouldRunInterval =
+    createEffect(
+      () =>
         pluginRegistry.store.theme.enabled &&
         (isActivated() ||
           isCopying() ||
           store.labelInstances.length > 0 ||
-          store.grabbedBoxes.length > 0);
+          store.grabbedBoxes.length > 0),
+      (shouldRunInterval) => {
+        if (shouldRunInterval) {
+          if (boundsRecalcIntervalId !== null) return;
 
-      if (shouldRunInterval) {
-        if (boundsRecalcIntervalId !== null) return;
+          boundsRecalcIntervalId = window.setInterval(() => {
+            actions.relinkLiveElements();
+            scheduleBoundsSync();
+          }, BOUNDS_RECALC_INTERVAL_MS);
+          return;
+        }
 
-        boundsRecalcIntervalId = window.setInterval(() => {
-          actions.relinkLiveElements();
-          scheduleBoundsSync();
-        }, BOUNDS_RECALC_INTERVAL_MS);
-        return;
-      }
+        if (boundsRecalcIntervalId !== null) {
+          window.clearInterval(boundsRecalcIntervalId);
+          boundsRecalcIntervalId = null;
+        }
 
-      if (boundsRecalcIntervalId !== null) {
-        window.clearInterval(boundsRecalcIntervalId);
-        boundsRecalcIntervalId = null;
-      }
-
-      if (viewportChangeFrameId !== null) {
-        nativeCancelAnimationFrame(viewportChangeFrameId);
-        viewportChangeFrameId = null;
-      }
-    });
+        if (viewportChangeFrameId !== null) {
+          nativeCancelAnimationFrame(viewportChangeFrameId);
+          viewportChangeFrameId = null;
+        }
+      },
+    );
 
     onCleanup(() => {
       if (boundsRecalcIntervalId !== null) {
@@ -3578,6 +3513,45 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return rendererActive && !dragging && hasElement;
     });
 
+    createEffect(
+      () => [selectionVisible(), selectionBounds(), targetElement()] as const,
+      ([visible, bounds, element]) => {
+        pluginRegistry.hooks.onSelectionBox(Boolean(visible), bounds ?? null, element);
+      },
+    );
+
+    createEffect(
+      () => [dragVisible(), dragBounds()] as const,
+      ([visible, bounds]) => {
+        pluginRegistry.hooks.onDragBox(Boolean(visible), bounds ?? null);
+      },
+    );
+
+    createEffect(
+      () => {
+        const visible = labelVisible();
+        return [
+          visible,
+          labelVariant(),
+          visible ? cursorPosition() : untrack(cursorPosition),
+          visible ? targetElement() : untrack(targetElement),
+          store.selectionFilePath,
+          store.selectionLineNumber,
+        ] as const;
+      },
+      ([visible, variant, position, element, filePath, lineNumber]) => {
+        pluginRegistry.hooks.onElementLabel(visible, variant, {
+          x: position.x,
+          y: position.y,
+          content: "",
+          element: element ?? undefined,
+          tagName: element ? getTagName(element) || undefined : undefined,
+          filePath: filePath ?? undefined,
+          lineNumber: lineNumber ?? undefined,
+        });
+      },
+    );
+
     const contextMenuBounds = createMemo((): OverlayBounds | null => {
       void viewportVersion();
       const element = store.contextMenuElement;
@@ -3604,13 +3578,11 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       store.frozenElements.length > 1 ? null : store.contextMenuElement,
     );
 
-    const [contextMenuFilePath] = createResource(
-      () => store.contextMenuElement,
-      async (element) => {
-        if (!element) return null;
-        return resolveSource(element);
-      },
-    );
+    const contextMenuFilePath = createMemo(() => {
+      const element = store.contextMenuElement;
+      if (!element) return null;
+      return resolveSource(element);
+    });
 
     const withSelectionInteractionLock = async <T,>(operation: () => Promise<T>): Promise<T> => {
       actions.incrementSelectionInteractionLockDepth();
@@ -3870,13 +3842,13 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     // Keep the hierarchy dropdown anchored to the toolbar while there is an
     // element being selected; Solid tears the tracker down when the source
     // clears or the root disposes.
-    createEffect(() => {
-      if (!hasHierarchySource()) return;
+    createEffect(hasHierarchySource, (hasSource) => {
+      if (!hasSource) return;
       const stopTracking = trackDropdownPosition(computeDropdownAnchor, setHierarchyMenuPosition);
-      onCleanup(() => {
+      return () => {
         stopTracking();
         setHierarchyMenuPosition(null);
-      });
+      };
     });
 
     const dismissToolbarMenu = () => {
@@ -3944,18 +3916,20 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }, 0);
     };
 
-    createEffect(() => {
-      const hue = pluginRegistry.store.theme.hue;
-      if (hue !== 0) {
-        rendererRoot.style.filter = `hue-rotate(${hue}deg)`;
-      } else {
-        rendererRoot.style.filter = "";
-      }
-    });
+    createEffect(
+      () => pluginRegistry.store.theme.hue,
+      (hue) => {
+        if (hue !== 0) {
+          rendererRoot.style.filter = `hue-rotate(${hue}deg)`;
+        } else {
+          rendererRoot.style.filter = "";
+        }
+      },
+    );
 
     if (pluginRegistry.store.theme.enabled) {
-      // The renderer is dynamically imported because solid-js/web's
-      // solid-js/web's delegateEvents() runs at module evaluation time and
+      // The renderer is dynamically imported because @solidjs/web's
+      // delegateEvents() runs at module evaluation time and
       // accesses document, which would crash during SSR.
       void import("../components/renderer.js")
         .then(({ ReactGrabRenderer }) => {

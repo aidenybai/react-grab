@@ -1,4 +1,5 @@
-import { Show, type Component, type JSX } from "solid-js";
+import { flush, onSettled, Show, type Component } from "solid-js";
+import type { JSX } from "@solidjs/web";
 import { Tooltip } from "../tooltip.jsx";
 
 interface ToolbarActionButtonProps {
@@ -19,32 +20,46 @@ interface ToolbarActionButtonProps {
   tooltipPosition?: "top" | "bottom" | "left" | "right";
 }
 
-export const ToolbarActionButton: Component<ToolbarActionButtonProps> = (props) => (
-  <div class={props.wrapperClass}>
-    <button
-      ref={props.ref}
-      data-react-grab-ignore-events
-      data-react-grab-toolbar-toggle={props.isToggle ? "" : undefined}
-      data-react-grab-toolbar-action={props.actionId}
-      aria-label={props.label}
-      aria-pressed={Boolean(props.isActive)}
-      type="button"
-      class={props.class}
-      onClick={props.onClick}
-      on:contextmenu={(event) => props.onContextMenu?.(event)}
-      onMouseEnter={props.onMouseEnter}
-      onMouseLeave={props.onMouseLeave}
-    >
-      {props.icon}
-    </button>
-    <Show when={props.tooltip}>
-      {(tooltip) => (
-        <Tooltip
-          visible={Boolean(props.tooltipVisible)}
-          position={props.tooltipPosition ?? "top"}
-          textContent={tooltip()}
-        />
-      )}
-    </Show>
-  </div>
-);
+export const ToolbarActionButton: Component<ToolbarActionButtonProps> = (props) => {
+  let buttonElement: HTMLButtonElement | undefined;
+  const handleContextMenu = (event: MouseEvent) => {
+    props.onContextMenu?.(event);
+    flush();
+  };
+  const bindButtonElement = (element: HTMLButtonElement) => {
+    buttonElement = element;
+    props.ref?.(element);
+    element.addEventListener("contextmenu", handleContextMenu);
+  };
+
+  onSettled(() => () => buttonElement?.removeEventListener("contextmenu", handleContextMenu));
+
+  return (
+    <div class={props.wrapperClass}>
+      <button
+        ref={bindButtonElement}
+        data-react-grab-ignore-events
+        data-react-grab-toolbar-toggle={props.isToggle ? "" : undefined}
+        data-react-grab-toolbar-action={props.actionId}
+        aria-label={props.label}
+        aria-pressed={props.isActive ? "true" : "false"}
+        type="button"
+        class={props.class}
+        onClick={props.onClick}
+        onMouseEnter={props.onMouseEnter}
+        onMouseLeave={props.onMouseLeave}
+      >
+        {props.icon}
+      </button>
+      <Show when={props.tooltip}>
+        {(tooltip) => (
+          <Tooltip
+            visible={Boolean(props.tooltipVisible)}
+            position={props.tooltipPosition ?? "top"}
+            textContent={tooltip()}
+          />
+        )}
+      </Show>
+    </div>
+  );
+};

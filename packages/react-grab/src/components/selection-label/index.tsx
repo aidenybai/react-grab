@@ -2,9 +2,8 @@ import {
   createEffect,
   createMemo,
   createSignal,
-  on,
   onCleanup,
-  onMount,
+  onSettled,
   Show,
   type Component,
 } from "solid-js";
@@ -104,7 +103,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     setViewportVersion((version) => version + 1);
   };
 
-  onMount(() => {
+  onSettled(() => {
     const scopeContainer = getScopeContainer();
     resizeObserver = new ResizeObserver((entries) => {
       for (const entry of entries) {
@@ -157,7 +156,14 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   // replaces an earlier anti-pattern of deriving state via effects.
   // @see https://github.com/aidenybai/react-grab/pull/245
   const positionComputation = createMemo(
-    (previousResult: PositionResult): PositionResult => {
+    (
+      previousResult: PositionResult = {
+        position: DEFAULT_OFFSCREEN_POSITION,
+        computedArrowPosition: null,
+        hadValidBounds: false,
+        elementIdentity: "",
+      },
+    ): PositionResult => {
       viewportVersion();
       const currentElementIdentity = elementIdentity();
       const didReset = currentElementIdentity !== previousResult.elementIdentity;
@@ -268,23 +274,17 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
         elementIdentity: currentElementIdentity,
       };
     },
-    {
-      position: DEFAULT_OFFSCREEN_POSITION,
-      computedArrowPosition: null,
-      hadValidBounds: false,
-      elementIdentity: "",
-    } satisfies PositionResult,
   );
 
   const arrowPosition = () => positionComputation().computedArrowPosition ?? "bottom";
   const hadValidBounds = () => positionComputation().hadValidBounds;
 
   createEffect(
-    on(
-      () => props.selectionLabelShakeCount,
-      () => setIsShaking(true),
-      { defer: true },
-    ),
+    () => props.selectionLabelShakeCount,
+    () => {
+      setIsShaking(true);
+    },
+    { defer: true },
   );
 
   const handleKeyDown = (event: KeyboardEvent) => {
@@ -467,7 +467,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                     onKeyDown={handleKeyDown}
                     placeholder="Add context"
                     rows={1}
-                    readOnly={!props.onSubmit}
+                    readonly={!props.onSubmit}
                   />
                   <Show when={props.onSubmit}>
                     <button

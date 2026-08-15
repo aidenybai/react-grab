@@ -1,4 +1,4 @@
-import { createEffect, createSignal, on, onCleanup, onMount, type Component } from "solid-js";
+import { createEffect, createSignal, onCleanup, onSettled, type Component } from "solid-js";
 import type { Position } from "../../types.js";
 import { cn } from "../../utils/cn.js";
 import { loadToolbarState, saveToolbarState, type SnapEdge, type ToolbarState } from "./state.js";
@@ -167,76 +167,67 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
   });
 
   createEffect(
-    on(
-      () => props.shakeCount,
-      (count) => {
-        if (count && !props.enabled) {
-          setIsShaking(true);
-        }
-      },
-    ),
+    () => props.shakeCount,
+    (count) => {
+      if (count && !props.enabled) {
+        setIsShaking(true);
+      }
+    },
   );
 
   createEffect(
-    on(
-      () => [props.isActive, props.isContextMenuOpen] as const,
-      ([isActive, isContextMenuOpen]) => {
-        if (!isActive && !isContextMenuOpen && unfreezeUpdatesCallback) {
-          releaseInteractionFreeze();
-        }
-      },
-    ),
+    () => [props.isActive, props.isContextMenuOpen] as const,
+    ([isActive, isContextMenuOpen]) => {
+      if (!isActive && !isContextMenuOpen && unfreezeUpdatesCallback) {
+        releaseInteractionFreeze();
+      }
+    },
   );
 
-  createEffect(
-    on(
-      () => isCurrentActionActive(),
-      (didCurrentActionBecomeActive) => {
-        if (!didCurrentActionBecomeActive) {
-          // The accumulator can drift past ±180° while the user circles the
-          // toolbar; resetting to literal 0 would unspin those revolutions
-          // through the CSS transition. Snapping to the nearest equivalent
-          // of 0° keeps the ease-back to a shortest-path arc.
-          setSelectIconRotationDeg((previousRotationDeg) =>
-            accumulateRotationDeg(previousRotationDeg, 0),
-          );
-          return;
-        }
+  createEffect(isCurrentActionActive, (didCurrentActionBecomeActive) => {
+    if (!didCurrentActionBecomeActive) {
+      // The accumulator can drift past ±180° while the user circles the
+      // toolbar; resetting to literal 0 would unspin those revolutions
+      // through the CSS transition. Snapping to the nearest equivalent
+      // of 0° keeps the ease-back to a shortest-path arc.
+      setSelectIconRotationDeg((previousRotationDeg) =>
+        accumulateRotationDeg(previousRotationDeg, 0),
+      );
+      return;
+    }
 
-        let pointerFrameId: number | null = null;
-        let latestPointerX = 0;
-        let latestPointerY = 0;
-        const updateSelectIconRotation = () => {
-          pointerFrameId = null;
-          if (!selectButtonRef) return;
-          const rect = selectButtonRef.getBoundingClientRect();
-          const centerX = rect.left + rect.width / 2;
-          const centerY = rect.top + rect.height / 2;
-          const deltaX = latestPointerX - centerX;
-          const deltaY = latestPointerY - centerY;
-          if (Math.hypot(deltaX, deltaY) < SELECT_ICON_POINT_MIN_DISTANCE_PX) return;
-          const targetAngleDeg = (Math.atan2(deltaY, deltaX) * 180) / Math.PI;
-          const desiredRotationDeg = targetAngleDeg - SELECT_ICON_NATURAL_POINT_ANGLE_DEG;
-          setSelectIconRotationDeg((previousRotationDeg) =>
-            accumulateRotationDeg(previousRotationDeg, desiredRotationDeg),
-          );
-        };
+    let pointerFrameId: number | null = null;
+    let latestPointerX = 0;
+    let latestPointerY = 0;
+    const updateSelectIconRotation = () => {
+      pointerFrameId = null;
+      if (!selectButtonRef) return;
+      const rect = selectButtonRef.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+      const deltaX = latestPointerX - centerX;
+      const deltaY = latestPointerY - centerY;
+      if (Math.hypot(deltaX, deltaY) < SELECT_ICON_POINT_MIN_DISTANCE_PX) return;
+      const targetAngleDeg = (Math.atan2(deltaY, deltaX) * 180) / Math.PI;
+      const desiredRotationDeg = targetAngleDeg - SELECT_ICON_NATURAL_POINT_ANGLE_DEG;
+      setSelectIconRotationDeg((previousRotationDeg) =>
+        accumulateRotationDeg(previousRotationDeg, desiredRotationDeg),
+      );
+    };
 
-        const handlePointerMove = ignoreRealInput((event: PointerEvent | MouseEvent) => {
-          latestPointerX = event.clientX;
-          latestPointerY = event.clientY;
-          if (pointerFrameId !== null) return;
-          pointerFrameId = nativeRequestAnimationFrame(updateSelectIconRotation);
-        });
+    const handlePointerMove = ignoreRealInput((event: PointerEvent | MouseEvent) => {
+      latestPointerX = event.clientX;
+      latestPointerY = event.clientY;
+      if (pointerFrameId !== null) return;
+      pointerFrameId = nativeRequestAnimationFrame(updateSelectIconRotation);
+    });
 
-        window.addEventListener("pointermove", handlePointerMove, { passive: true });
-        onCleanup(() => {
-          window.removeEventListener("pointermove", handlePointerMove);
-          if (pointerFrameId !== null) nativeCancelAnimationFrame(pointerFrameId);
-        });
-      },
-    ),
-  );
+    window.addEventListener("pointermove", handlePointerMove, { passive: true });
+    return () => {
+      window.removeEventListener("pointermove", handlePointerMove);
+      if (pointerFrameId !== null) nativeCancelAnimationFrame(pointerFrameId);
+    };
+  });
 
   let expandedDimensions = {
     width: TOOLBAR_DEFAULT_WIDTH_PX,
@@ -364,7 +355,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     scheduleCollapseAnimationEnd();
   };
 
-  // The first onMount measurement can fire before the shadow DOM host is
+  // The first onSettled measurement can fire before the shadow DOM host is
   // attached to <body> (mountRoot defers attachment to DOMContentLoaded while
   // the renderer's dynamic import can resolve earlier), or before fonts/CSS
   // have settled - both leave getBoundingClientRect returning a 0 rect. The
@@ -450,11 +441,13 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
     props.onStateChange?.(stateWithDefaultAction);
   };
 
-  onMount(() => {
-    if (containerRef) {
-      props.onContainerRef?.(containerRef);
-    }
+  const bindContainerRef = (element: HTMLDivElement) => {
+    containerRef = element;
+    props.onContainerRef?.(element);
+  };
 
+  onSettled(() => {
+    const cleanupCallbacks: Array<() => void> = [];
     const rect = containerRef?.getBoundingClientRect();
     const viewport = getVisualViewport();
     // The host's shadow DOM may still be detached from <body> when this
@@ -539,7 +532,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
         }
       });
 
-      onCleanup(unsubscribe);
+      cleanupCallbacks.push(unsubscribe);
     }
 
     window.addEventListener("resize", handleResize);
@@ -559,7 +552,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
       if (typeof ResizeObserver !== "undefined") {
         const scopeResizeObserver = new ResizeObserver(handleScopedScroll);
         scopeResizeObserver.observe(scopeContainer);
-        onCleanup(() => scopeResizeObserver.disconnect());
+        cleanupCallbacks.push(() => scopeResizeObserver.disconnect());
       }
     }
 
@@ -587,16 +580,18 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
         handleObservedSizeChange(width, height);
       });
       observer.observe(containerRef);
-      onCleanup(() => observer.disconnect());
+      cleanupCallbacks.push(() => observer.disconnect());
     }
 
     const fadeInTimeout = setTimeout(() => {
       setIsVisible(true);
     }, TOOLBAR_FADE_IN_DELAY_MS);
 
-    onCleanup(() => {
-      clearTimeout(fadeInTimeout);
-    });
+    cleanupCallbacks.push(() => clearTimeout(fadeInTimeout));
+
+    return () => {
+      for (const cleanupCallback of cleanupCallbacks) cleanupCallback();
+    };
   });
 
   onCleanup(() => {
@@ -672,7 +667,7 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
 
   return (
     <div
-      ref={containerRef}
+      ref={bindContainerRef}
       data-react-grab-ignore-events
       data-react-grab-toolbar
       class={cn(
@@ -689,11 +684,11 @@ export const Toolbar: Component<ToolbarProps> = (props) => {
         "transform-origin": getTransformOrigin(),
         opacity: !isVisible() ? 0 : shouldDim() ? 0.55 : 1,
       }}
-      on:pointerdown={(event) => {
+      onPointerDown={(event) => {
         stopEventPropagation(event);
         drag.handlePointerDown(event);
       }}
-      on:mousedown={stopEventPropagation}
+      onMouseDown={stopEventPropagation}
       onMouseEnter={() => {
         setIsToolbarHovered(true);
         if (!isCollapsed()) props.onSelectHoverChange?.(true);

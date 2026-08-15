@@ -1,4 +1,5 @@
-import type { Component, JSX } from "solid-js";
+import type { Component } from "solid-js";
+import type { JSX } from "@solidjs/web";
 import { cn } from "../../utils/cn.js";
 import { isHorizontalEdge } from "../../utils/toolbar-position.js";
 import { IconChevron } from "../icons/icon-chevron.jsx";
@@ -128,11 +129,11 @@ export const ToolbarContent: Component<ToolbarContentProps> = (props) => {
         data-react-grab-ignore-events
         data-react-grab-toolbar-collapse
         aria-label={props.isCollapsed ? "Expand toolbar" : "Collapse toolbar"}
-        aria-expanded={!props.isCollapsed}
+        aria-expanded={!props.isCollapsed ? "true" : "false"}
         type="button"
         class="group contain-layout shrink-0 flex items-center justify-center cursor-pointer interactive-scale a11y-hitbox"
         onClick={props.onCollapseClick}
-        on:pointerdown={props.onCollapsePointerDown}
+        onPointerDown={props.onCollapsePointerDown}
         onPointerUp={props.onCollapsePointerUp}
         onPointerLeave={props.onCollapsePointerLeave}
         onPointerCancel={props.onCollapsePointerLeave}

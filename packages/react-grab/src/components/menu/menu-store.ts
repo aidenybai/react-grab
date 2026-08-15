@@ -1,4 +1,4 @@
-import { createEffect, createMemo, createSignal, on, type Accessor } from "solid-js";
+import { createEffect, createMemo, createSignal, type Accessor } from "solid-js";
 import { createMenuHighlight } from "../../utils/create-menu-highlight.js";
 import type { MenuItemRegistration, MenuStore } from "./menu-context.js";
 
@@ -48,7 +48,8 @@ export const createMenuStore = (options: CreateMenuStoreOptions = {}): MenuStore
   const highlight = createMenuHighlight(options.highlight ?? {});
 
   createEffect(
-    on([activeValue, registryVersion], ([value]) => {
+    () => [activeValue(), registryVersion()] as const,
+    ([value]) => {
       if (value === null) {
         highlight.clearHighlight();
         return;
@@ -59,7 +60,7 @@ export const createMenuStore = (options: CreateMenuStoreOptions = {}): MenuStore
       } else {
         highlight.clearHighlight();
       }
-    }),
+    },
   );
 
   const enabledValues = (): string[] =>

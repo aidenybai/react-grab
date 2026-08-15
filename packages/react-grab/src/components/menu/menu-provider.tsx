@@ -1,4 +1,5 @@
-import type { Component, JSX } from "solid-js";
+import type { Component } from "solid-js";
+import type { JSX } from "@solidjs/web";
 import { MenuContext, type MenuStore } from "./menu-context.js";
 
 interface MenuProviderProps {
@@ -7,5 +8,5 @@ interface MenuProviderProps {
 }
 
 export const MenuProvider: Component<MenuProviderProps> = (props) => (
-  <MenuContext.Provider value={props.store}>{props.children}</MenuContext.Provider>
+  <MenuContext value={props.store}>{props.children}</MenuContext>
 );

@@ -1,5 +1,4 @@
-import { createStore, produce } from "solid-js/store";
-import { batch, createSignal } from "solid-js";
+import { createSignal, createStore, flush } from "solid-js";
 import type { Position, GrabbedBox, SelectionLabelInstance } from "../types.js";
 import { OFFSCREEN_POSITION } from "../constants.js";
 import { createElementBounds } from "../utils/create-element-bounds.js";
@@ -198,7 +197,11 @@ interface GrabActions {
 }
 
 const createGrabStore = (input: GrabStoreInput) => {
-  const [store, setStore] = createStore<GrabStore>(createInitialStore(input));
+  const [store, setDeferredStore] = createStore<GrabStore>(createInitialStore(input));
+  const setStore = (updateStore: (draft: GrabStore) => void) => {
+    setDeferredStore(updateStore);
+    flush();
+  };
 
   const [pointer, setPointer] = createSignal<Position>({
     x: OFFSCREEN_POSITION,
@@ -208,16 +211,14 @@ const createGrabStore = (input: GrabStoreInput) => {
   const [current, setCurrent] = createSignal<GrabState>({ state: "idle" });
 
   const updateFrozenElements = (mutator: (draft: GrabStore) => void) => {
-    setStore(
-      produce((draft) => {
-        mutator(draft);
-        draft.frozenElement = draft.frozenElements.length > 0 ? draft.frozenElements[0] : null;
-        draft.frozenDragRect = null;
-        for (const frozenElement of draft.frozenElements) {
-          trackElementAnchor(frozenElement);
-        }
-      }),
-    );
+    setStore((draft) => {
+      mutator(draft);
+      draft.frozenElement = draft.frozenElements.length > 0 ? draft.frozenElements[0] : null;
+      draft.frozenDragRect = null;
+      for (const frozenElement of draft.frozenElements) {
+        trackElementAnchor(frozenElement);
+      }
+    });
   };
 
   const clearFrozenElement = () => {
@@ -233,7 +234,9 @@ const createGrabStore = (input: GrabStoreInput) => {
   const actions: GrabActions = {
     startHold: (duration?: number) => {
       if (duration !== undefined) {
-        setStore("keyHoldDuration", duration);
+        setStore((draft) => {
+          draft.keyHoldDuration = duration;
+        });
       }
       setCurrent({ state: "holding", startedAt: Date.now() });
     },
@@ -245,43 +248,39 @@ const createGrabStore = (input: GrabStoreInput) => {
     },
 
     activate: () => {
-      batch(() => {
-        setCurrent({
-          state: "active",
-          phase: "hovering",
-          isPromptMode: false,
-          isPendingDismiss: false,
-        });
-        setStore("activationTimestamp", Date.now());
-        setStore("previouslyFocusedElement", document.activeElement);
+      setCurrent({
+        state: "active",
+        phase: "hovering",
+        isPromptMode: false,
+        isPendingDismiss: false,
+      });
+      setStore((draft) => {
+        draft.activationTimestamp = Date.now();
+        draft.previouslyFocusedElement = document.activeElement;
       });
     },
 
     deactivate: () => {
-      batch(() => {
-        setCurrent({ state: "idle" });
-        setStore(
-          produce((draft) => {
-            draft.wasActivatedByToggle = false;
-            draft.pendingCommentMode = false;
-            draft.inputText = "";
-            draft.frozenElement = null;
-            draft.frozenElements = [];
-            draft.frozenDragRect = null;
-            draft.activationTimestamp = null;
-            draft.previouslyFocusedElement = null;
-            draft.contextMenuPosition = null;
-            draft.contextMenuElement = null;
-            draft.contextMenuClickOffset = null;
-            // In touch mode there is no pointer movement between taps, so a
-            // stale detectedElement from the previous interaction would
-            // render its selection box the moment the user re-activates.
-            // Mouse mode refreshes this on the next pointermove.
-            if (draft.isTouchMode) {
-              draft.detectedElement = null;
-            }
-          }),
-        );
+      setCurrent({ state: "idle" });
+      setStore((draft) => {
+        draft.wasActivatedByToggle = false;
+        draft.pendingCommentMode = false;
+        draft.inputText = "";
+        draft.frozenElement = null;
+        draft.frozenElements = [];
+        draft.frozenDragRect = null;
+        draft.activationTimestamp = null;
+        draft.previouslyFocusedElement = null;
+        draft.contextMenuPosition = null;
+        draft.contextMenuElement = null;
+        draft.contextMenuClickOffset = null;
+        // In touch mode there is no pointer movement between taps, so a
+        // stale detectedElement from the previous interaction would
+        // render its selection box the moment the user re-activates.
+        // Mouse mode refreshes this on the next pointermove.
+        if (draft.isTouchMode) {
+          draft.detectedElement = null;
+        }
       });
     },
 
@@ -289,7 +288,9 @@ const createGrabStore = (input: GrabStoreInput) => {
       if (store.activationTimestamp !== null) {
         actions.deactivate();
       } else {
-        setStore("wasActivatedByToggle", true);
+        setStore((draft) => {
+          draft.wasActivatedByToggle = true;
+        });
         actions.activate();
       }
     },
@@ -299,7 +300,9 @@ const createGrabStore = (input: GrabStoreInput) => {
         const elementToFreeze = store.frozenElement ?? store.detectedElement;
         if (elementToFreeze) {
           trackElementAnchor(elementToFreeze);
-          setStore("frozenElement", elementToFreeze);
+          setStore((draft) => {
+            draft.frozenElement = elementToFreeze;
+          });
         }
         setActivePhase("frozen");
       }
@@ -307,32 +310,28 @@ const createGrabStore = (input: GrabStoreInput) => {
 
     unfreeze: () => {
       if (current().state === "active") {
-        batch(() => {
-          setStore(
-            produce((draft) => {
-              draft.frozenElement = null;
-              draft.frozenElements = [];
-              draft.frozenDragRect = null;
-            }),
-          );
-          setActivePhase("hovering");
+        setStore((draft) => {
+          draft.frozenElement = null;
+          draft.frozenElements = [];
+          draft.frozenDragRect = null;
         });
+        setActivePhase("hovering");
       }
     },
 
     startDrag: (position: Position, shouldPreserveFrozenElements?: boolean) => {
       const currentState = current();
       if (currentState.state === "active") {
-        batch(() => {
-          if (!shouldPreserveFrozenElements) {
-            clearFrozenElement();
-          }
-          setStore("dragStart", {
+        if (!shouldPreserveFrozenElements) {
+          clearFrozenElement();
+        }
+        setStore((draft) => {
+          draft.dragStart = {
             x: position.x + window.scrollX,
             y: position.y + window.scrollY,
-          });
-          setActivePhase("dragging-select");
+          };
         });
+        setActivePhase("dragging-select");
       }
     },
 
@@ -353,10 +352,10 @@ const createGrabStore = (input: GrabStoreInput) => {
     shiftDragStart: (delta: Position) => {
       const currentState = current();
       if (currentState.state === "active" && currentState.phase === "dragging-reposition") {
-        setStore("dragStart", (dragStart) => ({
-          x: dragStart.x + delta.x,
-          y: dragStart.y + delta.y,
-        }));
+        setStore((draft) => {
+          draft.dragStart.x += delta.x;
+          draft.dragStart.y += delta.y;
+        });
       }
     },
 
@@ -366,10 +365,10 @@ const createGrabStore = (input: GrabStoreInput) => {
         currentState.state === "active" &&
         (currentState.phase === "dragging-select" || currentState.phase === "dragging-reposition")
       ) {
-        batch(() => {
-          setStore("dragStart", { x: OFFSCREEN_POSITION, y: OFFSCREEN_POSITION });
-          setActivePhase("justDragged");
+        setStore((draft) => {
+          draft.dragStart = { x: OFFSCREEN_POSITION, y: OFFSCREEN_POSITION };
         });
+        setActivePhase("justDragged");
       }
     },
 
@@ -379,10 +378,10 @@ const createGrabStore = (input: GrabStoreInput) => {
         currentState.state === "active" &&
         (currentState.phase === "dragging-select" || currentState.phase === "dragging-reposition")
       ) {
-        batch(() => {
-          setStore("dragStart", { x: OFFSCREEN_POSITION, y: OFFSCREEN_POSITION });
-          setActivePhase("hovering");
+        setStore((draft) => {
+          draft.dragStart = { x: OFFSCREEN_POSITION, y: OFFSCREEN_POSITION };
         });
+        setActivePhase("hovering");
       }
     },
 
@@ -417,14 +416,12 @@ const createGrabStore = (input: GrabStoreInput) => {
       if (currentState.state === "justCopied") {
         const shouldReturnToActive = currentState.wasActive && !store.wasActivatedByToggle;
         if (shouldReturnToActive) {
-          batch(() => {
-            clearFrozenElement();
-            setCurrent({
-              state: "active",
-              phase: "hovering",
-              isPromptMode: false,
-              isPendingDismiss: false,
-            });
+          clearFrozenElement();
+          setCurrent({
+            state: "active",
+            phase: "hovering",
+            isPromptMode: false,
+            isPendingDismiss: false,
           });
         } else {
           actions.deactivate();
@@ -437,28 +434,32 @@ const createGrabStore = (input: GrabStoreInput) => {
       const { x: selectionCenterX } = getBoundsCenter(bounds);
       trackElementAnchor(element);
 
-      batch(() => {
-        setStore("copyStart", position);
-        setStore("copyOffsetFromCenterX", position.x - selectionCenterX);
-        setPointer(position);
-        setStore("frozenElement", element);
-        setStore("wasActivatedByToggle", true);
-
-        if (current().state !== "active") {
-          setCurrent({
-            state: "active",
-            phase: "frozen",
-            isPromptMode: true,
-            isPendingDismiss: false,
-          });
-          setStore("activationTimestamp", Date.now());
-          setStore("previouslyFocusedElement", document.activeElement);
-        } else {
-          setCurrent((prev) =>
-            prev.state === "active" ? { ...prev, isPromptMode: true, phase: "frozen" } : prev,
-          );
-        }
+      setStore((draft) => {
+        draft.copyStart = position;
+        draft.copyOffsetFromCenterX = position.x - selectionCenterX;
+        draft.frozenElement = element;
+        draft.wasActivatedByToggle = true;
       });
+      setPointer(position);
+
+      if (current().state !== "active") {
+        setCurrent({
+          state: "active",
+          phase: "frozen",
+          isPromptMode: true,
+          isPendingDismiss: false,
+        });
+        setStore((draft) => {
+          draft.activationTimestamp = Date.now();
+          draft.previouslyFocusedElement = document.activeElement;
+        });
+      } else {
+        setCurrent((previousState) =>
+          previousState.state === "active"
+            ? { ...previousState, isPromptMode: true, phase: "frozen" }
+            : previousState,
+        );
+      }
     },
 
     exitPromptMode: () => {
@@ -468,11 +469,15 @@ const createGrabStore = (input: GrabStoreInput) => {
     },
 
     setInputText: (value: string) => {
-      setStore("inputText", value);
+      setStore((draft) => {
+        draft.inputText = value;
+      });
     },
 
     clearInputText: () => {
-      setStore("inputText", "");
+      setStore((draft) => {
+        draft.inputText = "";
+      });
     },
 
     setPendingDismiss: (value: boolean) => {
@@ -489,7 +494,9 @@ const createGrabStore = (input: GrabStoreInput) => {
 
     setDetectedElement: (element: Element | null) => {
       if (element) trackElementAnchor(element);
-      setStore("detectedElement", element);
+      setStore((draft) => {
+        draft.detectedElement = element;
+      });
     },
 
     setFrozenElement: (element: Element) => {
@@ -526,50 +533,64 @@ const createGrabStore = (input: GrabStoreInput) => {
     },
 
     setFrozenDragRect: (rect: FrozenDragRect | null) => {
-      setStore("frozenDragRect", rect);
+      setStore((draft) => {
+        draft.frozenDragRect = rect;
+      });
     },
 
     relinkLiveElements: () => {
-      setStore(produce(relinkSlots));
+      setStore(relinkSlots);
     },
 
     setCopyStart: (position: Position, element: Element) => {
       const bounds = createElementBounds(element);
       const { x: selectionCenterX } = getBoundsCenter(bounds);
-      setStore("copyStart", position);
-      setStore("copyOffsetFromCenterX", position.x - selectionCenterX);
+      setStore((draft) => {
+        draft.copyStart = position;
+        draft.copyOffsetFromCenterX = position.x - selectionCenterX;
+      });
     },
 
     setLastGrabbed: (element: Element | null) => {
-      setStore("lastGrabbedElement", element);
+      setStore((draft) => {
+        draft.lastGrabbedElement = element;
+      });
     },
 
     setWasActivatedByToggle: (value: boolean) => {
-      setStore("wasActivatedByToggle", value);
+      setStore((draft) => {
+        draft.wasActivatedByToggle = value;
+      });
     },
 
     setPendingCommentMode: (value: boolean) => {
-      setStore("pendingCommentMode", value);
+      setStore((draft) => {
+        draft.pendingCommentMode = value;
+      });
     },
 
     setTouchMode: (value: boolean) => {
-      setStore("isTouchMode", value);
+      setStore((draft) => {
+        draft.isTouchMode = value;
+      });
     },
 
     incrementSelectionInteractionLockDepth: () => {
-      setStore("selectionInteractionLockDepth", (currentLockDepth) => currentLockDepth + 1);
+      setStore((draft) => {
+        draft.selectionInteractionLockDepth += 1;
+      });
     },
 
     decrementSelectionInteractionLockDepth: () => {
-      setStore("selectionInteractionLockDepth", (currentLockDepth) =>
-        Math.max(0, currentLockDepth - 1),
-      );
+      setStore((draft) => {
+        draft.selectionInteractionLockDepth = Math.max(0, draft.selectionInteractionLockDepth - 1);
+      });
     },
 
     setSelectionSource: (filePath: string | null, lineNumber: number | null) => {
-      batch(() => {
-        setStore("selectionFilePath", filePath);
-        setStore("selectionLineNumber", lineNumber);
+      setStore((draft) => {
+        draft.selectionFilePath = filePath;
+        draft.selectionLineNumber = lineNumber;
       });
     },
 
@@ -579,15 +600,21 @@ const createGrabStore = (input: GrabStoreInput) => {
 
     addGrabbedBox: (box: GrabbedBox) => {
       if (box.element) trackElementAnchor(box.element);
-      setStore("grabbedBoxes", (boxes) => [...boxes, box]);
+      setStore((draft) => {
+        draft.grabbedBoxes.push(box);
+      });
     },
 
     removeGrabbedBox: (boxId: string) => {
-      setStore("grabbedBoxes", (boxes) => boxes.filter((box) => box.id !== boxId));
+      setStore((draft) => {
+        draft.grabbedBoxes = draft.grabbedBoxes.filter((box) => box.id !== boxId);
+      });
     },
 
     clearGrabbedBoxes: () => {
-      setStore("grabbedBoxes", []);
+      setStore((draft) => {
+        draft.grabbedBoxes = [];
+      });
     },
 
     addLabelInstance: (instance: SelectionLabelInstance) => {
@@ -595,7 +622,9 @@ const createGrabStore = (input: GrabStoreInput) => {
       for (const instanceElement of instance.elements ?? []) {
         trackElementAnchor(instanceElement);
       }
-      setStore("labelInstances", (instances) => [...instances, instance]);
+      setStore((draft) => {
+        draft.labelInstances.push(instance);
+      });
     },
 
     updateLabelInstance: (
@@ -605,49 +634,53 @@ const createGrabStore = (input: GrabStoreInput) => {
     ) => {
       const index = store.labelInstances.findIndex((instance) => instance.id === instanceId);
       if (index !== -1) {
-        batch(() => {
-          setStore("labelInstances", index, "status", status);
+        setStore((draft) => {
+          draft.labelInstances[index].status = status;
           if (errorMessage !== undefined) {
-            setStore("labelInstances", index, "errorMessage", errorMessage);
+            draft.labelInstances[index].errorMessage = errorMessage;
           } else if (status !== "error") {
             // errorMessage is only meaningful in the error state; leaving it set
             // after a retry (copying) or success (copied) keeps the Retry/Ok
             // panel visible, since the view renders on the message, not status.
-            setStore("labelInstances", index, "errorMessage", undefined);
+            draft.labelInstances[index].errorMessage = undefined;
           }
         });
       }
     },
 
     removeLabelInstance: (instanceId: string) => {
-      setStore("labelInstances", (instances) =>
-        instances.filter((instance) => instance.id !== instanceId),
-      );
+      setStore((draft) => {
+        draft.labelInstances = draft.labelInstances.filter(
+          (instance) => instance.id !== instanceId,
+        );
+      });
     },
 
     clearLabelInstances: () => {
-      setStore("labelInstances", []);
+      setStore((draft) => {
+        draft.labelInstances = [];
+      });
     },
 
     showContextMenu: (position: Position, element: Element) => {
       const bounds = createElementBounds(element);
       const { x: centerX, y: centerY } = getBoundsCenter(bounds);
       trackElementAnchor(element);
-      batch(() => {
-        setStore("contextMenuPosition", position);
-        setStore("contextMenuElement", element);
-        setStore("contextMenuClickOffset", {
+      setStore((draft) => {
+        draft.contextMenuPosition = position;
+        draft.contextMenuElement = element;
+        draft.contextMenuClickOffset = {
           x: position.x - centerX,
           y: position.y - centerY,
-        });
+        };
       });
     },
 
     hideContextMenu: () => {
-      batch(() => {
-        setStore("contextMenuPosition", null);
-        setStore("contextMenuElement", null);
-        setStore("contextMenuClickOffset", null);
+      setStore((draft) => {
+        draft.contextMenuPosition = null;
+        draft.contextMenuElement = null;
+        draft.contextMenuClickOffset = null;
       });
     },
 
@@ -661,9 +694,11 @@ const createGrabStore = (input: GrabStoreInput) => {
       const newBounds = createElementBounds(element);
       const { x: newCenterX, y: newCenterY } = getBoundsCenter(newBounds);
 
-      setStore("contextMenuPosition", {
-        x: newCenterX + clickOffset.x,
-        y: newCenterY + clickOffset.y,
+      setStore((draft) => {
+        draft.contextMenuPosition = {
+          x: newCenterX + clickOffset.x,
+          y: newCenterY + clickOffset.y,
+        };
       });
     },
   };

@@ -1,4 +1,4 @@
-import { createEffect, createSignal, on, onCleanup, onMount } from "solid-js";
+import { createEffect, createSignal, onSettled } from "solid-js";
 import type { Meta, StoryContext, StoryObj } from "openstory/solid";
 import { expect, waitFor } from "openstory/test";
 import { ReactGrabRenderer } from "@react-grab-source/components/renderer.js";
@@ -89,16 +89,16 @@ const Scene = (props: SceneProps) => {
     });
   };
 
-  onMount(() => {
+  onSettled(() => {
     recompute();
     window.addEventListener("resize", recompute);
-    onCleanup(() => {
+    return () => {
       window.removeEventListener("resize", recompute);
       if (pendingFrameHandle !== null) cancelAnimationFrame(pendingFrameHandle);
-    });
+    };
   });
 
-  createEffect(on(() => props.selectedElement, scheduleRecompute, { defer: true }));
+  createEffect(() => props.selectedElement, scheduleRecompute, { defer: true });
 
   const elementMeta = (): ElementMeta => {
     const element = elementRefs[props.selectedElement];

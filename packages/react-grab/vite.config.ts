@@ -46,7 +46,7 @@ const createDefine = (isDemo: boolean) => ({
   ),
 });
 
-const alwaysBundle = [/^solid-js/, /^bippy/];
+const alwaysBundle = [/^solid-js/, /^@solidjs\//, /^bippy/];
 const createSolidBabelPlugin = () =>
   solidBabelPlugin({
     plugins: shouldInstrumentSolidSources ? [solidSourceLocationBabelPlugin] : [],

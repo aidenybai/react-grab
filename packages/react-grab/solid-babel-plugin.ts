@@ -33,14 +33,14 @@ export const cssTextPlugin = () => {
 
 export const solidWebBrowserPlugin = () => {
   const require = createRequire(import.meta.url);
-  const serverPath = require.resolve("solid-js/web");
+  const serverPath = require.resolve("@solidjs/web");
   const distDir = dirname(serverPath);
   const browserPath = resolve(distDir, "web.js");
   return {
     name: "solid-web-browser",
     enforce: "pre" as const,
     resolveId(source: string) {
-      if (source === "solid-js/web") return browserPath;
+      if (source === "@solidjs/web") return browserPath;
     },
   };
 };

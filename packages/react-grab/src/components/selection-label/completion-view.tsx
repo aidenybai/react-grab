@@ -15,8 +15,19 @@ interface MoreOptionsButtonProps {
 }
 
 const MoreOptionsButton: Component<MoreOptionsButtonProps> = (props) => {
+  const bindNativeListeners = (element: HTMLButtonElement) => {
+    element.onpointerdown = (event) => {
+      event.stopImmediatePropagation();
+    };
+    element.onclick = (event) => {
+      event.stopImmediatePropagation();
+      props.onClick();
+    };
+  };
+
   return (
     <button
+      ref={bindNativeListeners}
       type="button"
       data-react-grab-ignore-events
       data-react-grab-more-options
@@ -25,16 +36,8 @@ const MoreOptionsButton: Component<MoreOptionsButtonProps> = (props) => {
         buttonVariants({ variant: "ghost" }),
         "group size-4 text-[var(--rg-text-secondary)] hover:text-[var(--rg-text-primary)]",
       )}
-      // The on: prefix attaches a native event listener (rather than using
-      // SolidJS delegation) so stopImmediatePropagation can beat both
-      // delegated handlers and document-level capture listeners.
-      on:pointerdown={(event) => {
-        event.stopImmediatePropagation();
-      }}
-      on:click={(event) => {
-        event.stopImmediatePropagation();
-        props.onClick();
-      }}
+      // Native element properties keep stopImmediatePropagation ahead of
+      // Solid-managed delegated handlers.
     >
       <IconEllipsis
         size={14}
@@ -126,7 +129,7 @@ export const CompletionView: Component<CompletionViewProps> = (props) => {
                 aria-keyshortcuts="Enter"
                 onClick={handleAccept}
                 disabled={didCopy()}
-                aria-disabled={didCopy()}
+                aria-disabled={didCopy() ? "true" : "false"}
               >
                 <span class="text-[var(--rg-text-primary)] text-[13px] leading-3.5 font-sans font-medium">
                   Keep

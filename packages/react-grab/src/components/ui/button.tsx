@@ -1,4 +1,5 @@
-import { splitProps, type Component, type JSX } from "solid-js";
+import { omit, type Component, type Element } from "solid-js";
+import type { JSX } from "@solidjs/web";
 import { cn } from "../../utils/cn.js";
 import { createVariants } from "../../utils/create-variants.js";
 
@@ -20,14 +21,15 @@ export const buttonVariants = createVariants(
 
 interface ButtonProps extends JSX.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: "chip" | "destructive" | "ghost";
+  children?: Element;
 }
 
 export const Button: Component<ButtonProps> = (props) => {
-  const [local, rest] = splitProps(props, ["variant", "class", "type"]);
+  const rest = omit(props, "variant", "class", "type");
   return (
     <button
-      type={local.type ?? "button"}
-      class={cn(buttonVariants({ variant: local.variant }), local.class)}
+      type={props.type ?? "button"}
+      class={cn(buttonVariants({ variant: props.variant }), props.class)}
       {...rest}
     />
   );

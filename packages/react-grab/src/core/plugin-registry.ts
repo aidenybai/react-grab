@@ -1,5 +1,4 @@
-import { getOwner, onCleanup } from "solid-js";
-import { createStore } from "solid-js/store";
+import { createStore, flush, getOwner, onCleanup } from "solid-js";
 import type {
   Position,
   Plugin,
@@ -62,10 +61,11 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
   const plugins = new Map<string, RegisteredPlugin>();
   let registeredPluginSnapshot: readonly RegisteredPlugin[] = [];
   const directOptionOverrides: Partial<OptionsState> = {};
+  let appliedTheme = deepMergeTheme(DEFAULT_THEME, {});
   let isDisposed = false;
 
   const [store, setStore] = createStore<PluginStoreState>({
-    theme: DEFAULT_THEME,
+    theme: appliedTheme,
     options: { ...DEFAULT_OPTIONS, ...initialOptions },
     actions: [],
   });
@@ -73,7 +73,7 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
   const createPluginStoreState = (
     registeredPlugins: Iterable<RegisteredPlugin>,
   ): PluginStoreState => {
-    let mergedTheme: Required<Theme> = DEFAULT_THEME;
+    let mergedTheme = appliedTheme;
     let mergedOptions: OptionsState = { ...DEFAULT_OPTIONS, ...initialOptions };
     const allContextMenuActions: ContextMenuAction[] = [];
 
@@ -101,9 +101,13 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
   };
 
   const applyPluginStoreState = (nextStore: PluginStoreState): void => {
-    setStore("theme", nextStore.theme);
-    setStore("options", { ...nextStore.options, ...directOptionOverrides });
-    setStore("actions", nextStore.actions);
+    appliedTheme = nextStore.theme;
+    setStore((draft) => {
+      draft.theme = nextStore.theme;
+      draft.options = { ...nextStore.options, ...directOptionOverrides };
+      draft.actions = nextStore.actions;
+    });
+    flush();
   };
 
   const recomputeStore = () => {
@@ -115,7 +119,10 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
     optionValue: OptionsState[OptionKey],
   ) => {
     directOptionOverrides[optionKey] = optionValue;
-    setStore("options", optionKey, () => optionValue);
+    setStore((draft) => {
+      draft.options[optionKey] = optionValue;
+    });
+    flush();
   };
 
   const SETTABLE_OPTION_KEYS: Array<keyof OptionsState> = [

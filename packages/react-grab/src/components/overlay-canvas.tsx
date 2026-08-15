@@ -1,4 +1,4 @@
-import { createEffect, on, onCleanup, onMount, type Component } from "solid-js";
+import { createEffect, onSettled, type Component } from "solid-js";
 import type { OverlayBounds, SelectionLabelInstance } from "../types.js";
 import { lerp } from "../utils/lerp.js";
 import {
@@ -421,158 +421,152 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
   };
 
   createEffect(
-    on(
-      () =>
-        [
-          props.selectionVisible,
-          props.selectionBounds,
-          props.selectionBoundsMultiple,
-          props.selectionShouldSnap,
-        ] as const,
-      ([isVisible, singleBounds, multipleBounds, shouldSnap]) => {
-        if (!isVisible || (!singleBounds && (!multipleBounds || multipleBounds.length === 0))) {
-          selectionAnimations = [];
-          scheduleAnimationFrame();
-          return;
-        }
+    () =>
+      [
+        props.selectionVisible,
+        props.selectionBounds,
+        props.selectionBoundsMultiple,
+        props.selectionShouldSnap,
+      ] as const,
+    ([isVisible, singleBounds, multipleBounds, shouldSnap]) => {
+      if (!isVisible || (!singleBounds && (!multipleBounds || multipleBounds.length === 0))) {
+        selectionAnimations = [];
+        scheduleAnimationFrame();
+        return;
+      }
 
-        let boundsToRender: readonly OverlayBounds[];
-        if (multipleBounds && multipleBounds.length > 0) {
-          boundsToRender = multipleBounds;
-        } else if (singleBounds) {
-          boundsToRender = [singleBounds];
-        } else {
-          boundsToRender = [];
-        }
+      let boundsToRender: readonly OverlayBounds[];
+      if (multipleBounds && multipleBounds.length > 0) {
+        boundsToRender = multipleBounds;
+      } else if (singleBounds) {
+        boundsToRender = [singleBounds];
+      } else {
+        boundsToRender = [];
+      }
 
-        const existingSelectionById = new Map<string, AnimatedBounds>();
-        for (const animation of selectionAnimations) {
-          existingSelectionById.set(animation.id, animation);
-        }
+      const existingSelectionById = new Map<string, AnimatedBounds>();
+      for (const animation of selectionAnimations) {
+        existingSelectionById.set(animation.id, animation);
+      }
 
-        selectionAnimations = boundsToRender.map((bounds, index) => {
-          const animationId = `selection-${index}`;
-          const existingAnimation = existingSelectionById.get(animationId);
+      selectionAnimations = boundsToRender.map((bounds, index) => {
+        const animationId = `selection-${index}`;
+        const existingAnimation = existingSelectionById.get(animationId);
 
-          if (existingAnimation) {
-            updateAnimationTarget(existingAnimation, bounds);
-            if (shouldSnap) {
-              existingAnimation.current.x = existingAnimation.target.x;
-              existingAnimation.current.y = existingAnimation.target.y;
-              existingAnimation.current.width = existingAnimation.target.width;
-              existingAnimation.current.height = existingAnimation.target.height;
-            }
-            return existingAnimation;
+        if (existingAnimation) {
+          updateAnimationTarget(existingAnimation, bounds);
+          if (shouldSnap) {
+            existingAnimation.current.x = existingAnimation.target.x;
+            existingAnimation.current.y = existingAnimation.target.y;
+            existingAnimation.current.width = existingAnimation.target.width;
+            existingAnimation.current.height = existingAnimation.target.height;
           }
+          return existingAnimation;
+        }
 
-          return createAnimatedBounds(animationId, bounds);
-        });
+        return createAnimatedBounds(animationId, bounds);
+      });
 
-        scheduleAnimationFrame();
-      },
-    ),
+      scheduleAnimationFrame();
+    },
   );
 
   createEffect(
-    on(
-      () => [props.dragVisible, props.dragBounds] as const,
-      ([isVisible, bounds]) => {
-        if (!isVisible || !bounds) {
-          dragAnimation = null;
-          scheduleAnimationFrame();
-          return;
-        }
-
-        if (dragAnimation) {
-          updateAnimationTarget(dragAnimation, bounds);
-        } else {
-          dragAnimation = createAnimatedBounds("drag", bounds);
-        }
-
+    () => [props.dragVisible, props.dragBounds] as const,
+    ([isVisible, bounds]) => {
+      if (!isVisible || !bounds) {
+        dragAnimation = null;
         scheduleAnimationFrame();
-      },
-    ),
+        return;
+      }
+
+      if (dragAnimation) {
+        updateAnimationTarget(dragAnimation, bounds);
+      } else {
+        dragAnimation = createAnimatedBounds("drag", bounds);
+      }
+
+      scheduleAnimationFrame();
+    },
   );
 
   createEffect(
-    on(
-      () => [props.grabbedBoxes, props.labelInstances] as const,
-      ([grabbedBoxes, labelInstances]) => {
-        const boxesToProcess = grabbedBoxes ?? [];
-        const instancesToProcess = labelInstances ?? [];
+    () => [props.grabbedBoxes, props.labelInstances] as const,
+    ([grabbedBoxes, labelInstances]) => {
+      const boxesToProcess = grabbedBoxes ?? [];
+      const instancesToProcess = labelInstances ?? [];
 
-        const boxesById = new Map<string, (typeof boxesToProcess)[number]>();
-        for (const box of boxesToProcess) {
-          boxesById.set(box.id, box);
+      const boxesById = new Map<string, (typeof boxesToProcess)[number]>();
+      for (const box of boxesToProcess) {
+        boxesById.set(box.id, box);
+      }
+
+      // Build one id→animation index up-front so the per-instance lookups
+      // below are O(1). The previous .find() inside a for-loop produced
+      // O(boxes × animations) and O(labels × animations) hot work, both
+      // of which grow with multi-select.
+      const animationsById = new Map<string, AnimatedBounds>();
+      for (const animation of grabbedAnimations) {
+        animationsById.set(animation.id, animation);
+      }
+
+      for (const box of boxesToProcess) {
+        if (!animationsById.has(box.id)) {
+          const newAnimation = createAnimatedBounds(box.id, box.bounds, {
+            createdAt: box.createdAt,
+          });
+          grabbedAnimations.push(newAnimation);
+          animationsById.set(box.id, newAnimation);
         }
+      }
 
-        // Build one id→animation index up-front so the per-instance lookups
-        // below are O(1). The previous .find() inside a for-loop produced
-        // O(boxes × animations) and O(labels × animations) hot work, both
-        // of which grow with multi-select.
-        const animationsById = new Map<string, AnimatedBounds>();
-        for (const animation of grabbedAnimations) {
-          animationsById.set(animation.id, animation);
+      for (const animation of grabbedAnimations) {
+        const matchingBox = boxesById.get(animation.id);
+        if (matchingBox) {
+          updateAnimationTarget(animation, matchingBox.bounds);
         }
+      }
 
-        for (const box of boxesToProcess) {
-          if (!animationsById.has(box.id)) {
-            const newAnimation = createAnimatedBounds(box.id, box.bounds, {
-              createdAt: box.createdAt,
+      const activeLabelIds = new Set<string>();
+      for (const instance of instancesToProcess) {
+        const boundsToRender = resolveBoundsArray(instance);
+        const targetOpacity = instance.status === "fading" ? 0 : 1;
+
+        for (let index = 0; index < boundsToRender.length; index++) {
+          const bounds = boundsToRender[index];
+          const animationId = `label-${instance.id}-${index}`;
+          activeLabelIds.add(animationId);
+
+          const existingAnimation = animationsById.get(animationId);
+          if (existingAnimation) {
+            updateAnimationTarget(existingAnimation, bounds, targetOpacity);
+          } else {
+            const newAnimation = createAnimatedBounds(animationId, bounds, {
+              opacity: 1,
+              targetOpacity,
             });
             grabbedAnimations.push(newAnimation);
-            animationsById.set(box.id, newAnimation);
+            animationsById.set(animationId, newAnimation);
           }
         }
+      }
 
-        for (const animation of grabbedAnimations) {
-          const matchingBox = boxesById.get(animation.id);
-          if (matchingBox) {
-            updateAnimationTarget(animation, matchingBox.bounds);
-          }
+      // Boxes stay in the store for their full fade-out, so an animation
+      // whose box is gone was cleared explicitly (reset/escape) and must
+      // not linger — an orphaned remnant can't track layout shifts and
+      // would freeze at stale coordinates.
+      grabbedAnimations = grabbedAnimations.filter((animation) => {
+        if (animation.id.startsWith("label-")) {
+          return activeLabelIds.has(animation.id);
         }
+        return boxesById.has(animation.id);
+      });
 
-        const activeLabelIds = new Set<string>();
-        for (const instance of instancesToProcess) {
-          const boundsToRender = resolveBoundsArray(instance);
-          const targetOpacity = instance.status === "fading" ? 0 : 1;
-
-          for (let index = 0; index < boundsToRender.length; index++) {
-            const bounds = boundsToRender[index];
-            const animationId = `label-${instance.id}-${index}`;
-            activeLabelIds.add(animationId);
-
-            const existingAnimation = animationsById.get(animationId);
-            if (existingAnimation) {
-              updateAnimationTarget(existingAnimation, bounds, targetOpacity);
-            } else {
-              const newAnimation = createAnimatedBounds(animationId, bounds, {
-                opacity: 1,
-                targetOpacity,
-              });
-              grabbedAnimations.push(newAnimation);
-              animationsById.set(animationId, newAnimation);
-            }
-          }
-        }
-
-        // Boxes stay in the store for their full fade-out, so an animation
-        // whose box is gone was cleared explicitly (reset/escape) and must
-        // not linger — an orphaned remnant can't track layout shifts and
-        // would freeze at stale coordinates.
-        grabbedAnimations = grabbedAnimations.filter((animation) => {
-          if (animation.id.startsWith("label-")) {
-            return activeLabelIds.has(animation.id);
-          }
-          return boxesById.has(animation.id);
-        });
-
-        scheduleAnimationFrame();
-      },
-    ),
+      scheduleAnimationFrame();
+    },
   );
 
-  onMount(() => {
+  onSettled(() => {
     initializeCanvas();
     scheduleAnimationFrame();
 
@@ -598,7 +592,7 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
 
     setupDprMediaQuery();
 
-    onCleanup(() => {
+    return () => {
       window.removeEventListener("resize", handleWindowResize);
       if (currentDprMediaQuery) {
         currentDprMediaQuery.removeEventListener("change", handleDevicePixelRatioChange);
@@ -609,7 +603,7 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
       if (fadeWakeTimeoutId !== null) {
         window.clearTimeout(fadeWakeTimeoutId);
       }
-    });
+    };
   });
 
   return (

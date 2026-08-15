@@ -1,10 +1,10 @@
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "vite";
-import solid from "vite-plugin-solid";
+import solid from "@solidjs/vite-plugin";
 import { openstory } from "openstory/plugin";
 import { solidSourceLocationBabelPlugin } from "../../packages/react-grab/solid-source-location-babel-plugin.js";
 
-const REACT_FILE_PATTERN = /\.react\.tsx$/;
+const REACT_FILE_PATTERN = "**/*.react.tsx";
 
 export default defineConfig(({ command }) => ({
   plugins: [
@@ -21,11 +21,12 @@ export default defineConfig(({ command }) => ({
   ],
   resolve: {
     alias: {
+      "solid-js/web": "@solidjs/web",
       "@react-grab-source": fileURLToPath(
         new URL("../../packages/react-grab/src", import.meta.url),
       ),
     },
-    dedupe: ["solid-js", "solid-js/web"],
+    dedupe: ["solid-js", "@solidjs/web"],
   },
   define: {
     "process.env.VERSION": JSON.stringify("[DEV]"),
