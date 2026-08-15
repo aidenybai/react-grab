@@ -82,7 +82,13 @@ jobs:
         run: |
           BASE_SHA="${{ github.event.pull_request.base.sha }}"
           git fetch origin "$BASE_SHA" --depth=1
-          if git cat-file -e "$BASE_SHA:packages/react-grab/src" 2>/dev/null; then
+          PACKAGE_DEPENDENCY_FIELDS='{ dependencies, devDependencies, optionalDependencies, peerDependencies }'
+          if ! diff --brief \
+            <(git show "$BASE_SHA:packages/react-grab/package.json" | jq --sort-keys "$PACKAGE_DEPENDENCY_FIELDS") \
+            <(jq --sort-keys "$PACKAGE_DEPENDENCY_FIELDS" packages/react-grab/package.json) >/dev/null; then
+            echo "React Grab's dependencies changed; skipping the incompatible baseline run."
+            echo "swapped=false" >> "$GITHUB_OUTPUT"
+          elif git cat-file -e "$BASE_SHA:packages/react-grab/src" 2>/dev/null; then
             git checkout "$BASE_SHA" -- packages/react-grab/src
             echo "swapped=true" >> "$GITHUB_OUTPUT"
             echo "Swapped react-grab/src to base revision $BASE_SHA"
@@ -150,7 +156,15 @@ jobs:
       - name: Compute baseline-vs-current diff
         if: github.event_name == 'pull_request' && needs.perf-shard.result == 'success'
         run: |
-          node packages/react-grab/scripts/diff-perf-runs.mjs packages/react-grab/perf/baseline packages/react-grab/perf/current | tee perf-diff.md >> "$GITHUB_STEP_SUMMARY"
+          if [[ -d packages/react-grab/perf/baseline && -d packages/react-grab/perf/current ]]; then
+            node packages/react-grab/scripts/diff-perf-runs.mjs packages/react-grab/perf/baseline packages/react-grab/perf/current | tee perf-diff.md >> "$GITHUB_STEP_SUMMARY"
+          else
+            {
+              echo "## Performance comparison skipped"
+              echo
+              echo "A compatible base-source run was unavailable, so only current-source performance tests were executed."
+            } | tee perf-diff.md >> "$GITHUB_STEP_SUMMARY"
+          fi
 
       - name: Upload perf diff
         if: always() && github.event_name == 'pull_request'
