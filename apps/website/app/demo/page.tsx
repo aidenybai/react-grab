@@ -68,7 +68,7 @@ interface DemoSectionProps {
 
 const DemoSection = ({ label, children }: DemoSectionProps) => (
   <section className="flex flex-col gap-4">
-    <h2 className="font-mono text-xs uppercase tracking-widest text-faint">{label}</h2>
+    <h2 className="text-sm font-medium text-title">{label}</h2>
     {children}
   </section>
 );

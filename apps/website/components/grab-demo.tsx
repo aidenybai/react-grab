@@ -377,7 +377,7 @@ export const GrabDemo = () => {
               <span className="absolute bottom-0 left-0 h-0.5 animate-reload-bar bg-[#0a84ff]" />
             )}
           </div>
-          <div className="paper-hatch relative flex aspect-square w-full items-center justify-center overflow-hidden text-center md:aspect-auto md:h-72">
+          <div className="relative flex aspect-square w-full items-center justify-center overflow-hidden bg-muted/40 text-center md:aspect-auto md:h-72">
             {/* Below md the terminal overlays the lower half of the stage, so
                 the headline sits higher to stay visible above it. */}
             <h1

@@ -1,6 +1,7 @@
 import { createPageMetadata } from "@/lib/metadata";
 import { AccentLink } from "@/components/prose";
 import { PageHeader } from "@/components/page-header";
+import { PageShell } from "@/components/page-shell";
 import { BenchmarkLeaderboard } from "@/components/benchmark/leaderboard";
 import { TOTAL_CASES, LAST_BENCHMARKED } from "@/components/benchmark/data";
 
@@ -12,8 +13,8 @@ export const metadata = createPageMetadata({
 
 const BenchmarksPage = () => {
   return (
-    <div className="min-h-screen bg-background px-6 py-8 text-prose sm:px-8">
-      <div className="mx-auto flex w-full max-w-2xl flex-col pt-8">
+    <PageShell>
+      <div className="flex flex-col pt-20">
         <PageHeader
           title="Benchmarks"
           subtitle={`Coding agents finding the right source file across ${TOTAL_CASES} retrieval tasks in production-scale codebases.`}
@@ -38,7 +39,7 @@ const BenchmarksPage = () => {
           </AccentLink>
         </p>
       </div>
-    </div>
+    </PageShell>
   );
 };
 

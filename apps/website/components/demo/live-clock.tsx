@@ -24,7 +24,7 @@ export const LiveClock = () => {
 
   return (
     <div className="flex flex-col gap-1 rounded-lg border border-line p-4">
-      <span className="font-mono text-xs uppercase tracking-widest text-faint">Local time</span>
+      <span className="text-xs text-meta">Local time</span>
       <span className="font-mono text-h2 tabular-nums text-title">
         {now ? formatTime(now) : "--:--:--"}
       </span>

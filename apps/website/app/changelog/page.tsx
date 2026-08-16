@@ -3,6 +3,7 @@ import { readFileSync } from "fs";
 import { join } from "path";
 import { parseChangelog } from "@/utils/parse-changelog";
 import { PageHeader } from "@/components/page-header";
+import { PageShell } from "@/components/page-shell";
 
 export const metadata = createPageMetadata({
   title: "Changelog",
@@ -20,8 +21,8 @@ const ChangelogPage = () => {
   const entries = getChangelog();
 
   return (
-    <div className="min-h-screen bg-background px-6 py-8 text-prose sm:px-8">
-      <div className="mx-auto flex w-full max-w-2xl flex-col pt-8">
+    <PageShell>
+      <div className="flex flex-col pt-20">
         <PageHeader title="Changelog" subtitle="Release notes and version history" />
 
         <div className="mt-8 flex flex-col gap-8">
@@ -43,7 +44,7 @@ const ChangelogPage = () => {
           ))}
         </div>
       </div>
-    </div>
+    </PageShell>
   );
 };
 

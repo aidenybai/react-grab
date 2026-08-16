@@ -5,42 +5,36 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * React Grab shares the "Paper" editorial design language of react-bench and
- * million.dev: a canvas/card surface, hairline rules, an ink→prose→faint ink
- * ramp, an editorial-orange brand accent, and the licensed trial type families
- * (EK Baumer Uniwidth sans, Test Signifier serif, GT Mechanik data/numeric,
- * Geist Mono). shadcn's neutral tokens below are remapped onto this palette so
- * the shadcn primitives inherit the same look instead of a second gray scale.
+ * React Grab follows million.dev's minimal style: a plain white page, a
+ * neutral oklch gray ramp, and the million-ui accent blue. Geist carries all
+ * text; Geist Mono carries code. The token names below predate the restyle so
+ * every consumer restyles from this one file.
  */
 @theme {
   /* Surfaces */
   --color-canvas: color(display-p3 0.98026 0.98026 0.98026);
-  --color-line: color(display-p3 0.8954 0.8954 0.8954);
-  --color-hairline: #e1e1e1;
+  --color-line: oklch(0.922 0 0);
+  --color-hairline: oklch(0.922 0 0);
 
-  /* Ink ramp */
-  --color-ink: #0a0a0a;
-  --color-title: #242424;
-  --color-label: #2a2a2a;
-  --color-prose: #616161;
-  --color-meta: #484848;
-  --color-faint: #9a9a9a;
+  /* Ink ramp (million-ui's neutral steps) */
+  --color-ink: oklch(0.145 0 0);
+  --color-title: oklch(0.205 0 0);
+  --color-label: oklch(0.269 0 0);
+  --color-prose: oklch(0.439 0 0);
+  --color-meta: oklch(0.556 0 0);
+  --color-faint: oklch(0.708 0 0);
 
   /* Inline code chip */
-  --color-code: #ededed;
-  --color-code-ink: #3d3d3d;
+  --color-code: oklch(0.97 0 0);
+  --color-code-ink: oklch(0.371 0 0);
 
-  /* Editorial-orange brand accent (chroma-balanced for the light background) */
-  --color-brand: color(display-p3 0.90663 0.41591 0.13661);
+  /* million-ui accent blue */
+  --color-brand: color(display-p3 0.184 0.395 0.941);
 
-  /* Type families — the licensed trial fonts declared via @font-face below.
-     sans  = editorial body, nav, chrome  (EK Baumer Uniwidth)
-     serif = display title, headings      (Test Signifier)
-     mono  = eyebrows, code, chrome        (Geist Mono) */
-  --font-heading: "Test Signifier", Georgia, "Times New Roman", serif;
-  --font-sans: "EK Baumer Uniwidth", var(--font-geist-sans), system-ui, sans-serif;
-  --font-serif: "Test Signifier", Georgia, "Times New Roman", serif;
-  --font-mono: var(--font-geist-mono), "Geist Mono Fallback", ui-monospace, monospace;
+  --font-heading: var(--font-geist-sans), system-ui, sans-serif;
+  --font-sans: var(--font-geist-sans), system-ui, sans-serif;
+  --font-serif: var(--font-geist-sans), system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 
   /* Type scale (font-size / line-height pairs) */
   --text-eyebrow: 12px;
@@ -55,9 +49,9 @@
   --text-display--line-height: 1.05;
 }
 
-/* shadcn semantic tokens → Paper palette. Everything references --color-*
+/* shadcn semantic tokens → neutral palette. Everything references --color-*
    (defined above and flipped under .dark) so the shadcn primitives track the
-   editorial theme with the light/dark toggle. */
+   theme with the light/dark toggle. */
 @theme inline {
   --color-link: var(--link);
   --color-sidebar-ring: var(--sidebar-ring);
@@ -113,11 +107,11 @@
   --popover-foreground: var(--color-ink);
   --primary: var(--color-ink);
   --primary-foreground: var(--color-canvas);
-  --secondary: color(display-p3 0.955 0.955 0.955);
+  --secondary: oklch(0.97 0 0);
   --secondary-foreground: var(--color-ink);
-  --muted: color(display-p3 0.955 0.955 0.955);
+  --muted: oklch(0.97 0 0);
   --muted-foreground: var(--color-meta);
-  --accent: color(display-p3 0.955 0.955 0.955);
+  --accent: oklch(0.97 0 0);
   --accent-foreground: var(--color-ink);
   --destructive: oklch(0.577 0.245 27.325);
   --border: var(--color-line);
@@ -132,82 +126,42 @@
   --sidebar-foreground: var(--color-prose);
   --sidebar-primary: var(--color-ink);
   --sidebar-primary-foreground: var(--color-canvas);
-  --sidebar-accent: color(display-p3 0.955 0.955 0.955);
+  --sidebar-accent: oklch(0.97 0 0);
   --sidebar-accent-foreground: var(--color-ink);
   --sidebar-border: var(--color-line);
   --sidebar-ring: var(--color-faint);
 
   --link: var(--color-brand);
-  --selection: var(--color-ink);
-  --selection-foreground: var(--color-canvas);
+  --selection: oklch(0.883 0.005 286.3);
+  --selection-foreground: var(--color-ink);
 }
 
-/*
- * Dark theme. Overrides the Paper --color-* tokens (which the shadcn tokens
- * above reference), so a single .dark class flips both systems. Values are the
- * original dark Paper export.
- */
 .dark {
   --color-canvas: color(display-p3 0.054 0.054 0.054);
-  --color-line: color(display-p3 0.106 0.106 0.106);
-  --color-hairline: #1d1d1d;
+  --color-line: oklch(1 0 0 / 10%);
+  --color-hairline: oklch(1 0 0 / 10%);
 
-  --color-ink: #e8e8e8;
-  --color-title: #c6c6c6;
-  --color-label: #bfbfbf;
-  --color-prose: #848484;
-  --color-meta: #9d9d9d;
-  --color-faint: #515151;
+  --color-ink: oklch(0.985 0 0);
+  --color-title: oklch(0.922 0 0);
+  --color-label: oklch(0.87 0 0);
+  --color-prose: oklch(0.708 0 0);
+  --color-meta: oklch(0.708 0 0);
+  --color-faint: oklch(0.439 0 0);
 
-  --color-code: #282828;
-  --color-code-ink: #b4b4b4;
+  --color-code: oklch(0.269 0 0);
+  --color-code-ink: oklch(0.87 0 0);
 
-  --color-brand: color(display-p3 1 0.514 0.261);
+  --color-brand: color(display-p3 0.393 0.576 1);
 
-  --secondary: color(display-p3 0.14 0.14 0.14);
-  --muted: color(display-p3 0.14 0.14 0.14);
-  --accent: color(display-p3 0.14 0.14 0.14);
+  --secondary: oklch(0.269 0 0);
+  --muted: oklch(0.269 0 0);
+  --accent: oklch(0.269 0 0);
   --accent-foreground: var(--color-ink);
   --secondary-foreground: var(--color-ink);
-  --sidebar-accent: color(display-p3 0.14 0.14 0.14);
+  --sidebar-accent: oklch(0.269 0 0);
   --destructive: oklch(0.704 0.191 22.216);
-}
 
-/* Licensed trial fonts ported from the Paper design. */
-@font-face {
-  font-family: "EK Baumer Uniwidth";
-  src: url("/fonts/ekbaumeruniwidthtrial-regular.otf") format("opentype");
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face {
-  font-family: "EK Baumer Uniwidth";
-  src: url("/fonts/ekbaumeruniwidthtrial-medium.otf") format("opentype");
-  font-weight: 500;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face {
-  font-family: "Test Signifier";
-  src: url("/fonts/test-signifier-regular.woff2") format("woff2");
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face {
-  font-family: "Test Signifier";
-  src: url("/fonts/test-signifier-medium.woff2") format("woff2");
-  font-weight: 500;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face {
-  font-family: "Test Signifier";
-  src: url("/fonts/test-signifier-regular-italic.woff2") format("woff2");
-  font-weight: 400;
-  font-style: italic;
-  font-display: swap;
+  --selection: oklch(0.37 0.005 286.3);
 }
 
 @layer base {
@@ -232,8 +186,6 @@
     font-synthesis: none;
     -webkit-font-smoothing: antialiased;
   }
-  /* Inverted highlight — near-foreground fill, near-background text. Token-driven
-     so it flips with the theme. */
   ::selection {
     background: var(--selection);
     color: var(--selection-foreground);
@@ -304,19 +256,6 @@
   &::-webkit-scrollbar {
     display: none;
   }
-}
-
-/* Diagonal hairline hatch — a faint "instrument panel" texture used behind the
-   masthead and footer. The stroke color is supplied via --line. */
-.paper-hatch {
-  --line: var(--color-hairline);
-  background-image: repeating-linear-gradient(
-    45deg,
-    var(--line) 0,
-    var(--line) 1px,
-    transparent 1px,
-    transparent 7px
-  );
 }
 
 /* Page entrance: the main content fades in on first paint. */

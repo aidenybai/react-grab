@@ -75,9 +75,7 @@ const Row = ({ row }: { row: BenchmarkRow }) => {
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={row.icon} alt="" className="size-4 shrink-0 rounded-full" />
-        <span className="truncate font-mono text-[13px] uppercase tracking-widest">
-          {row.resolver}
-        </span>
+        <span className="truncate text-[13px]">{row.resolver}</span>
       </a>
       <span className="text-right text-[13px] tabular-nums">{oneDecimal(row.speed)}s</span>
       <TimeBar row={row} color={barColor} />
@@ -101,7 +99,7 @@ export const BenchmarkLeaderboard = () => {
         tabIndex={0}
         className="scrollbar-none -mx-6 overflow-x-auto px-6 sm:mx-0 sm:px-0"
       >
-        <div className="flex min-w-[480px] flex-col font-mono">
+        <div className="flex min-w-[480px] flex-col">
           <div className={`${COLS} h-11 border-b border-hairline`}>
             <span className="font-sans text-body text-prose">Resolver</span>
             <span className="text-right font-sans text-body text-prose">Time</span>

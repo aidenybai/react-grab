@@ -9,7 +9,7 @@ interface MotionTileProps {
 const MotionTile = ({ label, children }: MotionTileProps) => (
   <div className="flex flex-col items-center gap-3 rounded-lg border border-line p-5">
     <div className="flex h-14 items-center justify-center">{children}</div>
-    <span className="font-mono text-xs uppercase tracking-widest text-faint">{label}</span>
+    <span className="text-xs text-meta">{label}</span>
   </div>
 );
 
