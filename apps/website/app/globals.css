@@ -5,54 +5,61 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * React Grab shares the "Paper" editorial design language of react-bench and
- * million.dev: a canvas/card surface, hairline rules, an ink→prose→faint ink
- * ramp, an editorial-orange brand accent, and the licensed trial type families
- * (EK Baumer Uniwidth sans, Test Signifier serif, GT Mechanik data/numeric,
- * Geist Mono). shadcn's neutral tokens below are remapped onto this palette so
- * the shadcn primitives inherit the same look instead of a second gray scale.
+ * React Grab shares the ReactBench editorial design language: a white
+ * canvas over a quiet page wash, hairline rules, a compact near-black ink
+ * ramp, the React brand blue, an editorial-orange accent, and the licensed
+ * trial type families (EK Baumer Headline page titles, Tiempos Text
+ * headings, EK Baumer Uniwidth body/UI, Geist Mono). shadcn's neutral
+ * tokens below are remapped onto this palette so the shadcn primitives
+ * inherit the same look instead of a second gray scale.
  */
 @theme {
   /* Surfaces */
-  --color-canvas: color(display-p3 0.98026 0.98026 0.98026);
-  --color-line: color(display-p3 0.8954 0.8954 0.8954);
-  --color-hairline: #e1e1e1;
+  --color-canvas: #ffffff;
+  --color-page: #fcfcfc;
+  --color-line: #ececec;
+  --color-hairline: #e9e9e9;
 
   /* Ink ramp */
-  --color-ink: #0a0a0a;
-  --color-title: #242424;
-  --color-label: #2a2a2a;
-  --color-prose: #616161;
-  --color-meta: #484848;
-  --color-faint: #9a9a9a;
+  --color-ink: #050505;
+  --color-title: #0a0a0a;
+  --color-label: #101010;
+  --color-prose: #4a4a4a;
+  --color-meta: #252525;
+  --color-faint: #3c3c3c;
 
   /* Inline code chip */
-  --color-code: #ededed;
-  --color-code-ink: #3d3d3d;
+  --color-code: #f5f5f5;
+  --color-code-ink: #212121;
+
+  /* React brand blue */
+  --color-react: #149eca;
 
   /* Editorial-orange brand accent (chroma-balanced for the light background) */
   --color-brand: color(display-p3 0.90663 0.41591 0.13661);
 
   /* Type families — the licensed trial fonts declared via @font-face below.
-     sans  = editorial body, nav, chrome  (EK Baumer Uniwidth)
-     serif = display title, headings      (Test Signifier)
-     mono  = eyebrows, code, chrome        (Geist Mono) */
-  --font-heading: "Test Signifier", Georgia, "Times New Roman", serif;
+     page-title = primary landing titles     (EK Baumer Headline)
+     serif      = display copy, headings     (Tiempos Text)
+     sans       = editorial body, nav, chrome (EK Baumer Uniwidth)
+     mono       = eyebrows, code, chrome      (Geist Mono) */
+  --font-page-title: "EK Baumer Headline", Arial, Helvetica, sans-serif;
+  --font-heading: "Tiempos Text", Georgia, "Times New Roman", serif;
   --font-sans: "EK Baumer Uniwidth", var(--font-geist-sans), system-ui, sans-serif;
-  --font-serif: "Test Signifier", Georgia, "Times New Roman", serif;
+  --font-serif: "Tiempos Text", Georgia, "Times New Roman", serif;
   --font-mono: var(--font-geist-mono), "Geist Mono Fallback", ui-monospace, monospace;
 
   /* Type scale (font-size / line-height pairs) */
   --text-eyebrow: 12px;
   --text-eyebrow--line-height: 25px;
-  --text-body: 15px;
-  --text-body--line-height: 24px;
-  --text-h3: 16px;
-  --text-h3--line-height: 25px;
+  --text-body: 16px;
+  --text-body--line-height: 28px;
+  --text-h3: 19px;
+  --text-h3--line-height: 27px;
   --text-h2: 22px;
-  --text-h2--line-height: 1.2;
-  --text-display: 39px;
-  --text-display--line-height: 1.05;
+  --text-h2--line-height: 29px;
+  --text-display: 36px;
+  --text-display--line-height: 42px;
 }
 
 /* shadcn semantic tokens → Paper palette. Everything references --color-*
@@ -103,7 +110,7 @@
 }
 
 :root {
-  --radius: 0.5rem;
+  --radius: 4px;
 
   --background: var(--color-canvas);
   --foreground: var(--color-prose);
@@ -113,11 +120,11 @@
   --popover-foreground: var(--color-ink);
   --primary: var(--color-ink);
   --primary-foreground: var(--color-canvas);
-  --secondary: color(display-p3 0.955 0.955 0.955);
-  --secondary-foreground: var(--color-ink);
-  --muted: color(display-p3 0.955 0.955 0.955);
-  --muted-foreground: var(--color-meta);
-  --accent: color(display-p3 0.955 0.955 0.955);
+  --secondary: var(--color-code);
+  --secondary-foreground: var(--color-code-ink);
+  --muted: var(--color-code);
+  --muted-foreground: var(--color-faint);
+  --accent: var(--color-code);
   --accent-foreground: var(--color-ink);
   --destructive: oklch(0.577 0.245 27.325);
   --border: var(--color-line);
@@ -132,14 +139,14 @@
   --sidebar-foreground: var(--color-prose);
   --sidebar-primary: var(--color-ink);
   --sidebar-primary-foreground: var(--color-canvas);
-  --sidebar-accent: color(display-p3 0.955 0.955 0.955);
+  --sidebar-accent: var(--color-code);
   --sidebar-accent-foreground: var(--color-ink);
   --sidebar-border: var(--color-line);
   --sidebar-ring: var(--color-faint);
 
   --link: var(--color-brand);
-  --selection: var(--color-ink);
-  --selection-foreground: var(--color-canvas);
+  --selection: rgba(0, 0, 0, 0.12);
+  --selection-foreground: currentColor;
 }
 
 /*
@@ -148,29 +155,30 @@
  * original dark Paper export.
  */
 .dark {
-  --color-canvas: color(display-p3 0.054 0.054 0.054);
-  --color-line: color(display-p3 0.106 0.106 0.106);
-  --color-hairline: #1d1d1d;
+  --color-canvas: #111111;
+  --color-page: #0f0f0f;
+  --color-line: #2d2f32;
+  --color-hairline: #242629;
 
-  --color-ink: #e8e8e8;
-  --color-title: #c6c6c6;
-  --color-label: #bfbfbf;
-  --color-prose: #848484;
-  --color-meta: #9d9d9d;
-  --color-faint: #515151;
+  --color-ink: #e4e0dd;
+  --color-title: #e4e0dd;
+  --color-label: #cfd2d5;
+  --color-prose: #858a8e;
+  --color-meta: #b3b7bb;
+  --color-faint: #9da2a9;
 
-  --color-code: #282828;
-  --color-code-ink: #b4b4b4;
+  --color-code: #1e2126;
+  --color-code-ink: #cfd2d5;
+
+  --color-react: #6495bd;
 
   --color-brand: color(display-p3 1 0.514 0.261);
 
-  --secondary: color(display-p3 0.14 0.14 0.14);
-  --muted: color(display-p3 0.14 0.14 0.14);
-  --accent: color(display-p3 0.14 0.14 0.14);
   --accent-foreground: var(--color-ink);
-  --secondary-foreground: var(--color-ink);
-  --sidebar-accent: color(display-p3 0.14 0.14 0.14);
   --destructive: oklch(0.704 0.191 22.216);
+
+  --selection: var(--color-ink);
+  --selection-foreground: var(--color-canvas);
 }
 
 /* Licensed trial fonts ported from the Paper design. */
@@ -189,23 +197,44 @@
   font-display: swap;
 }
 @font-face {
-  font-family: "Test Signifier";
-  src: url("/fonts/test-signifier-regular.woff2") format("woff2");
+  font-family: "EK Baumer Uniwidth";
+  src: url("/fonts/ekbaumeruniwidthtrial-regular-italic.otf") format("opentype");
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: "EK Baumer Uniwidth";
+  src: url("/fonts/ekbaumeruniwidthtrial-medium-italic.otf") format("opentype");
+  font-weight: 500;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: "EK Baumer Headline";
+  src: url("/fonts/ek-baumer-headline-regular.otf") format("opentype");
   font-weight: 400;
   font-style: normal;
   font-display: swap;
 }
 @font-face {
-  font-family: "Test Signifier";
-  src: url("/fonts/test-signifier-medium.woff2") format("woff2");
+  font-family: "EK Baumer Headline";
+  src: url("/fonts/ek-baumer-headline-medium.otf") format("opentype");
   font-weight: 500;
   font-style: normal;
   font-display: swap;
 }
 @font-face {
-  font-family: "Test Signifier";
-  src: url("/fonts/test-signifier-regular-italic.woff2") format("woff2");
-  font-weight: 400;
+  font-family: "Tiempos Text";
+  src: url("/fonts/tiempos-text-variable.woff2") format("woff2");
+  font-weight: 400 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Tiempos Text";
+  src: url("/fonts/tiempos-text-variable-italic.woff2") format("woff2");
+  font-weight: 400 700;
   font-style: italic;
   font-display: swap;
 }
