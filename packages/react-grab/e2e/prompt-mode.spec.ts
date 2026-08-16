@@ -56,6 +56,55 @@ test.describe("Prompt Mode", () => {
 
       expect(hasTextarea).toBe(true);
     });
+
+    test("comment composer should use a multiline input with a separate submit row", async ({
+      reactGrab,
+    }) => {
+      await reactGrab.registerCommentAction();
+      await reactGrab.enterPromptMode("h1");
+
+      const initialLayout = await reactGrab.page.evaluate(() => {
+        const host = document.querySelector("[data-react-grab]");
+        const shadowRoot = host?.shadowRoot;
+        const textarea = shadowRoot?.querySelector<HTMLTextAreaElement>(
+          "textarea[data-react-grab-input]",
+        );
+        const submitButton = shadowRoot?.querySelector<HTMLButtonElement>(
+          "[data-react-grab-submit]",
+        );
+        if (!textarea || !submitButton) return null;
+
+        const textareaBounds = textarea.getBoundingClientRect();
+        const submitButtonBounds = submitButton.getBoundingClientRect();
+        return {
+          textareaHeight: textareaBounds.height,
+          textareaWidth: textareaBounds.width,
+          textareaBottom: textareaBounds.bottom,
+          submitButtonTop: submitButtonBounds.top,
+          transitionProperty: getComputedStyle(textarea).transitionProperty,
+        };
+      });
+
+      expect(initialLayout).not.toBeNull();
+      expect(initialLayout?.textareaHeight).toBeGreaterThanOrEqual(32);
+      expect(initialLayout?.textareaWidth).toBeGreaterThanOrEqual(240);
+      expect(initialLayout?.submitButtonTop).toBeGreaterThan(initialLayout?.textareaBottom ?? 0);
+      expect(initialLayout?.transitionProperty).toContain("height");
+
+      await reactGrab.typeInInput("First line\nSecond line\nThird line");
+
+      await expect
+        .poll(() =>
+          reactGrab.page.evaluate(() => {
+            const host = document.querySelector("[data-react-grab]");
+            const textarea = host?.shadowRoot?.querySelector<HTMLTextAreaElement>(
+              "textarea[data-react-grab-input]",
+            );
+            return textarea?.getBoundingClientRect().height ?? 0;
+          }),
+        )
+        .toBeGreaterThan(initialLayout?.textareaHeight ?? 0);
+    });
   });
 
   test.describe("Prompt Mode Control", () => {

@@ -183,6 +183,23 @@
   will-change: transform, opacity;
 }
 
+@keyframes comment-composer-expand {
+  from {
+    clip-path: inset(0 0 calc(100% - var(--rg-comment-composer-collapsed-height)) 0);
+  }
+  to {
+    clip-path: inset(0);
+  }
+}
+
+.animate-comment-composer-expand {
+  animation-name: comment-composer-expand;
+  animation-timing-function: var(--ease-drawer);
+  animation-fill-mode: both;
+  transform-origin: top center;
+  will-change: clip-path;
+}
+
 .animate-shake-vertical {
   --rg-shake-x: 0;
   --rg-shake-y: 1;
