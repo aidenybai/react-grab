@@ -1,6 +1,7 @@
 import { createPageMetadata } from "@/lib/metadata";
 import { AccentLink } from "@/components/prose";
 import { PageHeader } from "@/components/page-header";
+import { PageShell } from "@/components/page-shell";
 
 export const metadata = createPageMetadata({
   title: "Privacy Policy",
@@ -10,8 +11,8 @@ export const metadata = createPageMetadata({
 
 const PrivacyPage = () => {
   return (
-    <div className="min-h-screen bg-background px-6 py-8 text-prose sm:px-8">
-      <div className="mx-auto flex w-full max-w-2xl flex-col pt-8">
+    <PageShell>
+      <div className="flex flex-col pt-20">
         <PageHeader
           title="Privacy Policy"
           subtitle={`Last updated ${new Date().toLocaleDateString("en-US", {
@@ -155,7 +156,7 @@ const PrivacyPage = () => {
           </section>
         </div>
       </div>
-    </div>
+    </PageShell>
   );
 };
 

@@ -9,7 +9,7 @@ const TickerRun = ({ ariaHidden = false }: { ariaHidden?: boolean }) => (
   <div aria-hidden={ariaHidden} className="flex shrink-0 items-center">
     {TICKER_PHRASES.map((phrase) => (
       <span key={phrase} className="flex items-center">
-        <span className="px-4 font-mono text-xs uppercase tracking-widest text-meta">{phrase}</span>
+        <span className="px-4 text-xs text-meta">{phrase}</span>
         <span className="text-brand">✦</span>
       </span>
     ))}

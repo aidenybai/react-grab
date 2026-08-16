@@ -2,14 +2,14 @@ import { ImageResponse } from "next/og";
 
 export const runtime = "edge";
 
-/* Paper theme (light) — mirrors app/globals.css so social cards match the site. */
+/* Light theme — mirrors app/globals.css so social cards match the site. */
 const CANVAS = "#fafafa";
-const HAIRLINE = "#e1e1e1";
+const HAIRLINE = "#e2e2e2";
 const INK = "#0a0a0a";
-const TITLE = "#242424";
-const PROSE = "#616161";
-/* sRGB approximation of --color-brand: color(display-p3 0.90663 0.41591 0.13661) */
-const BRAND = "#e5642a";
+const TITLE = "#171717";
+const PROSE = "#525252";
+/* sRGB approximation of --color-brand: color(display-p3 0.184 0.395 0.941) */
+const BRAND = "#2e64ee";
 
 const fetchFont = async (request: Request, path: string) => {
   const response = await fetch(new URL(path, request.url));
@@ -26,8 +26,8 @@ const fetchFont = async (request: Request, path: string) => {
 let fontsPromise: Promise<[ArrayBuffer, ArrayBuffer]> | null = null;
 const getFonts = (request: Request) =>
   (fontsPromise ??= Promise.all([
-    fetchFont(request, "/fonts/ekbaumeruniwidthtrial-regular.otf"),
-    fetchFont(request, "/fonts/ekbaumeruniwidthtrial-medium.otf"),
+    fetchFont(request, "/fonts/geist-regular.ttf"),
+    fetchFont(request, "/fonts/geist-medium.ttf"),
   ]).catch((error) => {
     fontsPromise = null;
     throw error;
@@ -110,7 +110,7 @@ export const GET = async (request: Request) => {
         <span
           style={{
             fontSize: 30,
-            fontFamily: "EK Baumer",
+            fontFamily: "Geist",
             fontWeight: 500,
             color: INK,
             letterSpacing: "-0.01em",
@@ -131,7 +131,7 @@ export const GET = async (request: Request) => {
         <h1
           style={{
             fontSize: title.length > 40 ? 60 : 78,
-            fontFamily: "EK Baumer",
+            fontFamily: "Geist",
             fontWeight: 500,
             color: TITLE,
             lineHeight: 1.05,
@@ -145,7 +145,7 @@ export const GET = async (request: Request) => {
           <p
             style={{
               fontSize: 30,
-              fontFamily: "EK Baumer",
+              fontFamily: "Geist",
               fontWeight: 400,
               color: PROSE,
               lineHeight: 1.35,
@@ -162,8 +162,8 @@ export const GET = async (request: Request) => {
       height: 630,
       ...(fonts && {
         fonts: [
-          { name: "EK Baumer", data: fonts[0], style: "normal", weight: 400 },
-          { name: "EK Baumer", data: fonts[1], style: "normal", weight: 500 },
+          { name: "Geist", data: fonts[0], style: "normal", weight: 400 },
+          { name: "Geist", data: fonts[1], style: "normal", weight: 500 },
         ],
       }),
     },
