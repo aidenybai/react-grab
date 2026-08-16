@@ -185,19 +185,44 @@
 
 @keyframes comment-composer-expand {
   from {
-    clip-path: inset(0 0 calc(100% - var(--rg-comment-composer-collapsed-height)) 0);
+    opacity: 0;
+    clip-path: inset(
+      0
+        calc(
+          (
+              100% -
+                var(
+                  --rg-comment-composer-collapsed-width,
+                  var(--rg-comment-composer-collapsed-height)
+                )
+            ) /
+            2
+        )
+        calc(100% - var(--rg-comment-composer-collapsed-height))
+        calc(
+          (
+              100% -
+                var(
+                  --rg-comment-composer-collapsed-width,
+                  var(--rg-comment-composer-collapsed-height)
+                )
+            ) /
+            2
+        )
+    );
   }
   to {
+    opacity: 1;
     clip-path: inset(0);
   }
 }
 
 .animate-comment-composer-expand {
   animation-name: comment-composer-expand;
-  animation-timing-function: var(--ease-drawer);
+  animation-timing-function: ease;
   animation-fill-mode: both;
   transform-origin: top center;
-  will-change: clip-path;
+  will-change: clip-path, opacity;
 }
 
 .animate-shake-vertical {

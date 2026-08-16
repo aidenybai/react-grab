@@ -57,6 +57,60 @@ test.describe("Prompt Mode", () => {
       expect(hasTextarea).toBe(true);
     });
 
+    test("comment composer should expand from the selected element label", async ({
+      reactGrab,
+    }) => {
+      await reactGrab.registerCommentAction();
+      await reactGrab.enterPromptMode("h1");
+
+      const revealState = await reactGrab.page.evaluate(() => {
+        const host = document.querySelector("[data-react-grab]");
+        const shadowRoot = host?.shadowRoot;
+        const surface = shadowRoot?.querySelector<HTMLElement>(".animate-comment-composer-expand");
+        const header = surface?.querySelector<HTMLElement>(
+          "[data-react-grab-comment-composer-header]",
+        );
+        const animation = surface?.getAnimations()[0];
+        if (!shadowRoot || !surface || !header || !animation) return null;
+
+        animation.pause();
+        animation.currentTime = 0;
+        const surfaceBounds = surface.getBoundingClientRect();
+        const initialEdgeElement = shadowRoot.elementFromPoint(
+          surfaceBounds.left + 1,
+          surfaceBounds.top + 1,
+        );
+        const initialEdgeIsPainted =
+          initialEdgeElement === surface ||
+          Boolean(initialEdgeElement && surface.contains(initialEdgeElement));
+
+        animation.finish();
+        const finalEdgeElement = shadowRoot.elementFromPoint(
+          surfaceBounds.left + 1,
+          surfaceBounds.top + 1,
+        );
+        const finalEdgeIsPainted =
+          finalEdgeElement === surface ||
+          Boolean(finalEdgeElement && surface.contains(finalEdgeElement));
+
+        return {
+          collapsedWidth: Number.parseFloat(
+            getComputedStyle(surface).getPropertyValue("--rg-comment-composer-collapsed-width"),
+          ),
+          headerWidth: header.getBoundingClientRect().width,
+          surfaceWidth: surfaceBounds.width,
+          initialEdgeIsPainted,
+          finalEdgeIsPainted,
+        };
+      });
+
+      expect(revealState).not.toBeNull();
+      expect(revealState?.collapsedWidth).toBeCloseTo(revealState?.headerWidth ?? 0);
+      expect(revealState?.collapsedWidth).toBeLessThan(revealState?.surfaceWidth ?? 0);
+      expect(revealState?.initialEdgeIsPainted).toBe(false);
+      expect(revealState?.finalEdgeIsPainted).toBe(true);
+    });
+
     test("comment composer should use a multiline input with a separate submit row", async ({
       reactGrab,
     }) => {

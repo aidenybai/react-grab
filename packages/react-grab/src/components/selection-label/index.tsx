@@ -320,6 +320,16 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     props.onInputChange?.(inputTarget.value);
   };
 
+  const setCommentComposerCollapsedWidth = (headerElement: HTMLDivElement) => {
+    queueMicrotask(() => {
+      if (!panelRef || !headerElement.isConnected || !props.isPromptMode) return;
+      panelRef.style.setProperty(
+        "--rg-comment-composer-collapsed-width",
+        `${headerElement.getBoundingClientRect().width}px`,
+      );
+    });
+  };
+
   const tagDisplayResult = () =>
     getTagDisplay({
       tagName: props.tagName,
@@ -444,7 +454,11 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
               class="contain-layout shrink-0 flex flex-col justify-center items-start h-fit"
               style={{ width: `${COMMENT_COMPOSER_WIDTH_PX}px` }}
             >
-              <div class="contain-layout shrink-0 flex items-center gap-1 pt-1.5 pb-1 w-fit h-fit px-2 max-w-full">
+              <div
+                ref={setCommentComposerCollapsedWidth}
+                data-react-grab-comment-composer-header
+                class="contain-layout shrink-0 flex items-center gap-1 pt-1.5 pb-1 w-fit h-fit px-2 max-w-full"
+              >
                 <TagBadge
                   tagName={tagDisplayResult().tagName}
                   componentName={tagDisplayResult().componentName}
