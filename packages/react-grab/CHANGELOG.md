@@ -1,5 +1,17 @@
 # react-grab
 
+## 0.2.0
+
+### Minor Changes
+
+- f350003: Remove the Style action and panel, including its keyboard shortcuts, inline previews, CSS property controls, design-token handling, and edit-related action context and renderer types. Simplify the toolbar to its Copy control while keeping Comment available through the context menu and action menu.
+
+### Patch Changes
+
+- 4dbdee5: Improve copied element context and labels with stable semantic selectors, authored component names, nearest-source resolution, race-safe refresh-aware source caching, bounded previews and keys, nested control labels, consistent trace budgets, and lossless multi-element selection.
+- Updated dependencies [f350003]
+  - @react-grab/cli@0.2.0
+
 ## 0.1.50
 
 ### Patch Changes
