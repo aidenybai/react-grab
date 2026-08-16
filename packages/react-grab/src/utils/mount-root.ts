@@ -3,9 +3,6 @@ import { detectCspNonce } from "./detect-csp-nonce.js";
 import { hideFromThirdParties } from "./hide-from-third-parties.js";
 import { REACT_GRAB_ATTRIBUTE_NAME } from "./react-grab-attribute-name.js";
 
-const FONT_IMPORT =
-  '@import url("https://fonts.googleapis.com/css2?family=Geist:wght@500&display=swap");';
-
 // Mounting into <body> (not <html>) keeps React hydration happy: appending a
 // <div> directly to <html> throws "In HTML, <div> cannot be a child of <html>"
 // during hydration (see vercel/next.js#51242), which surfaces in Next.js's dev
@@ -93,7 +90,7 @@ export const mountRoot = (cssText?: string): MountRootResult => {
   const styleElement = document.createElement("style");
   const nonce = detectCspNonce();
   if (nonce) styleElement.nonce = nonce;
-  styleElement.textContent = `${FONT_IMPORT}\n${cssText ?? ""}`;
+  styleElement.textContent = cssText ?? "";
   shadowRoot.appendChild(styleElement);
 
   const root = document.createElement("div");
