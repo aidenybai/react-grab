@@ -452,7 +452,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                   onHoverChange={handleTagHoverChange}
                 />
               </div>
-              <BottomSection compact>
+              <BottomSection>
                 <div class="shrink-0 flex flex-col items-stretch gap-0.5 w-full">
                   <textarea
                     ref={(element) => {
