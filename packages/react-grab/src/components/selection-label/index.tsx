@@ -494,7 +494,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                         data-react-grab-submit
                         type="button"
                         aria-label="Submit context"
-                        class="contain-layout shrink-0 flex items-center justify-center rounded-full bg-[var(--rg-submit-bg)] cursor-pointer interactive-scale a11y-hitbox"
+                        class="contain-layout box-border shrink-0 flex items-center justify-center p-0 border-none rounded-full bg-[var(--rg-submit-bg)] cursor-pointer interactive-scale a11y-hitbox"
                         style={{
                           width: `${COMMENT_COMPOSER_SUBMIT_SIZE_PX}px`,
                           height: `${COMMENT_COMPOSER_SUBMIT_SIZE_PX}px`,
