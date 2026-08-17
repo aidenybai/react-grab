@@ -13,6 +13,11 @@ overrides:
   react: 19.2.6
   react-dom: 19.2.6
 
+patchedDependencies:
+  bippy@0.7.0:
+    hash: 3cfa9cb88475b53970f7469c8c64d09f8eaf366d78bbda3599fddbfdfbcdaa34
+    path: patches/bippy@0.7.0.patch
+
 importers:
 
   .:
@@ -403,7 +408,7 @@ importers:
         version: link:../cli
       bippy:
         specifier: ^0.7.0
-        version: 0.7.0(@types/react@19.2.14)(react@19.2.6)
+        version: 0.7.0(patch_hash=3cfa9cb88475b53970f7469c8c64d09f8eaf366d78bbda3599fddbfdfbcdaa34)(@types/react@19.2.14)(react@19.2.6)
       react:
         specifier: 19.2.6
         version: 19.2.6
@@ -12020,7 +12025,7 @@ snapshots:
 
   bignumber.js@9.3.1: {}
 
-  bippy@0.7.0(@types/react@19.2.14)(react@19.2.6):
+  bippy@0.7.0(patch_hash=3cfa9cb88475b53970f7469c8c64d09f8eaf366d78bbda3599fddbfdfbcdaa34)(@types/react@19.2.14)(react@19.2.6):
     dependencies:
       '@types/react-reconciler': 0.33.0(@types/react@19.2.14)
       react: 19.2.6

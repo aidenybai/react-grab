@@ -46,6 +46,9 @@
       "sharp",
       "spawn-sync",
       "unrs-resolver"
-    ]
+    ],
+    "patchedDependencies": {
+      "bippy@0.7.0": "patches/bippy@0.7.0.patch"
+    }
   }
 }
