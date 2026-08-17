@@ -19,7 +19,7 @@ import { RecoverableError } from "../errors.js";
 import { reportRecoverableError } from "./report-recoverable-error.js";
 import { IS_DEMO } from "./runtime-mode.js";
 
-interface FiberRootLike extends FiberRoot {
+interface FiberRootLike extends Omit<FiberRoot, "current"> {
   current: Fiber | null;
 }
 

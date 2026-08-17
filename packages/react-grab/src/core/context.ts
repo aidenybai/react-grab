@@ -4,6 +4,7 @@ import {
   getDisplayName,
   getLatestFiber,
   isCompositeFiber,
+  isFiber,
   traverseFiber,
   type Fiber,
 } from "bippy";
@@ -259,11 +260,11 @@ export interface ResolvedSource extends SourceLocation {
 const pickNearestSourceFrame = (frames: StackFrame[]): StackFrame | null => frames[0] ?? null;
 
 const getSourceComponentName = (
-  fiber: Fiber | undefined,
+  debugOwner: Fiber["_debugOwner"],
   isNextProject: boolean,
 ): string | null => {
-  if (!fiber || !isCompositeFiber(fiber)) return null;
-  return toSourceComponentName(getDisplayName(fiber.type), isNextProject);
+  if (!isFiber(debugOwner) || !isCompositeFiber(debugOwner)) return null;
+  return toSourceComponentName(getDisplayName(debugOwner.type), isNextProject);
 };
 
 // getSource reads React's own dev-only debug data, so it works without bippy
