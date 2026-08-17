@@ -111,7 +111,7 @@ test.describe("Prompt Mode", () => {
       expect(revealState?.finalEdgeIsPainted).toBe(true);
     });
 
-    test("comment composer should use a multiline input with a separate submit row", async ({
+    test("comment composer should focus a compact input and grow it line by line", async ({
       reactGrab,
     }) => {
       await reactGrab.registerCommentAction();
@@ -131,33 +131,78 @@ test.describe("Prompt Mode", () => {
         const textareaBounds = textarea.getBoundingClientRect();
         const submitButtonBounds = submitButton.getBoundingClientRect();
         return {
-          textareaHeight: textareaBounds.height,
+          textareaLineHeight: Number.parseFloat(getComputedStyle(textarea).lineHeight),
+          textareaMaxHeight: Number.parseFloat(getComputedStyle(textarea).maxHeight),
+          textareaTargetHeight: textarea.scrollHeight,
           textareaWidth: textareaBounds.width,
           textareaBottom: textareaBounds.bottom,
           submitButtonTop: submitButtonBounds.top,
           transitionProperty: getComputedStyle(textarea).transitionProperty,
+          isFocused: shadowRoot?.activeElement === textarea,
         };
       });
 
       expect(initialLayout).not.toBeNull();
-      expect(initialLayout?.textareaHeight).toBeGreaterThanOrEqual(32);
       expect(initialLayout?.textareaWidth).toBeGreaterThanOrEqual(240);
       expect(initialLayout?.submitButtonTop).toBeGreaterThan(initialLayout?.textareaBottom ?? 0);
       expect(initialLayout?.transitionProperty).toContain("height");
+      expect(initialLayout?.isFocused).toBe(true);
 
-      await reactGrab.typeInInput("First line\nSecond line\nThird line");
+      const getTextareaHeight = () =>
+        reactGrab.page.evaluate(() => {
+          const host = document.querySelector("[data-react-grab]");
+          const textarea = host?.shadowRoot?.querySelector<HTMLTextAreaElement>(
+            "textarea[data-react-grab-input]",
+          );
+          return textarea?.getBoundingClientRect().height ?? 0;
+        });
 
-      await expect
-        .poll(() =>
-          reactGrab.page.evaluate(() => {
-            const host = document.querySelector("[data-react-grab]");
-            const textarea = host?.shadowRoot?.querySelector<HTMLTextAreaElement>(
-              "textarea[data-react-grab-input]",
-            );
-            return textarea?.getBoundingClientRect().height ?? 0;
-          }),
-        )
-        .toBeGreaterThan(initialLayout?.textareaHeight ?? 0);
+      const initialTargetHeight = initialLayout?.textareaTargetHeight ?? 0;
+      const textareaLineHeight = initialLayout?.textareaLineHeight ?? 0;
+      await expect.poll(getTextareaHeight).toBeCloseTo(initialTargetHeight);
+      expect(initialTargetHeight).toBeGreaterThanOrEqual(textareaLineHeight);
+      expect(initialTargetHeight).toBeLessThan(textareaLineHeight * 1.1);
+
+      await reactGrab.typeInInput("First line");
+      const firstLineTargetHeight = await reactGrab.page.evaluate(() => {
+        const host = document.querySelector("[data-react-grab]");
+        const textarea = host?.shadowRoot?.querySelector<HTMLTextAreaElement>(
+          "textarea[data-react-grab-input]",
+        );
+        return textarea?.scrollHeight ?? 0;
+      });
+      await expect.poll(getTextareaHeight).toBeCloseTo(firstLineTargetHeight);
+      expect(firstLineTargetHeight).toBe(initialTargetHeight);
+
+      await reactGrab.typeInInput("\nSecond line");
+      const secondLineTargetHeight = await reactGrab.page.evaluate(() => {
+        const host = document.querySelector("[data-react-grab]");
+        const textarea = host?.shadowRoot?.querySelector<HTMLTextAreaElement>(
+          "textarea[data-react-grab-input]",
+        );
+        return textarea?.scrollHeight ?? 0;
+      });
+      await expect.poll(getTextareaHeight).toBeCloseTo(secondLineTargetHeight);
+
+      await reactGrab.typeInInput("\nThird line");
+      const thirdLineTargetHeight = await reactGrab.page.evaluate(() => {
+        const host = document.querySelector("[data-react-grab]");
+        const textarea = host?.shadowRoot?.querySelector<HTMLTextAreaElement>(
+          "textarea[data-react-grab-input]",
+        );
+        return textarea?.scrollHeight ?? 0;
+      });
+      await expect.poll(getTextareaHeight).toBeCloseTo(thirdLineTargetHeight);
+
+      expect(secondLineTargetHeight).toBeGreaterThanOrEqual(
+        firstLineTargetHeight + textareaLineHeight,
+      );
+      expect(secondLineTargetHeight).toBeLessThan(firstLineTargetHeight + textareaLineHeight * 1.1);
+      expect(thirdLineTargetHeight).toBeGreaterThanOrEqual(
+        secondLineTargetHeight + textareaLineHeight,
+      );
+      expect(thirdLineTargetHeight).toBeLessThan(secondLineTargetHeight + textareaLineHeight * 1.1);
+      expect(thirdLineTargetHeight).toBeLessThan(initialLayout?.textareaMaxHeight ?? 0);
     });
   });
 

@@ -497,7 +497,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                     onInput={handleInput}
                     onKeyDown={handleKeyDown}
                     placeholder="Add context"
-                    rows={2}
+                    rows={1}
                     readOnly={!props.onSubmit}
                   />
                   <Show when={props.onSubmit}>
