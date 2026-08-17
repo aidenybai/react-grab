@@ -183,46 +183,20 @@
   will-change: transform, opacity;
 }
 
-@keyframes comment-composer-expand {
+@keyframes comment-composer-enter {
   from {
     opacity: 0;
-    clip-path: inset(
-      0
-        calc(
-          (
-              100% -
-                var(
-                  --rg-comment-composer-collapsed-width,
-                  var(--rg-comment-composer-collapsed-height)
-                )
-            ) /
-            2
-        )
-        calc(100% - var(--rg-comment-composer-collapsed-height))
-        calc(
-          (
-              100% -
-                var(
-                  --rg-comment-composer-collapsed-width,
-                  var(--rg-comment-composer-collapsed-height)
-                )
-            ) /
-            2
-        )
-    );
   }
   to {
     opacity: 1;
-    clip-path: inset(0);
   }
 }
 
-.animate-comment-composer-expand {
-  animation-name: comment-composer-expand;
-  animation-timing-function: ease;
+.animate-comment-composer-enter {
+  animation-name: comment-composer-enter;
+  animation-timing-function: ease-out;
   animation-fill-mode: both;
-  transform-origin: top center;
-  will-change: clip-path, opacity;
+  will-change: opacity;
 }
 
 .animate-shake-vertical {

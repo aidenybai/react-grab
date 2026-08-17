@@ -10,8 +10,7 @@ import {
 } from "solid-js";
 import type { ArrowPosition, SelectionLabelProps } from "../../types.js";
 import {
-  COMMENT_COMPOSER_COLLAPSED_HEIGHT_PX,
-  COMMENT_COMPOSER_EXPAND_DURATION_MS,
+  COMMENT_COMPOSER_ENTER_DURATION_MS,
   COMMENT_COMPOSER_WIDTH_PX,
   FADE_DURATION_MS,
   PANEL_SHADOW,
@@ -320,16 +319,6 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     props.onInputChange?.(inputTarget.value);
   };
 
-  const setCommentComposerCollapsedWidth = (headerElement: HTMLDivElement) => {
-    queueMicrotask(() => {
-      if (!panelRef || !headerElement.isConnected || !props.isPromptMode) return;
-      panelRef.style.setProperty(
-        "--rg-comment-composer-collapsed-width",
-        `${headerElement.getBoundingClientRect().width}px`,
-      );
-    });
-  };
-
   const tagDisplayResult = () =>
     getTagDisplay({
       tagName: props.tagName,
@@ -412,13 +401,12 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
             canInteract() &&
               props.isPromptMode &&
               !props.discardPrompt &&
-              "animate-comment-composer-expand",
+              "animate-comment-composer-enter",
             isShaking() && "animate-shake",
           )}
           style={{
             display: isCompletedStatus() && !props.error ? "none" : undefined,
-            "--rg-comment-composer-collapsed-height": `${COMMENT_COMPOSER_COLLAPSED_HEIGHT_PX}px`,
-            "animation-duration": `${COMMENT_COMPOSER_EXPAND_DURATION_MS}ms`,
+            "animation-duration": `${COMMENT_COMPOSER_ENTER_DURATION_MS}ms`,
           }}
           onAnimationEnd={() => setIsShaking(false)}
         >
@@ -454,11 +442,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
               class="contain-layout shrink-0 flex flex-col justify-center items-start h-fit"
               style={{ width: `${COMMENT_COMPOSER_WIDTH_PX}px` }}
             >
-              <div
-                ref={setCommentComposerCollapsedWidth}
-                data-react-grab-comment-composer-header
-                class="contain-layout shrink-0 flex items-center gap-1 pt-1.5 pb-1 w-fit h-fit px-2 max-w-full"
-              >
+              <div class="contain-layout shrink-0 flex items-center gap-1 pt-1.5 pb-1 w-fit h-fit px-2 max-w-full">
                 <TagBadge
                   tagName={tagDisplayResult().tagName}
                   componentName={tagDisplayResult().componentName}

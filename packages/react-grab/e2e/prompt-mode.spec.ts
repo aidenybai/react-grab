@@ -57,58 +57,44 @@ test.describe("Prompt Mode", () => {
       expect(hasTextarea).toBe(true);
     });
 
-    test("comment composer should expand from the selected element label", async ({
+    test("comment composer should enter at its final size without scaling", async ({
       reactGrab,
     }) => {
       await reactGrab.registerCommentAction();
       await reactGrab.enterPromptMode("h1");
 
-      const revealState = await reactGrab.page.evaluate(() => {
+      const enterMotion = await reactGrab.page.evaluate(() => {
         const host = document.querySelector("[data-react-grab]");
-        const shadowRoot = host?.shadowRoot;
-        const surface = shadowRoot?.querySelector<HTMLElement>(".animate-comment-composer-expand");
-        const header = surface?.querySelector<HTMLElement>(
-          "[data-react-grab-comment-composer-header]",
+        const surface = host?.shadowRoot?.querySelector<HTMLElement>(
+          ".animate-comment-composer-enter",
         );
         const animation = surface?.getAnimations()[0];
-        if (!shadowRoot || !surface || !header || !animation) return null;
-
-        animation.pause();
-        animation.currentTime = 0;
-        const surfaceBounds = surface.getBoundingClientRect();
-        const initialEdgeElement = shadowRoot.elementFromPoint(
-          surfaceBounds.left + 1,
-          surfaceBounds.top + 1,
-        );
-        const initialEdgeIsPainted =
-          initialEdgeElement === surface ||
-          Boolean(initialEdgeElement && surface.contains(initialEdgeElement));
-
-        animation.finish();
-        const finalEdgeElement = shadowRoot.elementFromPoint(
-          surfaceBounds.left + 1,
-          surfaceBounds.top + 1,
-        );
-        const finalEdgeIsPainted =
-          finalEdgeElement === surface ||
-          Boolean(finalEdgeElement && surface.contains(finalEdgeElement));
+        if (!surface || !animation || !(animation.effect instanceof KeyframeEffect)) return null;
 
         return {
-          collapsedWidth: Number.parseFloat(
-            getComputedStyle(surface).getPropertyValue("--rg-comment-composer-collapsed-width"),
-          ),
-          headerWidth: header.getBoundingClientRect().width,
-          surfaceWidth: surfaceBounds.width,
-          initialEdgeIsPainted,
-          finalEdgeIsPainted,
+          animationName: getComputedStyle(surface).animationName,
+          keyframes: animation.effect.getKeyframes().map((keyframe) => ({
+            opacity: keyframe.opacity,
+            transform: keyframe.transform,
+            clipPath: keyframe.clipPath,
+            width: keyframe.width,
+            height: keyframe.height,
+          })),
         };
       });
 
-      expect(revealState).not.toBeNull();
-      expect(revealState?.collapsedWidth).toBeCloseTo(revealState?.headerWidth ?? 0);
-      expect(revealState?.collapsedWidth).toBeLessThan(revealState?.surfaceWidth ?? 0);
-      expect(revealState?.initialEdgeIsPainted).toBe(false);
-      expect(revealState?.finalEdgeIsPainted).toBe(true);
+      expect(enterMotion).not.toBeNull();
+      expect(enterMotion?.animationName).toBe("comment-composer-enter");
+      expect(enterMotion?.keyframes.map((keyframe) => keyframe.opacity)).toEqual(["0", "1"]);
+      expect(
+        enterMotion?.keyframes.every(
+          (keyframe) =>
+            keyframe.transform === undefined &&
+            keyframe.clipPath === undefined &&
+            keyframe.width === undefined &&
+            keyframe.height === undefined,
+        ),
+      ).toBe(true);
     });
 
     test("comment composer should focus a compact input and grow it line by line", async ({
