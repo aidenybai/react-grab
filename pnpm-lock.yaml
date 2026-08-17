@@ -13,11 +13,6 @@ overrides:
   react: 19.2.6
   react-dom: 19.2.6
 
-patchedDependencies:
-  bippy@0.7.0:
-    hash: 3cfa9cb88475b53970f7469c8c64d09f8eaf366d78bbda3599fddbfdfbcdaa34
-    path: patches/bippy@0.7.0.patch
-
 importers:
 
   .:
@@ -407,8 +402,8 @@ importers:
         specifier: workspace:*
         version: link:../cli
       bippy:
-        specifier: ^0.7.0
-        version: 0.7.0(patch_hash=3cfa9cb88475b53970f7469c8c64d09f8eaf366d78bbda3599fddbfdfbcdaa34)(@types/react@19.2.14)(react@19.2.6)
+        specifier: ^0.7.1
+        version: 0.7.1(@types/react@19.2.14)(react@19.2.6)
       react:
         specifier: 19.2.6
         version: 19.2.6
@@ -4367,8 +4362,8 @@ packages:
   bignumber.js@9.3.1:
     resolution: {integrity: sha512-Ko0uX15oIUS7wJ3Rb30Fs6SkVbLmPBAKdlm7q9+ak9bbIeFf0MwuBsQV6z7+X768/cHsfg+WlysDWJcmthjsjQ==}
 
-  bippy@0.7.0:
-    resolution: {integrity: sha512-25xtflKR0Pxc0WGPbM/CGIAO3pdh61hoM+rwr2pNRSICewIkENioynSTfUWQ5K+v6RE0JuuYfcmtnGy+R0K3PA==}
+  bippy@0.7.1:
+    resolution: {integrity: sha512-KqErexPYI77yfxoHQCBls2YJLy6XaAIa4muC5jHYs409UqDNibUzZnjc3h3Xh5B/9RNi3Eh3o8/K1Lb1MZBWcA==}
     peerDependencies:
       react: 19.2.6
 
@@ -12025,7 +12020,7 @@ snapshots:
 
   bignumber.js@9.3.1: {}
 
-  bippy@0.7.0(patch_hash=3cfa9cb88475b53970f7469c8c64d09f8eaf366d78bbda3599fddbfdfbcdaa34)(@types/react@19.2.14)(react@19.2.6):
+  bippy@0.7.1(@types/react@19.2.14)(react@19.2.6):
     dependencies:
       '@types/react-reconciler': 0.33.0(@types/react@19.2.14)
       react: 19.2.6
