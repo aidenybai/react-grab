@@ -540,6 +540,7 @@ export interface TagBadgeProps {
 
 export interface BottomSectionProps {
   children: JSX.Element;
+  compact?: boolean;
 }
 
 export interface DiscardPromptProps {

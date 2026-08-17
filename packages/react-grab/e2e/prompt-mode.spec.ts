@@ -123,6 +123,7 @@ test.describe("Prompt Mode", () => {
           textareaWidth: textareaBounds.width,
           textareaBottom: textareaBounds.bottom,
           submitButtonTop: submitButtonBounds.top,
+          submitButtonHeight: submitButtonBounds.height,
           transitionProperty: getComputedStyle(textarea).transitionProperty,
           isFocused: shadowRoot?.activeElement === textarea,
         };
@@ -145,6 +146,10 @@ test.describe("Prompt Mode", () => {
 
       const initialTargetHeight = initialLayout?.textareaTargetHeight ?? 0;
       const textareaLineHeight = initialLayout?.textareaLineHeight ?? 0;
+      expect(initialLayout?.submitButtonHeight).toBeLessThanOrEqual(textareaLineHeight * 1.2);
+      expect(
+        (initialLayout?.submitButtonTop ?? 0) - (initialLayout?.textareaBottom ?? 0),
+      ).toBeLessThan(textareaLineHeight / 4);
       await expect.poll(getTextareaHeight).toBeCloseTo(initialTargetHeight);
       expect(initialTargetHeight).toBeGreaterThanOrEqual(textareaLineHeight);
       expect(initialTargetHeight).toBeLessThan(textareaLineHeight * 1.1);

@@ -11,6 +11,7 @@ import {
 import type { ArrowPosition, SelectionLabelProps } from "../../types.js";
 import {
   COMMENT_COMPOSER_ENTER_DURATION_MS,
+  COMMENT_COMPOSER_SUBMIT_SIZE_PX,
   COMMENT_COMPOSER_WIDTH_PX,
   FADE_DURATION_MS,
   PANEL_SHADOW,
@@ -442,7 +443,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
               class="contain-layout shrink-0 flex flex-col justify-center items-start h-fit"
               style={{ width: `${COMMENT_COMPOSER_WIDTH_PX}px` }}
             >
-              <div class="contain-layout shrink-0 flex items-center gap-1 pt-1.5 pb-1 w-fit h-fit px-2 max-w-full">
+              <div class="contain-layout shrink-0 flex items-center gap-1 pt-1 pb-0.5 w-fit h-fit px-2 max-w-full">
                 <TagBadge
                   tagName={tagDisplayResult().tagName}
                   componentName={tagDisplayResult().componentName}
@@ -451,8 +452,8 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                   onHoverChange={handleTagHoverChange}
                 />
               </div>
-              <BottomSection>
-                <div class="shrink-0 flex flex-col items-stretch gap-1 w-full">
+              <BottomSection compact>
+                <div class="shrink-0 flex flex-col items-stretch gap-0.5 w-full">
                   <textarea
                     ref={(element) => {
                       inputRef = element;
@@ -485,12 +486,19 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                     readOnly={!props.onSubmit}
                   />
                   <Show when={props.onSubmit}>
-                    <div class="shrink-0 flex items-center justify-end w-full h-5">
+                    <div
+                      class="shrink-0 flex items-center justify-end w-full"
+                      style={{ height: `${COMMENT_COMPOSER_SUBMIT_SIZE_PX}px` }}
+                    >
                       <button
                         data-react-grab-submit
                         type="button"
                         aria-label="Submit context"
-                        class="contain-layout shrink-0 flex items-center justify-center size-5 rounded-full bg-[var(--rg-submit-bg)] cursor-pointer interactive-scale a11y-hitbox"
+                        class="contain-layout shrink-0 flex items-center justify-center rounded-full bg-[var(--rg-submit-bg)] cursor-pointer interactive-scale a11y-hitbox"
+                        style={{
+                          width: `${COMMENT_COMPOSER_SUBMIT_SIZE_PX}px`,
+                          height: `${COMMENT_COMPOSER_SUBMIT_SIZE_PX}px`,
+                        }}
                         onClick={() => props.onSubmit?.()}
                       >
                         <IconSubmit
