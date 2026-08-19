@@ -2,6 +2,7 @@ import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { x } from "tinyexec";
 import { detectPackageManager, type PackageManager } from "./detect.js";
+import { shouldUseCorepack } from "./should-use-corepack.js";
 
 export interface InstallPackageOptions {
   cwd?: string;
@@ -38,10 +39,19 @@ export const installPackages = async (
   }
 
   const installVerb = detectedAgent === "npm" ? "install" : "add";
+  const shouldInvokeCorepack = await shouldUseCorepack(detectedAgent, options.cwd ?? process.cwd());
+  const packageManagerCommand = shouldInvokeCorepack ? "corepack" : detectedAgent;
+  const packageManagerArgs = shouldInvokeCorepack ? [detectedAgent] : [];
 
   await x(
-    detectedAgent,
-    [installVerb, ...(options.isDev !== false ? ["-D"] : []), ...args, ...packages],
+    packageManagerCommand,
+    [
+      ...packageManagerArgs,
+      installVerb,
+      ...(options.isDev !== false ? ["-D"] : []),
+      ...args,
+      ...packages,
+    ],
     {
       nodeOptions: {
         stdio: options.silent ? "ignore" : "inherit",
