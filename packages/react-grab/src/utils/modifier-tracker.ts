@@ -1,4 +1,4 @@
-import { createSignal, onCleanup, onMount, type Accessor } from "solid-js";
+import { createSignal, onSettled, type Accessor } from "solid-js";
 import { ignoreRealInput } from "./runtime-mode.js";
 
 // Tracks whether a keyboard modifier is currently held. Window blur resets it
@@ -9,7 +9,7 @@ export const createModifierTracker = (
 ): Accessor<boolean> => {
   const [isHeld, setIsHeld] = createSignal(false);
 
-  onMount(() => {
+  onSettled(() => {
     const updateFromEvent = ignoreRealInput((event: KeyboardEvent) =>
       setIsHeld(readModifier(event)),
     );
@@ -17,11 +17,11 @@ export const createModifierTracker = (
     window.addEventListener("keydown", updateFromEvent, { capture: true });
     window.addEventListener("keyup", updateFromEvent, { capture: true });
     window.addEventListener("blur", clear);
-    onCleanup(() => {
+    return () => {
       window.removeEventListener("keydown", updateFromEvent, { capture: true });
       window.removeEventListener("keyup", updateFromEvent, { capture: true });
       window.removeEventListener("blur", clear);
-    });
+    };
   });
 
   return isHeld;

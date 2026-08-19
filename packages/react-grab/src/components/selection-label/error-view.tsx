@@ -5,6 +5,7 @@ import { isEventFromOverlay } from "../../utils/is-event-from-overlay.js";
 import { IconRetry } from "../icons/icon-retry.jsx";
 import { Button } from "../ui/button.js";
 import { BottomSection } from "./bottom-section.js";
+import { cn } from "../../utils/cn.js";
 
 export const ErrorView: Component<ErrorViewProps> = (props) => {
   const { claimFocus } = createConfirmationKeyboard({
@@ -38,8 +39,10 @@ export const ErrorView: Component<ErrorViewProps> = (props) => {
       onClick={claimFocus}
     >
       <div
-        class="contain-layout shrink-0 flex items-start gap-1 px-2 w-full h-fit"
-        classList={{ "pt-1.5 pb-1": hasActions(), "py-1.5": !hasActions() }}
+        class={cn(
+          "contain-layout shrink-0 flex items-start gap-1 px-2 w-full h-fit",
+          hasActions() ? "pt-1.5 pb-1" : "py-1.5",
+        )}
       >
         <span
           class="text-[var(--rg-error-text)] text-[13px] leading-4 font-sans font-medium overflow-hidden line-clamp-5"

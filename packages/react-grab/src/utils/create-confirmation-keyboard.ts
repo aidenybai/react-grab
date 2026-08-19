@@ -1,4 +1,4 @@
-import { onCleanup, onMount } from "solid-js";
+import { onSettled } from "solid-js";
 import { confirmationFocusManager } from "./confirmation-focus-manager.js";
 import { isKeyboardEventTriggeredByInput } from "./is-keyboard-event-triggered-by-input.js";
 import { ignoreRealInput } from "./runtime-mode.js";
@@ -31,14 +31,13 @@ export const createConfirmationKeyboard = (
     }
   });
 
-  onMount(() => {
+  onSettled(() => {
     confirmationFocusManager.claim(instanceId);
     window.addEventListener("keydown", handleKeyDown, { capture: true });
-  });
-
-  onCleanup(() => {
-    confirmationFocusManager.release(instanceId);
-    window.removeEventListener("keydown", handleKeyDown, { capture: true });
+    return () => {
+      confirmationFocusManager.release(instanceId);
+      window.removeEventListener("keydown", handleKeyDown, { capture: true });
+    };
   });
 
   return {

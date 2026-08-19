@@ -1,4 +1,5 @@
-import { onCleanup, onMount, type Component, type JSX } from "solid-js";
+import { onCleanup, onSettled, type Component } from "solid-js";
+import type { JSX } from "@solidjs/web";
 import { cn } from "../../utils/cn.js";
 import { useMenuStore } from "./menu-context.js";
 
@@ -30,7 +31,7 @@ export const MenuItem: Component<MenuItemProps> = (props) => {
 
   let buttonElement: HTMLButtonElement | undefined;
 
-  onMount(() => {
+  onSettled(() => {
     if (!buttonElement) return;
     store.registerItem({
       value: registeredValue,
@@ -50,8 +51,8 @@ export const MenuItem: Component<MenuItemProps> = (props) => {
       data-react-grab-menu-item={props.dataId ?? registeredValue}
       type="button"
       role={role()}
-      aria-checked={role() === "menuitemradio" ? Boolean(props.checked) : undefined}
-      aria-disabled={Boolean(props.disabled)}
+      aria-checked={role() === "menuitemradio" ? (props.checked ? "true" : "false") : undefined}
+      aria-disabled={props.disabled ? "true" : "false"}
       tabindex={store.keyboardNavigation ? (isActive() ? 0 : -1) : undefined}
       disabled={props.disabled}
       class={cn(

@@ -8,6 +8,7 @@ import {
 } from "../../constants.js";
 import { Menu, createMenuStore } from "../menu/index.js";
 import { AnchoredDropdownSurface } from "../ui/anchored-dropdown-surface.js";
+import { cn } from "../../utils/cn.js";
 
 interface HierarchyMenuProps {
   position: DropdownAnchor | null;
@@ -59,11 +60,12 @@ export const HierarchyMenu: Component<HierarchyMenuProps> = (props) => {
                       />
                     </Show>
                     <span
-                      class="text-[13px] leading-4 h-fit font-medium overflow-hidden text-ellipsis whitespace-nowrap min-w-0 transition-colors"
-                      classList={{
-                        "text-[var(--rg-text-primary)]": itemIndex() === activeIndex(),
-                        "text-[var(--rg-text-secondary)]": itemIndex() !== activeIndex(),
-                      }}
+                      class={cn(
+                        "text-[13px] leading-4 h-fit font-medium overflow-hidden text-ellipsis whitespace-nowrap min-w-0 transition-colors",
+                        itemIndex() === activeIndex()
+                          ? "text-[var(--rg-text-primary)]"
+                          : "text-[var(--rg-text-secondary)]",
+                      )}
                     >
                       <Show when={item.componentName}>
                         <span textContent={item.componentName} />

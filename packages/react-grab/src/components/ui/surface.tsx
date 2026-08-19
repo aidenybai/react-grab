@@ -1,4 +1,5 @@
-import { splitProps, type Component, type JSX } from "solid-js";
+import { omit, type Component, type Element } from "solid-js";
+import type { JSX } from "@solidjs/web";
 import { cn } from "../../utils/cn.js";
 import { createVariants } from "../../utils/create-variants.js";
 
@@ -17,9 +18,10 @@ const surfaceVariants = createVariants(
 
 interface SurfaceProps extends JSX.HTMLAttributes<HTMLDivElement> {
   shape?: "panel" | "pill";
+  children?: Element;
 }
 
 export const Surface: Component<SurfaceProps> = (props) => {
-  const [local, rest] = splitProps(props, ["shape", "class"]);
-  return <div class={cn(surfaceVariants({ shape: local.shape }), local.class)} {...rest} />;
+  const rest = omit(props, "shape", "class");
+  return <div class={cn(surfaceVariants({ shape: props.shape }), props.class)} {...rest} />;
 };

@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "openstory/solid";
-import { onCleanup, onMount } from "solid-js";
+import { onSettled } from "solid-js";
 import { createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 
@@ -9,11 +9,11 @@ import { LiveCounter } from "./live-counter.react.js";
 const ReactHost = () => {
   let hostElement: HTMLDivElement | undefined;
 
-  onMount(() => {
+  onSettled(() => {
     if (!hostElement) return;
     const reactRoot: Root = createRoot(hostElement);
     reactRoot.render(createElement(LiveCounter));
-    onCleanup(() => reactRoot.unmount());
+    return () => reactRoot.unmount();
   });
 
   return <div ref={hostElement} style={{ "min-height": "100vh" }} />;

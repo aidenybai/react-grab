@@ -3,9 +3,7 @@ import {
   createMemo,
   createSignal,
   For,
-  on,
-  onCleanup,
-  onMount,
+  onSettled,
   Show,
   type Component,
 } from "solid-js";
@@ -98,8 +96,8 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
   // Elements that were just mounted may not have been laid out yet, so without
   // deferring to the next frame the measured dimensions are zero and the menu
   // would flash at the wrong position before jumping to its correct spot.
-  createEffect(() => {
-    if (isVisible()) {
+  createEffect(isVisible, (visible) => {
+    if (visible) {
       nativeRequestAnimationFrame(measureContainer);
     }
   });
@@ -174,43 +172,41 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
   // restore focus to whatever the host page had focused — but only if
   // nothing else has already claimed focus (e.g. the prompt-mode textarea
   // that an action opened), so we do not yank it back.
-  createEffect(
-    on(isVisible, (visible) => {
-      if (visible) {
-        // document.activeElement returns the shadow host when focus is
-        // inside the shadow root, so use the host's shadowRoot.activeElement
-        // to detect a focused element that already lives in our own DOM
-        // tree; we should not capture our own host as "previous".
-        const hostShadowRoot = containerRef?.getRootNode();
-        const focusInsideHost =
-          hostShadowRoot instanceof ShadowRoot ? hostShadowRoot.activeElement : null;
-        const pageActiveElement = document.activeElement;
-        const wasFocusedOnPage =
-          pageActiveElement instanceof HTMLElement &&
-          focusInsideHost === null &&
-          !(containerRef instanceof Element && containerRef.contains(pageActiveElement));
-        previouslyFocusedElement = wasFocusedOnPage ? pageActiveElement : null;
-        menuContainerRef?.focus({ preventScroll: true });
-        return;
-      }
-      menuStore.setActiveItem(null);
-      const restoreTarget = previouslyFocusedElement;
-      previouslyFocusedElement = null;
-      if (!(restoreTarget instanceof HTMLElement) || !document.contains(restoreTarget)) return;
-      // Defer to the next frame so an action-triggered focus move (e.g.
-      // the prompt textarea focusing itself via queueMicrotask) lands
-      // first. If something other than the body has focus by then, the
-      // action's side effect deserves to keep it.
-      nativeRequestAnimationFrame(() => {
-        const currentActive = document.activeElement;
-        const isOrphanedFocus = currentActive === null || currentActive === document.body;
-        if (!isOrphanedFocus) return;
-        restoreTarget.focus({ preventScroll: true });
-      });
-    }),
-  );
+  createEffect(isVisible, (visible) => {
+    if (visible) {
+      // document.activeElement returns the shadow host when focus is
+      // inside the shadow root, so use the host's shadowRoot.activeElement
+      // to detect a focused element that already lives in our own DOM
+      // tree; we should not capture our own host as "previous".
+      const hostShadowRoot = containerRef?.getRootNode();
+      const focusInsideHost =
+        hostShadowRoot instanceof ShadowRoot ? hostShadowRoot.activeElement : null;
+      const pageActiveElement = document.activeElement;
+      const wasFocusedOnPage =
+        pageActiveElement instanceof HTMLElement &&
+        focusInsideHost === null &&
+        !(containerRef instanceof Element && containerRef.contains(pageActiveElement));
+      previouslyFocusedElement = wasFocusedOnPage ? pageActiveElement : null;
+      menuContainerRef?.focus({ preventScroll: true });
+      return;
+    }
+    menuStore.setActiveItem(null);
+    const restoreTarget = previouslyFocusedElement;
+    previouslyFocusedElement = null;
+    if (!(restoreTarget instanceof HTMLElement) || !document.contains(restoreTarget)) return;
+    // Defer to the next frame so an action-triggered focus move (e.g.
+    // the prompt textarea focusing itself via queueMicrotask) lands
+    // first. If something other than the body has focus by then, the
+    // action's side effect deserves to keep it.
+    nativeRequestAnimationFrame(() => {
+      const currentActive = document.activeElement;
+      const isOrphanedFocus = currentActive === null || currentActive === document.body;
+      if (!isOrphanedFocus) return;
+      restoreTarget.focus({ preventScroll: true });
+    });
+  });
 
-  onMount(() => {
+  onSettled(() => {
     measureContainer();
 
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -278,10 +274,10 @@ export const ContextMenu: Component<ContextMenuProps> = (props) => {
     const gatedHandleKeyDown = ignoreRealInput(handleKeyDown);
     window.addEventListener("keydown", gatedHandleKeyDown, { capture: true });
 
-    onCleanup(() => {
+    return () => {
       unregisterOverlayDismiss();
       window.removeEventListener("keydown", gatedHandleKeyDown, { capture: true });
-    });
+    };
   });
 
   const accessibleMenuLabel = createMemo(() => {

@@ -1,4 +1,5 @@
-import { onCleanup, onMount, Show, type Component, type JSX } from "solid-js";
+import { onSettled, Show, type Component } from "solid-js";
+import type { JSX } from "@solidjs/web";
 import type { DropdownAnchor } from "../../types.js";
 import { DROPDOWN_EDGE_TRANSFORM_ORIGIN, Z_INDEX_OVERLAY } from "../../constants.js";
 import { cn } from "../../utils/cn.js";
@@ -32,7 +33,7 @@ export const AnchoredDropdownSurface: Component<AnchoredDropdownSurfaceProps> = 
     () => props.position,
   );
 
-  onMount(() => {
+  onSettled(() => {
     dropdown.measure();
     const unregisterOverlayDismiss = props.onDismiss
       ? registerOverlayDismiss({
@@ -41,10 +42,10 @@ export const AnchoredDropdownSurface: Component<AnchoredDropdownSurfaceProps> = 
         })
       : undefined;
 
-    onCleanup(() => {
+    return () => {
       dropdown.clearAnimationHandles();
       unregisterOverlayDismiss?.();
-    });
+    };
   });
 
   return (

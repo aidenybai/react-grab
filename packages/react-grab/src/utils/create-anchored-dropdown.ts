@@ -1,4 +1,4 @@
-import { batch, createEffect, createMemo, createSignal, onCleanup, type Accessor } from "solid-js";
+import { createEffect, createMemo, createSignal, type Accessor } from "solid-js";
 import type { DropdownAnchor } from "../types.js";
 import {
   DROPDOWN_ANCHOR_GAP_PX,
@@ -51,48 +51,46 @@ export const createAnchoredDropdown = (
   };
 
   const handleViewportChange = () => {
-    // Three signal writes — wrap in batch so dependent memos
-    // (`displayPosition`) only recompute once per viewport tick
-    // instead of three times.
-    batch(() => {
-      setViewportVersion((previousViewportVersion) => previousViewportVersion + 1);
-      measure();
-    });
+    setViewportVersion((previousViewportVersion) => previousViewportVersion + 1);
+    measure();
   };
 
   // The listener effect must NOT re-run on every position update
   // (panel anchor's position object identity changes 60×/sec while
   // the toolbar tracks its bounding rect). Derive a stable
   // "is the dropdown open" memo and key the effect off THAT.
-  const isAnchored = createMemo(() => anchorAccessor() !== null);
+  const anchorEdge = createMemo(() => anchorAccessor()?.edge ?? null);
+  const isAnchored = createMemo(() => anchorEdge() !== null);
 
-  createEffect(() => {
-    const anchor = anchorAccessor();
-    if (anchor) {
-      setLastAnchorEdge(anchor.edge);
-      clearTimeout(exitAnimationTimeout);
-      setShouldMount(true);
-      if (enterAnimationFrameId !== undefined) nativeCancelAnimationFrame(enterAnimationFrameId);
-      // The rAF waits for layout so dimensions are non-zero. The forced reflow
-      // via offsetHeight then commits the computed position before the opacity
-      // transition starts, preventing a flash at the offscreen initial position.
-      enterAnimationFrameId = nativeRequestAnimationFrame(() => {
-        measure();
-        void containerRef()?.offsetHeight;
-        setIsAnimatedIn(true);
-      });
-    } else {
-      if (enterAnimationFrameId !== undefined) nativeCancelAnimationFrame(enterAnimationFrameId);
-      setIsAnimatedIn(false);
-      exitAnimationTimeout = setTimeout(() => {
-        setShouldMount(false);
-      }, DROPDOWN_ANIMATION_DURATION_MS);
-    }
-    onCleanup(clearAnimationHandles);
-  });
+  createEffect(
+    anchorEdge,
+    (edge) => {
+      if (edge) {
+        setLastAnchorEdge(edge);
+        clearTimeout(exitAnimationTimeout);
+        setShouldMount(true);
+        if (enterAnimationFrameId !== undefined) nativeCancelAnimationFrame(enterAnimationFrameId);
+        // The rAF waits for layout so dimensions are non-zero. The forced reflow
+        // via offsetHeight then commits the computed position before the opacity
+        // transition starts, preventing a flash at the offscreen initial position.
+        enterAnimationFrameId = nativeRequestAnimationFrame(() => {
+          measure();
+          void containerRef()?.offsetHeight;
+          setIsAnimatedIn(true);
+        });
+      } else {
+        if (enterAnimationFrameId !== undefined) nativeCancelAnimationFrame(enterAnimationFrameId);
+        setIsAnimatedIn(false);
+        exitAnimationTimeout = setTimeout(() => {
+          setShouldMount(false);
+        }, DROPDOWN_ANIMATION_DURATION_MS);
+      }
+      return clearAnimationHandles;
+    },
+  );
 
-  createEffect(() => {
-    if (!isAnchored()) return;
+  createEffect(isAnchored, (anchored) => {
+    if (!anchored) return;
 
     window.addEventListener("resize", handleViewportChange);
     window.visualViewport?.addEventListener("resize", handleViewportChange);
@@ -107,37 +105,39 @@ export const createAnchoredDropdown = (
       scopeResizeObserver.observe(scopeContainer);
     }
 
-    onCleanup(() => {
+    return () => {
       window.removeEventListener("resize", handleViewportChange);
       window.visualViewport?.removeEventListener("resize", handleViewportChange);
       window.visualViewport?.removeEventListener("scroll", handleViewportChange);
       scopeResizeObserver?.disconnect();
-    });
+    };
   });
 
-  const displayPosition = createMemo((previousPosition: { left: number; top: number }) => {
-    viewportVersion();
-    // Scope-aware: inside a scoped instance (demo showcases) the container's
-    // box is the viewport, so the dropdown stays within the showcase card
-    // instead of spilling over the host page.
-    const viewport = getVisualViewport();
-    const position = getAnchoredDropdownPosition({
-      anchor: anchorAccessor(),
-      measuredWidth: measuredWidth(),
-      measuredHeight: measuredHeight(),
-      viewportLeft: viewport.offsetLeft,
-      viewportTop: viewport.offsetTop,
-      viewportWidth: viewport.width,
-      viewportHeight: viewport.height,
-      anchorGapPx: DROPDOWN_ANCHOR_GAP_PX,
-      viewportPaddingPx: DROPDOWN_VIEWPORT_PADDING_PX,
-      offscreenPosition: DROPDOWN_OFFSCREEN_POSITION,
-    });
-    if (position.left !== DROPDOWN_OFFSCREEN_POSITION.left) {
-      return position;
-    }
-    return previousPosition;
-  }, DROPDOWN_OFFSCREEN_POSITION);
+  const displayPosition = createMemo<{ left: number; top: number }>(
+    (previousPosition = DROPDOWN_OFFSCREEN_POSITION) => {
+      viewportVersion();
+      // Scope-aware: inside a scoped instance (demo showcases) the container's
+      // box is the viewport, so the dropdown stays within the showcase card
+      // instead of spilling over the host page.
+      const viewport = getVisualViewport();
+      const position = getAnchoredDropdownPosition({
+        anchor: anchorAccessor(),
+        measuredWidth: measuredWidth(),
+        measuredHeight: measuredHeight(),
+        viewportLeft: viewport.offsetLeft,
+        viewportTop: viewport.offsetTop,
+        viewportWidth: viewport.width,
+        viewportHeight: viewport.height,
+        anchorGapPx: DROPDOWN_ANCHOR_GAP_PX,
+        viewportPaddingPx: DROPDOWN_VIEWPORT_PADDING_PX,
+        offscreenPosition: DROPDOWN_OFFSCREEN_POSITION,
+      });
+      if (position.left !== DROPDOWN_OFFSCREEN_POSITION.left) {
+        return position;
+      }
+      return previousPosition;
+    },
+  );
 
   return {
     shouldMount,
