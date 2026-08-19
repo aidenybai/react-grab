@@ -5,6 +5,7 @@ import { isIframeElement } from "./is-iframe-element.js";
 import { isReactGrabElement } from "./is-react-grab-element.js";
 import { collectCleanupError } from "./collect-cleanup-error.js";
 import { throwCollectedErrors } from "./throw-collected-errors.js";
+import { isIframeInitialNavigationPending } from "./is-iframe-initial-navigation-pending.js";
 
 interface FrameDocumentCallback {
   (frameDocument: Document): (() => void) | void;
@@ -127,6 +128,7 @@ export const observeSameOriginFrameDocuments = (callback: FrameDocumentCallback)
     const connectCurrentDocument = (): void => {
       const cleanupErrors: unknown[] = [];
       const frameDocument = getAccessibleIframeDocument(iframeElement);
+      if (isIframeInitialNavigationPending(iframeElement, frameDocument)) return;
       if (observedIframe.document && observedIframe.document !== frameDocument) {
         cleanupDocument(observedIframe.document, cleanupErrors);
       }
