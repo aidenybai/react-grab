@@ -58,6 +58,7 @@ import { getElementsInDrag } from "../utils/get-elements-in-drag.js";
 import { getElementAnchorRatio } from "../utils/get-element-anchor-ratio.js";
 import { createElementBounds } from "../utils/create-element-bounds.js";
 import { invalidateInteractionCaches } from "../utils/invalidate-interaction-caches.js";
+import { refreshPointerEventsFreezeShields } from "../utils/pointer-events-freeze.js";
 import { normalizeErrorMessage } from "../utils/normalize-error.js";
 import {
   createBoundsFromDragRect,
@@ -3278,13 +3279,28 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
 
     let boundsRecalcIntervalId: number | null = null;
     let viewportChangeFrameId: number | null = null;
+    let scrollChangeFrameId: number | null = null;
 
     const handleViewportChange = () => {
       invalidateInteractionCaches();
+      refreshPointerEventsFreezeShields();
       redetectElementUnderPointer();
       setScrollVersion((version) => version + 1);
       actions.incrementViewportVersion();
       actions.updateContextMenuPosition();
+    };
+
+    // A trackpad gesture emits scroll events far faster than the display
+    // refreshes, and every one of them would otherwise re-run a hit test plus a
+    // full reactive bounds pass. Coalescing into a frame keeps the overlay in
+    // step with the scrolled paint (rAF runs before paint) while collapsing the
+    // burst into a single update.
+    const scheduleViewportChange = () => {
+      if (scrollChangeFrameId !== null) return;
+      scrollChangeFrameId = nativeRequestAnimationFrame(() => {
+        scrollChangeFrameId = null;
+        handleViewportChange();
+      });
     };
 
     // Unlike scroll, resize can flip visibility synchronously (media and
@@ -3296,8 +3312,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       handleViewportChange();
     };
 
-    eventListenerManager.addWindowListener("scroll", handleViewportChange, {
+    eventListenerManager.addWindowListener("scroll", scheduleViewportChange, {
       capture: true,
+      passive: true,
     });
 
     let previousViewportWidth = window.innerWidth;
@@ -3333,7 +3350,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       visualViewport.addEventListener("resize", handleViewportResize, {
         signal,
       });
-      visualViewport.addEventListener("scroll", handleViewportChange, {
+      visualViewport.addEventListener("scroll", scheduleViewportChange, {
         signal,
       });
     }
@@ -3382,6 +3399,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }
       if (viewportChangeFrameId !== null) {
         nativeCancelAnimationFrame(viewportChangeFrameId);
+      }
+      if (scrollChangeFrameId !== null) {
+        nativeCancelAnimationFrame(scrollChangeFrameId);
       }
     });
 

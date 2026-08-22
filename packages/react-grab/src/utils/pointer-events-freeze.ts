@@ -1,110 +1,117 @@
 import { SAME_ORIGIN_FRAME_ATTRIBUTE } from "../constants.js";
+import { createHitTestShield, type HitTestShield } from "./create-hit-test-shield.js";
 import { createStyleElement } from "./create-style-element.js";
 
-// We apply pointer-events:none on `html` rather than `*` because pointer-events
-// is inherited, so toggling it on a single root element is O(1) style invalidation
-// instead of O(N) for every DOM node, which caused visible lag on dense DOMs
-// like GitHub diff viewers with 10k+ nodes.
-// Same-origin iframe elements stay interactive for native viewport scrolling,
-// while each accessible frame document receives this root freeze too. Their
-// forwarded input can still drive selection without page descendants reacting.
-// @see https://github.com/aidenybai/react-grab/pull/209
-const POINTER_EVENTS_STYLES = `html { pointer-events: none !important; }
-iframe[${SAME_ORIGIN_FRAME_ATTRIBUTE}] { pointer-events: auto !important; }`;
-
-// Enabled only during a hit-test (between suspend/resume). It must override
-// pointer-events:none that the PAGE applied, not just ours — e.g. Radix (and
-// other modal layers) set `body { pointer-events: none }` while a dropdown/
-// dialog is open so only the popover is interactive. Without this, our
-// elementsFromPoint returns nothing outside the popover and react-grab can only
-// select elements inside the open dropdown.
+// A per-document shield (see create-hit-test-shield) blocks page interaction,
+// which leaves this sheet responsible for the opposite problem: the page
+// neutralizing its own content. Radix (and other modal layers) set
+// `body { pointer-events: none }` while a dropdown or dialog is open so only the
+// popover is interactive, which would leave our hit test unable to see anything
+// outside it. Forcing the page hit-testable is safe because the shield, not
+// pointer-events, is what keeps the page from reacting.
 //
 // Scoped to html/body (not `*`) on purpose: elements that set their OWN
 // pointer-events:none — the click-through dev-tool overlays we deliberately skip
-// in isValidGrabbableElement — must keep reading as "none". Overriding only the
-// inherited root value restores hit-testability for normal page content while
-// leaving those self-set overlays untouched. `!important` beats Radix's
-// inline `body.style.pointerEvents = "none"` (inline without !important loses to
-// an !important rule), and a later-inserted sheet wins our own freeze.
-const HIT_TEST_OVERRIDE_STYLES = "html, body { pointer-events: auto !important; }";
+// in isValidGrabbableElement — must keep reading as "none". `!important` beats
+// Radix's inline `body.style.pointerEvents = "none"` (inline without !important
+// loses to an !important rule).
+//
+// Same-origin iframes stay forced interactive so they keep scrolling natively
+// through the shield's cut-outs.
+// @see https://github.com/aidenybai/react-grab/pull/209
+const POINTER_EVENTS_STYLES = `html, body { pointer-events: auto !important; }
+iframe[${SAME_ORIGIN_FRAME_ATTRIBUTE}] { pointer-events: auto !important; }`;
 
-interface PointerEventsFreezeStyles {
-  pointerEventsStyle: HTMLStyleElement;
-  hitTestOverrideStyle: HTMLStyleElement;
+interface PointerEventsFreezeLayer {
+  style: HTMLStyleElement;
+  shield: HitTestShield;
 }
 
 const registeredDocuments = new Set<Document>();
-const stylesByDocument = new Map<Document, PointerEventsFreezeStyles>();
+const layersByDocument = new Map<Document, PointerEventsFreezeLayer>();
 let isInstalled = false;
+// Counted rather than a boolean because hit tests nest: a drag scan holds the
+// gate open while the helpers it calls open and close it themselves, and an
+// inner close would leave the outer scan hit-testing the shield.
+let hitTestDepth = 0;
 
-const installDocumentStyles = (targetDocument: Document): void => {
-  if (stylesByDocument.has(targetDocument)) return;
+const installDocumentLayer = (targetDocument: Document): void => {
+  if (layersByDocument.has(targetDocument)) return;
 
-  const pointerEventsStyle = createStyleElement(
+  const style = createStyleElement(
     "data-react-grab-frozen-pseudo",
     POINTER_EVENTS_STYLES,
     targetDocument,
   );
-  const hitTestOverrideStyle = createStyleElement(
-    "data-react-grab-hittest-override",
-    HIT_TEST_OVERRIDE_STYLES,
-    targetDocument,
-  );
-  hitTestOverrideStyle.disabled = true;
-  stylesByDocument.set(targetDocument, { pointerEventsStyle, hitTestOverrideStyle });
+  const shield = createHitTestShield(targetDocument);
+  // Reads iframe rects, so it forces a style flush — but only on documents that
+  // actually contain same-origin frames, which keeps the common case free of the
+  // extra recalc that freezeGlobalInteractions batches its writes to avoid.
+  shield.refreshHoles();
+  if (hitTestDepth > 0) shield.openForHitTest();
+  layersByDocument.set(targetDocument, { style, shield });
 };
 
-const uninstallDocumentStyles = (targetDocument: Document): void => {
-  const styles = stylesByDocument.get(targetDocument);
-  if (!styles) return;
-  styles.pointerEventsStyle.remove();
-  styles.hitTestOverrideStyle.remove();
-  stylesByDocument.delete(targetDocument);
+const uninstallDocumentLayer = (targetDocument: Document): void => {
+  const layer = layersByDocument.get(targetDocument);
+  if (!layer) return;
+  layer.style.remove();
+  layer.shield.remove();
+  layersByDocument.delete(targetDocument);
 };
 
 export const isPointerEventsFreezeInstalled = (): boolean => isInstalled;
 
 export const registerPointerEventsFreezeDocument = (targetDocument: Document): (() => void) => {
   registeredDocuments.add(targetDocument);
-  if (isInstalled) installDocumentStyles(targetDocument);
+  if (isInstalled) {
+    installDocumentLayer(targetDocument);
+    // A frame appearing or leaving changes where the parent shield needs its
+    // cut-outs, not just which documents carry a shield.
+    refreshPointerEventsFreezeShields();
+  }
 
   return () => {
     registeredDocuments.delete(targetDocument);
-    uninstallDocumentStyles(targetDocument);
+    uninstallDocumentLayer(targetDocument);
+    refreshPointerEventsFreezeShields();
   };
 };
 
 export const installPointerEventsFreeze = (): void => {
   if (isInstalled) return;
   isInstalled = true;
+  hitTestDepth = 0;
   registeredDocuments.add(document);
-  for (const targetDocument of registeredDocuments) installDocumentStyles(targetDocument);
+  for (const targetDocument of registeredDocuments) installDocumentLayer(targetDocument);
 };
 
 export const uninstallPointerEventsFreeze = (): void => {
   if (!isInstalled) return;
   isInstalled = false;
-  for (const targetDocument of [...stylesByDocument.keys()]) {
-    uninstallDocumentStyles(targetDocument);
+  hitTestDepth = 0;
+  for (const targetDocument of [...layersByDocument.keys()]) {
+    uninstallDocumentLayer(targetDocument);
   }
 };
 
-// Writing `.disabled` on a CSSStyleSheet element invalidates the affected
-// selector tree even when the new value matches the old one in some engines,
-// so we early-out when the desired state is already in effect. Continuous
-// pointermove hits this hundreds of times per second.
 export const suspendPointerEventsFreeze = (): void => {
   if (!isInstalled) return;
-  for (const styles of stylesByDocument.values()) {
-    if (!styles.pointerEventsStyle.disabled) styles.pointerEventsStyle.disabled = true;
-    if (styles.hitTestOverrideStyle.disabled) styles.hitTestOverrideStyle.disabled = false;
-  }
+  hitTestDepth++;
+  if (hitTestDepth > 1) return;
+  for (const layer of layersByDocument.values()) layer.shield.openForHitTest();
 };
 
 export const resumePointerEventsFreeze = (): void => {
+  if (!isInstalled || hitTestDepth === 0) return;
+  hitTestDepth--;
+  if (hitTestDepth > 0) return;
+  for (const layer of layersByDocument.values()) layer.shield.closeAfterHitTest();
+};
+
+// The shield's iframe cut-outs are viewport-relative, so scrolling or resizing
+// moves the frames out from under their holes.
+export const refreshPointerEventsFreezeShields = (): void => {
   if (!isInstalled) return;
-  for (const styles of stylesByDocument.values()) {
-    if (styles.pointerEventsStyle.disabled) styles.pointerEventsStyle.disabled = false;
-    if (!styles.hitTestOverrideStyle.disabled) styles.hitTestOverrideStyle.disabled = true;
-  }
+  for (const layer of layersByDocument.values()) layer.shield.refreshHoles();
 };
