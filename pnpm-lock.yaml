@@ -402,8 +402,8 @@ importers:
         specifier: workspace:*
         version: link:../cli
       bippy:
-        specifier: ^0.6.1
-        version: 0.6.1(react@19.2.6)
+        specifier: ^0.7.2
+        version: 0.7.2(@types/react@19.2.14)(react@19.2.6)
       react:
         specifier: 19.2.6
         version: 19.2.6
@@ -3695,6 +3695,11 @@ packages:
     peerDependencies:
       '@types/react': '*'
 
+  '@types/react-reconciler@0.33.0':
+    resolution: {integrity: sha512-HZOXsKT0tGI9LlUw2LuedXsVeB88wFa536vVL0M6vE8zN63nI+sSr1ByxmPToP5K5bukaVscyeCJcF9guVNJ1g==}
+    peerDependencies:
+      '@types/react': '*'
+
   '@types/react@19.2.14':
     resolution: {integrity: sha512-ilcTH/UniCkMdtexkoCN0bI7pMcJDvmQFPvuPvmEaYA/NSfFTAgdUSLAoVjaRJm7+6PvcM+q1zYOwS4wTYMF9w==}
 
@@ -4357,8 +4362,8 @@ packages:
   bignumber.js@9.3.1:
     resolution: {integrity: sha512-Ko0uX15oIUS7wJ3Rb30Fs6SkVbLmPBAKdlm7q9+ak9bbIeFf0MwuBsQV6z7+X768/cHsfg+WlysDWJcmthjsjQ==}
 
-  bippy@0.6.1:
-    resolution: {integrity: sha512-ky4m94Y/KfsddjGkKTsV4uFjZqkJjpOjQ2t5gKPdX6XH1MNxMNX5FrVefsxV4lpjemEmEdwe0e0YbzAMNs3oUQ==}
+  bippy@0.7.2:
+    resolution: {integrity: sha512-h8NFpBuVix0iuih7o5eclUP7W3DJyRUQz4OojD/S1DhyBGk6TeDrICvsAc0VMdl8KrMCEAyT4JbkX9ON3cHejg==}
     peerDependencies:
       react: 19.2.6
 
@@ -11505,6 +11510,10 @@ snapshots:
     dependencies:
       '@types/react': 19.2.14
 
+  '@types/react-reconciler@0.33.0(@types/react@19.2.14)':
+    dependencies:
+      '@types/react': 19.2.14
+
   '@types/react@19.2.14':
     dependencies:
       csstype: 3.2.3
@@ -12011,9 +12020,12 @@ snapshots:
 
   bignumber.js@9.3.1: {}
 
-  bippy@0.6.1(react@19.2.6):
+  bippy@0.7.2(@types/react@19.2.14)(react@19.2.6):
     dependencies:
+      '@types/react-reconciler': 0.33.0(@types/react@19.2.14)
       react: 19.2.6
+    transitivePeerDependencies:
+      - '@types/react'
 
   bl@4.1.0:
     dependencies:
