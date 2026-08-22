@@ -19,10 +19,6 @@ import { RecoverableError } from "../errors.js";
 import { reportRecoverableError } from "./report-recoverable-error.js";
 import { IS_DEMO } from "./runtime-mode.js";
 
-interface FiberRootLike extends FiberRoot {
-  current: Fiber | null;
-}
-
 interface PendingUpdate {
   next: PendingUpdate | null;
   action: unknown;
@@ -91,9 +87,8 @@ const pendingStateUpdates: Array<() => void> = [];
 const pausedQueueStates = new WeakMap<HookQueue, PausedQueueState>();
 const pausedContextStates = new WeakMap<ContextDependency, PausedContextState>();
 const renderersWithPatchedDispatcher = new WeakSet<ReactRenderer>();
-const typedFiberRoots = _fiberRoots as Set<FiberRootLike>;
-const pausedFiberRoots = new Set<FiberRootLike>();
-const fiberRootRenderers = new WeakMap<FiberRootLike, ReactRenderer>();
+const pausedFiberRoots = new Set<FiberRoot>();
+const fiberRootRenderers = new WeakMap<FiberRoot, ReactRenderer>();
 
 instrument({
   name: "react-grab-freeze-updates",
@@ -112,17 +107,17 @@ const isDomRenderer = (renderer: ReactRenderer): boolean => {
   }
 };
 
-const getFiberRoot = (fiber: Fiber): FiberRootLike | null => {
+const getFiberRoot = (fiber: Fiber): FiberRoot | null => {
   let current: Fiber | null = fiber;
   while (current.return) {
     current = current.return;
   }
-  return (current.stateNode ?? null) as FiberRootLike | null;
+  return (current.stateNode ?? null) as FiberRoot | null;
 };
 
-const findHostInstance = (fiberRoot: FiberRootLike): object | null => {
+const findHostInstance = (fiberRoot: FiberRoot): object | null => {
   const root = fiberRoot.current;
-  let fiber = root;
+  let fiber: Fiber | null = root;
   while (fiber) {
     const stateNode = fiber.stateNode;
     if (
@@ -146,7 +141,7 @@ const findHostInstance = (fiberRoot: FiberRootLike): object | null => {
   return null;
 };
 
-const resolveFiberRootRenderer = (fiberRoot: FiberRootLike): ReactRenderer | null => {
+const resolveFiberRootRenderer = (fiberRoot: FiberRoot): ReactRenderer | null => {
   const renderer = fiberRootRenderers.get(fiberRoot);
   if (renderer) return isDomRenderer(renderer) ? renderer : null;
 
@@ -172,7 +167,7 @@ const resolveFiberRootRenderer = (fiberRoot: FiberRootLike): ReactRenderer | nul
   return null;
 };
 
-const isDomFiberRoot = (fiberRoot: FiberRootLike): boolean => {
+const isDomFiberRoot = (fiberRoot: FiberRoot): boolean => {
   const stateNode = fiberRoot.current?.stateNode;
   if (!stateNode || typeof stateNode !== "object") return false;
   const containerInfo = Reflect.get(stateNode, "containerInfo");
@@ -185,16 +180,16 @@ const isDomFiberRoot = (fiberRoot: FiberRootLike): boolean => {
 
 // Collects React fiber roots, preferring bippy's tracked set but falling back
 // to a DOM walk when the app mounted before bippy instrumented the renderers.
-const collectFiberRoots = (): Set<FiberRootLike> => {
-  if (typedFiberRoots.size > 0) {
-    const domFiberRoots = new Set<FiberRootLike>();
-    for (const fiberRoot of typedFiberRoots) {
+const collectFiberRoots = (): Set<FiberRoot> => {
+  if (_fiberRoots.size > 0) {
+    const domFiberRoots = new Set<FiberRoot>();
+    for (const fiberRoot of _fiberRoots) {
       if (isDomFiberRoot(fiberRoot)) domFiberRoots.add(fiberRoot);
     }
     return domFiberRoots;
   }
 
-  const collectedRoots = new Set<FiberRootLike>();
+  const collectedRoots = new Set<FiberRoot>();
 
   const traverseDOM = (element: Element): void => {
     const fiber = getFiberFromHostInstance(element);
@@ -601,7 +596,7 @@ const installDispatcherPatching = (renderer: ReactRenderer): void => {
 };
 
 const scheduleReactUpdate = (
-  fiberRoots: Set<FiberRootLike>,
+  fiberRoots: Set<FiberRoot>,
   scheduledFreezeSessionId: number,
 ): void => {
   queueMicrotask(() => {

@@ -3,6 +3,7 @@ import {
   isInstrumentationActive,
   getDisplayName,
   getLatestFiber,
+  isFiber,
   isCompositeFiber,
   traverseFiber,
   type Fiber,
@@ -259,10 +260,10 @@ export interface ResolvedSource extends SourceLocation {
 const pickNearestSourceFrame = (frames: StackFrame[]): StackFrame | null => frames[0] ?? null;
 
 const getSourceComponentName = (
-  fiber: Fiber | undefined,
+  fiber: Fiber["_debugOwner"],
   isNextProject: boolean,
 ): string | null => {
-  if (!fiber || !isCompositeFiber(fiber)) return null;
+  if (!isFiber(fiber) || !isCompositeFiber(fiber)) return null;
   return toSourceComponentName(getDisplayName(fiber.type), isNextProject);
 };
 
