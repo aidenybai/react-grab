@@ -82,16 +82,44 @@ jobs:
         run: |
           BASE_SHA="${{ github.event.pull_request.base.sha }}"
           git fetch origin "$BASE_SHA" --depth=1
-          if git cat-file -e "$BASE_SHA:packages/react-grab/src" 2>/dev/null; then
-            git checkout "$BASE_SHA" -- packages/react-grab/src
-            echo "swapped=true" >> "$GITHUB_OUTPUT"
-            echo "Swapped react-grab/src to base revision $BASE_SHA"
-          else
+          if ! git cat-file -e "$BASE_SHA:packages/react-grab/src" 2>/dev/null; then
             echo "Base ref lacks packages/react-grab/src; skipping baseline run."
             echo "swapped=false" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
+          git checkout "$BASE_SHA" -- packages/react-grab/src
+          echo "Swapped react-grab/src to base revision $BASE_SHA"
 
+          # Base src builds against whatever this job installed, so a dependency
+          # change leaves it importing exports the new version dropped and the
+          # fixture's dev server never starts. Swapping the manifests too keeps
+          # the baseline a measurement of the base ref instead of a mix that
+          # cannot build, and it is the comparison a dependency bump wants.
+          if git diff --quiet "$BASE_SHA" HEAD -- '*package.json' pnpm-lock.yaml; then
+            echo "swapped=true" >> "$GITHUB_OUTPUT"
+            echo "deps_swapped=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # Manifests the PR adds have no base revision to restore, and leaving
+          # them would make the base lockfile fail its frozen check.
+          git diff --name-only --diff-filter=A "$BASE_SHA" HEAD -- '*package.json' | xargs -r rm -f
+          git checkout "$BASE_SHA" -- '*package.json' pnpm-lock.yaml
+          if pnpm install; then
+            echo "swapped=true" >> "$GITHUB_OUTPUT"
+            echo "deps_swapped=true" >> "$GITHUB_OUTPUT"
+            echo "Swapped dependencies to base revision $BASE_SHA"
+            exit 0
+          fi
+          echo "Base dependencies failed to install; skipping baseline run."
+          git checkout HEAD -- packages/react-grab/src '*package.json' pnpm-lock.yaml
+          pnpm install
+          echo "swapped=false" >> "$GITHUB_OUTPUT"
+
+      # The baseline is a measurement, not a gate: the base ref is already tested
+      # by its own CI, so a baseline that cannot build or run must not block this
+      # PR. diff-perf-runs.mjs reports the missing comparison instead.
       - name: Run paired shard against base ref src
+        continue-on-error: true
         if: github.event_name == 'pull_request' && steps.swap-base.outputs.swapped == 'true'
         env:
           PERF_LABEL: baseline
@@ -108,7 +136,12 @@ jobs:
 
       - name: Restore react-grab src to HEAD
         if: github.event_name == 'pull_request' && steps.swap-base.outputs.swapped == 'true'
-        run: git checkout HEAD -- packages/react-grab/src
+        run: |
+          git checkout HEAD -- packages/react-grab/src
+          if [ "${{ steps.swap-base.outputs.deps_swapped }}" = "true" ]; then
+            git checkout HEAD -- '*package.json' pnpm-lock.yaml
+            pnpm install
+          fi
 
       - name: Run paired shard against HEAD src
         env:
