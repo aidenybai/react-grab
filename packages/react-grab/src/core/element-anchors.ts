@@ -1,10 +1,4 @@
-import {
-  getFiberFromHostInstance,
-  getLatestFiber,
-  getNearestHostFibers,
-  isHostFiber,
-  type Fiber,
-} from "bippy";
+import { getFiberFromHostInstance, getLatestFiber, isHostFiber, type Fiber } from "bippy";
 import { indexInParent } from "../utils/index-in-parent.js";
 import { isShadowRoot } from "../utils/is-shadow-root.js";
 import { isElementNode } from "../utils/is-element-node.js";
@@ -55,15 +49,37 @@ const resolveLiveAnchor = (anchor: ElementAnchor): Element | null => {
     return candidate && candidate.tagName === anchorTagName ? candidate : null;
   }
 
-  for (const hostFiber of getNearestHostFibers(latestParentFiber)) {
-    const node = hostFiber.stateNode;
-    // The tag match keeps recovery from latching onto an unrelated host when the
-    // original element type is gone. Same-tag siblings under a shared composite
-    // ancestor can't be told apart and resolve to the first match, which still
-    // leaves the selection on a valid node instead of dropping it.
-    if (isElementNode(node) && node.isConnected && node.tagName === anchorTagName) {
-      return node;
+  return findNearestHostElementWithTag(latestParentFiber, anchorTagName);
+};
+
+// Walks the nearest host fibers below `parentFiber` (stopping at each host
+// boundary, like bippy's removed getNearestHostFibers) for a connected element
+// with the anchor's tag. The tag match keeps recovery from latching onto an
+// unrelated host when the original element type is gone. Same-tag siblings
+// under a shared composite ancestor can't be told apart and resolve to the
+// first match, which still leaves the selection on a valid node instead of
+// dropping it.
+const findNearestHostElementWithTag = (
+  parentFiber: Fiber,
+  anchorTagName: string,
+): Element | null => {
+  let fiber: Fiber | null = parentFiber.child;
+  while (fiber) {
+    if (isHostFiber(fiber)) {
+      const node = fiber.stateNode;
+      if (isElementNode(node) && node.isConnected && node.tagName === anchorTagName) {
+        return node;
+      }
+    } else if (fiber.child) {
+      fiber = fiber.child;
+      continue;
     }
+    while (fiber !== parentFiber && !fiber.sibling) {
+      fiber = fiber.return;
+      if (!fiber) return null;
+    }
+    if (fiber === parentFiber) return null;
+    fiber = fiber.sibling;
   }
   return null;
 };
