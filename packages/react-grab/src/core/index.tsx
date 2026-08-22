@@ -3296,6 +3296,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     // step with the scrolled paint (rAF runs before paint) while collapsing the
     // burst into a single update.
     const scheduleViewportChange = () => {
+      // Cache invalidation stays synchronous: it is a handful of map clears, and
+      // deferring it would let a pointer or context-menu hit test in the same
+      // frame resolve geometry from before the scroll.
+      invalidateInteractionCaches();
       if (scrollChangeFrameId !== null) return;
       scrollChangeFrameId = nativeRequestAnimationFrame(() => {
         scrollChangeFrameId = null;

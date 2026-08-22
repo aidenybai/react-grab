@@ -1,6 +1,7 @@
 import { SAME_ORIGIN_FRAME_ATTRIBUTE } from "../constants.js";
 import { createHitTestShield, type HitTestShield } from "./create-hit-test-shield.js";
 import { createStyleElement } from "./create-style-element.js";
+import { getWindowFrameElement } from "./get-window-frame-element.js";
 
 // A per-document shield (see create-hit-test-shield) blocks page interaction,
 // which leaves this sheet responsible for the opposite problem: the page
@@ -35,6 +36,20 @@ let isInstalled = false;
 // inner close would leave the outer scan hit-testing the shield.
 let hitTestDepth = 0;
 
+const collectSameOriginFrames = (targetDocument: Document): Iterable<Element> => {
+  const frames = new Set<Element>(
+    targetDocument.querySelectorAll(`iframe[${SAME_ORIGIN_FRAME_ATTRIBUTE}]`),
+  );
+  // querySelectorAll cannot reach into shadow roots, so every registered frame
+  // document also contributes the element hosting it — otherwise a frame inside
+  // a shadow root keeps the shield over it and loses native scrolling.
+  for (const registeredDocument of registeredDocuments) {
+    const frameElement = getWindowFrameElement(registeredDocument.defaultView);
+    if (frameElement?.ownerDocument === targetDocument) frames.add(frameElement);
+  }
+  return frames;
+};
+
 const installDocumentLayer = (targetDocument: Document): void => {
   if (layersByDocument.has(targetDocument)) return;
 
@@ -43,7 +58,7 @@ const installDocumentLayer = (targetDocument: Document): void => {
     POINTER_EVENTS_STYLES,
     targetDocument,
   );
-  const shield = createHitTestShield(targetDocument);
+  const shield = createHitTestShield(targetDocument, () => collectSameOriginFrames(targetDocument));
   // Reads iframe rects, so it forces a style flush — but only on documents that
   // actually contain same-origin frames, which keeps the common case free of the
   // extra recalc that freezeGlobalInteractions batches its writes to avoid.

@@ -11,47 +11,56 @@ interface VisualViewportInfo {
 // Reading window.visualViewport (or the scope container's rect) flushes pending
 // style and layout, and the toolbar/label position memos call this on every
 // pointer move and scroll frame — profiled at ~25ms of self time across a 3s
-// hover-and-scroll session. The cache is mutated in place and reused, so callers
-// must read the fields immediately rather than retain the object.
+// hover-and-scroll session. Only the measurement is cached; callers still get
+// their own object, so retaining one can never observe a later viewport.
 const cachedViewport: VisualViewportInfo = {
   width: 0,
   height: 0,
   offsetLeft: 0,
   offsetTop: 0,
 };
+let cachedScopeContainer: Element | null = null;
 let cacheTimestamp = Number.NEGATIVE_INFINITY;
 
 export const invalidateVisualViewportCache = (): void => {
   cacheTimestamp = Number.NEGATIVE_INFINITY;
 };
 
-export const getVisualViewport = (): VisualViewportInfo => {
-  const now = performance.now();
-  if (now - cacheTimestamp < VISUAL_VIEWPORT_CACHE_TTL_MS) return cachedViewport;
-  cacheTimestamp = now;
-
-  const scopeContainer = getScopeContainer();
+const measureViewport = (scopeContainer: Element | null): void => {
   if (scopeContainer) {
     const rect = scopeContainer.getBoundingClientRect();
     cachedViewport.width = rect.width;
     cachedViewport.height = rect.height;
     cachedViewport.offsetLeft = rect.left;
     cachedViewport.offsetTop = rect.top;
-    return cachedViewport;
+    return;
   }
 
   const visualViewport = window.visualViewport;
-  if (visualViewport) {
-    cachedViewport.width = visualViewport.width;
-    cachedViewport.height = visualViewport.height;
-    cachedViewport.offsetLeft = visualViewport.offsetLeft;
-    cachedViewport.offsetTop = visualViewport.offsetTop;
-    return cachedViewport;
+  cachedViewport.width = visualViewport?.width ?? window.innerWidth;
+  cachedViewport.height = visualViewport?.height ?? window.innerHeight;
+  cachedViewport.offsetLeft = visualViewport?.offsetLeft ?? 0;
+  cachedViewport.offsetTop = visualViewport?.offsetTop ?? 0;
+};
+
+export const getVisualViewport = (): VisualViewportInfo => {
+  const scopeContainer = getScopeContainer();
+  const now = performance.now();
+  // Keyed by scope because a dispose and re-init within the TTL would otherwise
+  // position against the previous scope's dimensions.
+  if (
+    scopeContainer !== cachedScopeContainer ||
+    now - cacheTimestamp >= VISUAL_VIEWPORT_CACHE_TTL_MS
+  ) {
+    cachedScopeContainer = scopeContainer;
+    cacheTimestamp = now;
+    measureViewport(scopeContainer);
   }
 
-  cachedViewport.width = window.innerWidth;
-  cachedViewport.height = window.innerHeight;
-  cachedViewport.offsetLeft = 0;
-  cachedViewport.offsetTop = 0;
-  return cachedViewport;
+  return {
+    width: cachedViewport.width,
+    height: cachedViewport.height,
+    offsetLeft: cachedViewport.offsetLeft,
+    offsetTop: cachedViewport.offsetTop,
+  };
 };

@@ -97,8 +97,21 @@ export const AUTO_SCROLL_SPEED_PX = 10;
 export const Z_INDEX_OVERLAY = 2147483647;
 export const Z_INDEX_OVERLAY_CANVAS = 2147483645;
 // Below react-grab's own overlays so the toolbar stays clickable, above page
-// content so the shield absorbs the page's hover, focus, and click.
+// content so the shield absorbs the page's hover, focus, and click. Page content
+// stacked inside react-grab's own range (2147483645 and up) paints over the
+// shield and keeps receiving hover; staying below the overlays is the tradeoff
+// that keeps the toolbar usable.
 export const Z_INDEX_HIT_TEST_SHIELD = 2147483644;
+// Subtracting N overlapping frame holes can partition the viewport into O(N^2)
+// rectangles, so past this count the shield falls back to one hole spanning
+// every frame rather than creating unbounded panels on each scroll frame.
+export const HIT_TEST_SHIELD_MAX_PANELS = 12;
+// deltaMode line/page wheel events (Firefox, some mice) carry notch counts
+// instead of pixels; a line is worth roughly one line box.
+export const WHEEL_LINE_DELTA_PX = 16;
+// Subpixel scroll positions never reach the exact scrollable extent, so scroll
+// room is measured with a tolerance before declaring an axis exhausted.
+export const SCROLL_ROOM_EPSILON_PX = 1;
 export const DOCUMENT_NODE_TYPE = 9;
 
 export const DRAG_LERP_FACTOR = 0.7;
