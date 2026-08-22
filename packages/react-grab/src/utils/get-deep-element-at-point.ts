@@ -2,7 +2,7 @@ import { convertParentPositionToIframe } from "./convert-parent-position-to-ifra
 import { getAccessibleIframeDocument } from "./get-accessible-iframe-document.js";
 import { isIframeElement } from "./is-iframe-element.js";
 
-const getDeepElementInDocumentAtPoint = (
+export const getDeepElementInDocumentAtPoint = (
   targetDocument: Document,
   clientX: number,
   clientY: number,

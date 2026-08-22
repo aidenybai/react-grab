@@ -290,15 +290,12 @@ describe("getElementAtPosition", () => {
   });
 
   it("restores pointer-event freezing after a failed deep hit test", () => {
-    vi.useFakeTimers();
     vi.mocked(getDeepElementAtPoint).mockImplementation(() => {
       throw new Error("hit test failed");
     });
 
     expect(() => getElementAtPosition(10, 10)).toThrow("hit test failed");
     expect(suspendPointerEventsFreeze).toHaveBeenCalledOnce();
-    expect(resumePointerEventsFreeze).not.toHaveBeenCalled();
-    vi.runAllTimers();
     expect(resumePointerEventsFreeze).toHaveBeenCalledOnce();
   });
 
@@ -564,14 +561,12 @@ describe("getElementsAtPoint", () => {
     expect(getLocalContentElementAtPoint).toHaveBeenCalledWith(insideElement, 10, 10);
   });
 
-  it("schedules freeze restoration when deep stack collection throws", () => {
-    vi.useFakeTimers();
+  it("restores freezing when deep stack collection throws", () => {
     vi.mocked(getDeepElementsAtPoint).mockImplementation(() => {
       throw new Error("stack failed");
     });
 
     expect(() => getElementsAtPoint(10, 10)).toThrow("stack failed");
-    vi.runAllTimers();
     expect(resumePointerEventsFreeze).toHaveBeenCalledOnce();
   });
 });

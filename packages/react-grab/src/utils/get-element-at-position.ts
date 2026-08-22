@@ -2,7 +2,6 @@ import type { Rect } from "../types.js";
 import {
   ELEMENT_POSITION_CACHE_DISTANCE_THRESHOLD_PX,
   ELEMENT_POSITION_THROTTLE_MS,
-  POINTER_EVENTS_RESUME_DEBOUNCE_MS,
 } from "../constants.js";
 import { createElementBounds } from "./create-element-bounds.js";
 import { getAccessibleIframeDocument } from "./get-accessible-iframe-document.js";
@@ -38,24 +37,6 @@ interface InaccessibleIframePositionCache {
 
 let positionCache: PositionCache | null = null;
 let inaccessibleIframePositionCache: InaccessibleIframePositionCache | null = null;
-let pointerEventsResumeTimerId: ReturnType<typeof setTimeout> | null = null;
-
-const schedulePointerEventsResume = (): void => {
-  if (pointerEventsResumeTimerId !== null) {
-    clearTimeout(pointerEventsResumeTimerId);
-  }
-  pointerEventsResumeTimerId = setTimeout(() => {
-    pointerEventsResumeTimerId = null;
-    resumePointerEventsFreeze();
-  }, POINTER_EVENTS_RESUME_DEBOUNCE_MS);
-};
-
-const cancelScheduledPointerEventsResume = (): void => {
-  if (pointerEventsResumeTimerId !== null) {
-    clearTimeout(pointerEventsResumeTimerId);
-    pointerEventsResumeTimerId = null;
-  }
-};
 
 const isWithinThreshold = (x1: number, y1: number, x2: number, y2: number): boolean => {
   const deltaX = Math.abs(x1 - x2);
@@ -81,7 +62,6 @@ const resolveValidElementAtPoint = (
 
 export const getElementsAtPoint = (clientX: number, clientY: number): Element[] => {
   if (!Number.isFinite(clientX) || !Number.isFinite(clientY)) return [];
-  cancelScheduledPointerEventsResume();
   suspendPointerEventsFreeze();
   try {
     const elements = getDeepElementsAtPoint(clientX, clientY);
@@ -134,83 +114,78 @@ export const getElementsAtPoint = (clientX: number, clientY: number): Element[] 
     }
     return resolvedElements;
   } finally {
-    schedulePointerEventsResume();
+    resumePointerEventsFreeze();
   }
 };
 
 export const getElementAtPosition = (clientX: number, clientY: number): Element | null => {
   if (!Number.isFinite(clientX) || !Number.isFinite(clientY)) return null;
   const now = performance.now();
-
-  // Inaccessible iframes can only resolve to the iframe element itself. Reusing
-  // its bounds avoids repeating the pointer-events toggle and full hit test on
-  // every move. Accessibility is checked again so a later same-origin navigation
-  // immediately leaves this fast path and resumes deep element detection.
-  if (inaccessibleIframePositionCache) {
-    const cachedIframe = inaccessibleIframePositionCache.element;
-    const isCacheFresh =
-      now - inaccessibleIframePositionCache.timestamp < ELEMENT_POSITION_THROTTLE_MS;
-    if (
-      cachedIframe.isConnected &&
-      isCacheFresh &&
-      isPointInsideRect(clientX, clientY, inaccessibleIframePositionCache.bounds) &&
-      !getAccessibleIframeDocument(cachedIframe)
-    ) {
-      return cachedIframe;
+  // Hit testing needs the page interactive, so the shield comes down for the
+  // whole detection: the cached fast paths below run caretPositionFromPoint,
+  // which would otherwise resolve to the shield instead of page text. Gating it
+  // synchronously (rather than on a debounce, as the old root pointer-events
+  // flip required) is affordable because hiding the shield restyles one leaf
+  // element instead of the whole document.
+  // Alternatives explored and rejected:
+  //   - IntersectionObserver pre-population: adds 1-frame latency to every poll
+  //   - generic bounds-check cache: ignores z-index/stacking, causing hover
+  //     detection misses; the cache below is limited to inaccessible iframes
+  suspendPointerEventsFreeze();
+  try {
+    // Inaccessible iframes can only resolve to the iframe element itself. Reusing
+    // its bounds avoids repeating the full hit test on every move.
+    // Accessibility is checked again so a later same-origin navigation
+    // immediately leaves this fast path and resumes deep element detection.
+    if (inaccessibleIframePositionCache) {
+      const cachedIframe = inaccessibleIframePositionCache.element;
+      const isCacheFresh =
+        now - inaccessibleIframePositionCache.timestamp < ELEMENT_POSITION_THROTTLE_MS;
+      if (
+        cachedIframe.isConnected &&
+        isCacheFresh &&
+        isPointInsideRect(clientX, clientY, inaccessibleIframePositionCache.bounds) &&
+        !getAccessibleIframeDocument(cachedIframe)
+      ) {
+        return cachedIframe;
+      }
+      inaccessibleIframePositionCache = null;
+      if (positionCache?.element === cachedIframe) positionCache = null;
     }
-    inaccessibleIframePositionCache = null;
-    if (positionCache?.element === cachedIframe) positionCache = null;
-  }
 
-  if (positionCache) {
-    const isPositionClose = isWithinThreshold(
-      clientX,
-      clientY,
-      positionCache.clientX,
-      positionCache.clientY,
-    );
-    const isWithinThrottle = now - positionCache.timestamp < ELEMENT_POSITION_THROTTLE_MS;
-
-    if (isPositionClose && isWithinThrottle) {
-      if (!positionCache.preciseHitElement) return positionCache.element;
-
-      const localContentElement = getLocalContentElementAtPoint(
-        positionCache.preciseHitElement,
+    if (positionCache) {
+      const isPositionClose = isWithinThreshold(
         clientX,
         clientY,
+        positionCache.clientX,
+        positionCache.clientY,
       );
-      if (localContentElement) {
-        const localContentResult = resolveValidElementAtPoint(
-          localContentElement,
+      const isWithinThrottle = now - positionCache.timestamp < ELEMENT_POSITION_THROTTLE_MS;
+
+      if (isPositionClose && isWithinThrottle) {
+        if (!positionCache.preciseHitElement) return positionCache.element;
+
+        const localContentElement = getLocalContentElementAtPoint(
+          positionCache.preciseHitElement,
           clientX,
           clientY,
         );
-        if (localContentResult) return localContentResult;
+        if (localContentElement) {
+          const localContentResult = resolveValidElementAtPoint(
+            localContentElement,
+            clientX,
+            clientY,
+          );
+          if (localContentResult) return localContentResult;
+        }
+        if (!positionCache.usesTextHitTesting) return positionCache.fallbackElement;
+        return (
+          resolveValidElementAtPoint(positionCache.preciseHitElement, clientX, clientY) ??
+          getDeepFallbackElementAtPoint(clientX, clientY)
+        );
       }
-      if (!positionCache.usesTextHitTesting) return positionCache.fallbackElement;
-      return (
-        resolveValidElementAtPoint(positionCache.preciseHitElement, clientX, clientY) ??
-        getDeepFallbackElementAtPoint(clientX, clientY)
-      );
     }
-  }
 
-  // PERF: suspendPointerEventsFreeze toggles the html { pointer-events: none }
-  // stylesheet, which dirties the entire style tree. elementFromPoint then forces
-  // a Recalculate Style. The 100ms debounced resume (schedulePointerEventsResume) ensures the
-  // toggle is a no-op on rapid subsequent calls. The expensive recalc on those
-  // calls comes from host-page CSS animations dirtying styles between frames,
-  // which is unavoidable without removing pointer-events: none entirely.
-  // Alternatives explored and rejected:
-  //   - IntersectionObserver pre-population: adds 1-frame latency to every poll
-  //   - event.target fast path: always html/document due to pointer-events: none
-  //   - generic bounds-check cache: ignores z-index/stacking, causing hover
-  //     detection misses; the cache below is limited to inaccessible iframes
-  //   - transparent overlay instead of pointer-events: none: leaks CSS-only :hover
-  //     dropdowns/tooltips during the hit-test toggle
-  cancelScheduledPointerEventsResume();
-  suspendPointerEventsFreeze();
-  try {
     let result: Element | null = null;
 
     // elementFromPoint returns the topmost element, but if it's not grabbable
@@ -260,13 +235,11 @@ export const getElementAtPosition = (clientX: number, clientY: number): Element 
     };
     return result;
   } finally {
-    schedulePointerEventsResume();
+    resumePointerEventsFreeze();
   }
 };
 
 export const clearElementPositionCache = (): void => {
-  cancelScheduledPointerEventsResume();
-  resumePointerEventsFreeze();
   positionCache = null;
   inaccessibleIframePositionCache = null;
 };

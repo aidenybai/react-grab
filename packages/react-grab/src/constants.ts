@@ -85,6 +85,7 @@ export const THREE_PREVIEW_ARRAY_MAX_LENGTH = 4;
 export const THREE_SELECTION_FALLBACK_BOUNDS_PX = 16;
 export const THREE_DRAG_SELECTION_MAX_INDIVIDUAL_INSTANCES = 512;
 export const IFRAME_LAYOUT_METRICS_CACHE_TTL_MS = 16;
+export const VISUAL_VIEWPORT_CACHE_TTL_MS = 16;
 export const BORDER_RADIUS_CACHE_TTL_MS = 200;
 export const BORDER_RADIUS_SCALE_PRECISION_DECIMAL_PLACES = 3;
 export const BOUNDS_RECALC_INTERVAL_MS = 100;
@@ -95,6 +96,22 @@ export const AUTO_SCROLL_SPEED_PX = 10;
 
 export const Z_INDEX_OVERLAY = 2147483647;
 export const Z_INDEX_OVERLAY_CANVAS = 2147483645;
+// Below react-grab's own overlays so the toolbar stays clickable, above page
+// content so the shield absorbs the page's hover, focus, and click. Page content
+// stacked inside react-grab's own range (2147483645 and up) paints over the
+// shield and keeps receiving hover; staying below the overlays is the tradeoff
+// that keeps the toolbar usable.
+export const Z_INDEX_HIT_TEST_SHIELD = 2147483644;
+// Subtracting N overlapping frame holes can partition the viewport into O(N^2)
+// rectangles, so past this count the shield falls back to one hole spanning
+// every frame rather than creating unbounded panels on each scroll frame.
+export const HIT_TEST_SHIELD_MAX_PANELS = 12;
+// deltaMode line/page wheel events (Firefox, some mice) carry notch counts
+// instead of pixels; a line is worth roughly one line box.
+export const WHEEL_LINE_DELTA_PX = 16;
+// Subpixel scroll positions never reach the exact scrollable extent, so scroll
+// room is measured with a tolerance before declaring an axis exhausted.
+export const SCROLL_ROOM_EPSILON_PX = 1;
 export const DOCUMENT_NODE_TYPE = 9;
 
 export const DRAG_LERP_FACTOR = 0.7;
@@ -180,6 +197,7 @@ export const ARROW_KEYS = new Set(["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRi
 
 export const FROZEN_ELEMENT_ATTRIBUTE = "data-react-grab-frozen";
 export const SAME_ORIGIN_FRAME_ATTRIBUTE = "data-react-grab-same-origin-frame";
+export const HIT_TEST_SHIELD_ATTRIBUTE = "data-react-grab-hit-test-shield";
 
 // Pausing animations individually via WAAPI avoids the full-document style
 // recalc that a universal `*` selector forces — profiled at ~62ms on a real
@@ -267,7 +285,6 @@ export const HIERARCHY_INDENT_PX = 12;
 
 export const ELEMENT_POSITION_CACHE_DISTANCE_THRESHOLD_PX = 2;
 export const ELEMENT_POSITION_THROTTLE_MS = 16;
-export const POINTER_EVENTS_RESUME_DEBOUNCE_MS = 100;
 export const VISIBILITY_CACHE_TTL_MS = 50;
 
 export const ZOOM_DETECTION_THRESHOLD = 0.01;

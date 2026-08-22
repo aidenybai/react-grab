@@ -1,6 +1,7 @@
 import { invalidateBoundsCache } from "./create-element-bounds.js";
 import { invalidateElementTextBoundsCache } from "./get-element-text-bounds.js";
 import { clearElementPositionCache } from "./get-element-at-position.js";
+import { invalidateVisualViewportCache } from "./get-visual-viewport.js";
 
 // The visibility cache is intentionally NOT cleared here: this runs on every
 // scroll/resize event, and clearing it per event forced a getComputedStyle
@@ -13,4 +14,5 @@ export const invalidateInteractionCaches = (): void => {
   invalidateBoundsCache();
   invalidateElementTextBoundsCache();
   clearElementPositionCache();
+  invalidateVisualViewportCache();
 };
