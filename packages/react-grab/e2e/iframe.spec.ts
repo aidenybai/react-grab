@@ -13,6 +13,27 @@ import {
 import { movePointerToLocatorCenter } from "./move-pointer-to-locator-center.js";
 
 test.describe("Iframe selection", () => {
+  test("does not mark a pending cross-origin iframe as same-origin", async ({ reactGrab }) => {
+    const pendingFrameState = await reactGrab.page.evaluate(async () => {
+      const iframeElement = document.createElement("iframe");
+      iframeElement.src = "data:text/html,<main>Cross-origin frame</main>";
+      document.body.append(iframeElement);
+      await Promise.resolve();
+
+      return {
+        documentUrl: iframeElement.contentDocument?.URL,
+        hasSameOriginMarker: iframeElement.hasAttribute(
+          "data-react-grab-same-origin-frame",
+        ),
+      };
+    });
+
+    expect(pendingFrameState).toEqual({
+      documentUrl: "about:blank",
+      hasSameOriginMarker: false,
+    });
+  });
+
   test("does not forward iframe resizes for a top-document selection", async ({ reactGrab }) => {
     await reactGrab.page.evaluate((zIndex) => {
       const targetElement = document.createElement("button");
