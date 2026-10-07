@@ -61,8 +61,20 @@ const FRAMEWORK_NAMES: Record<Framework, string> = {
   vite: "Vite",
   tanstack: "TanStack Start",
   webpack: "Webpack",
+  sveltekit: "SvelteKit",
   unknown: "Unknown",
 };
+
+const SUPPORTED_FRAMEWORKS_MESSAGE = `React Grab supports ${new Intl.ListFormat("en", {
+  style: "long",
+  type: "conjunction",
+}).format([
+  FRAMEWORK_NAMES.next,
+  FRAMEWORK_NAMES.vite,
+  FRAMEWORK_NAMES.tanstack,
+  FRAMEWORK_NAMES.webpack,
+  FRAMEWORK_NAMES.sveltekit,
+])} projects.`;
 
 const PACKAGE_MANAGER_NAMES: Record<PackageManager, string> = {
   npm: "npm",
@@ -74,7 +86,6 @@ const PACKAGE_MANAGER_NAMES: Record<PackageManager, string> = {
 const UNSUPPORTED_FRAMEWORK_NAMES: Record<NonNullable<UnsupportedFramework>, string> = {
   remix: "Remix",
   astro: "Astro",
-  sveltekit: "SvelteKit",
   gatsby: "Gatsby",
 };
 
@@ -108,8 +119,7 @@ const printSubprojects = (searchRoot: string, sortedProjects: WorkspaceProject[]
   logger.break();
 };
 
-const SUPPORTED_FRAMEWORKS_LINE =
-  "React Grab supports Next.js, Vite, TanStack Start, and Webpack projects.";
+const SUPPORTED_FRAMEWORKS_LINE = SUPPORTED_FRAMEWORKS_MESSAGE;
 
 const failWithManualSetup = (
   failingSpinner: ReturnType<typeof spinner>,
@@ -497,12 +507,13 @@ export const init = new Command()
         process.exit(1);
       }
 
-      const hasLayoutChanges = !result.noChanges && result.originalContent && result.newContent;
+      const hasLayoutChanges =
+        !result.noChanges && result.filePath && result.newContent !== undefined;
 
       if (hasLayoutChanges) {
         logger.break();
 
-        printDiff(result.filePath, result.originalContent!, result.newContent!);
+        printDiff(result.filePath, result.originalContent ?? "", result.newContent!);
 
         logger.break();
         logger.warn("Auto-detection may not be 100% accurate.");
