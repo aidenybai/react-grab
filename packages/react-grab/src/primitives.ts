@@ -1,28 +1,30 @@
+import { freezeAnimations } from "./utils/freeze-animations.js";
 import {
-  freezeAnimations,
-  freezeGlobalAnimations,
-  unfreezeGlobalAnimations,
-} from "./utils/freeze-animations.js";
-import { freezePseudoStates, unfreezePseudoStates } from "./utils/freeze-pseudo-states.js";
-import { freezeUpdates } from "./utils/freeze-updates.js";
-import {
-  suspendPointerEventsFreeze,
-  resumePointerEventsFreeze,
-} from "./utils/pointer-events-freeze.js";
-import {
-  getComponentDisplayName,
-  getStack,
-  getStackContext,
-  formatElementInfo,
-  resolveSource,
-} from "./core/context.js";
+  freezeGlobalInteractions,
+  unfreezeGlobalInteractions,
+} from "./utils/freeze-global-interactions.js";
+import { FreezeError, RecoverableError } from "./errors.js";
+import { freezeUpdatesOrThrow } from "./utils/freeze-updates.js";
+import { reportRecoverableError } from "./utils/report-recoverable-error.js";
+import { resolveElementContext } from "./core/context.js";
 import { getHTMLPreview } from "./core/html-preview.js";
-import { Fiber, getFiberFromHostInstance } from "bippy";
+import type { Fiber } from "bippy";
 import type { StackFrame } from "bippy/source";
 export type { StackFrame };
 import { createElementSelector } from "./utils/create-element-selector.js";
 import { extractElementCss, disposeBaselineStyles } from "./utils/extract-element-css.js";
+import { findSelectorTarget } from "./utils/find-selector-target.js";
 import { requestOpenFile } from "./utils/open-file.js";
+import { isValidGrabbableElement } from "./utils/is-valid-grabbable-element.js";
+import { createElementBounds } from "./utils/create-element-bounds.js";
+import { getUnfilteredElementsAtPoint } from "./utils/get-unfiltered-elements-at-point.js";
+import { matchesElementAtPointOptions } from "./utils/matches-element-at-point-options.js";
+import type { ElementAtPointOptions, ElementBounds } from "./types.js";
+import { resolveThreeElementAtPoint } from "./core/three-selection.js";
+
+export type { ElementAtPointOptions, ElementBounds } from "./types.js";
+
+export { OpenFileError } from "./errors.js";
 
 export interface ReactGrabElementContext {
   element: Element;
@@ -40,6 +42,28 @@ export interface ReactGrabElementContext {
 }
 
 /**
+ * Returns whether an element is a useful selection target. Invisible elements,
+ * document roots, React Grab UI, ignored subtrees, and transparent page-covering
+ * overlays are excluded.
+ */
+export const isElementGrabbable = (element: Element): boolean => isValidGrabbableElement(element);
+
+/**
+ * Returns viewport bounds in the top-level window, including elements inside
+ * transformed same-origin iframes.
+ */
+export const getElementBounds = (element: Element): ElementBounds => ({
+  ...createElementBounds(element),
+});
+
+/**
+ * Returns a stable selector, crossing open shadow roots and same-origin iframes
+ * with `>>>` and `>>iframe>>` boundary markers.
+ */
+export const getElementSelector = (element: Element): string =>
+  createElementSelector(findSelectorTarget(element));
+
+/**
  * Gathers comprehensive context for a DOM element — the same context
  * React Grab copies to the clipboard, plus structured source location
  * and computed styles.
@@ -52,35 +76,81 @@ export interface ReactGrabElementContext {
  * ctx.lineNumber;    // 12
  */
 export const getElementContext = async (element: Element): Promise<ReactGrabElementContext> => {
-  const [snippet, source, stack] = await Promise.all([
-    formatElementInfo(element),
-    resolveSource(element),
-    getStack(element).then((result) => result ?? []),
-  ]);
-  const stackString = await getStackContext(element);
+  const resolvedContext = await resolveElementContext(element);
   const htmlPreview = getHTMLPreview(element);
-  const componentName = getComponentDisplayName(element);
-  const fiber = getFiberFromHostInstance(element);
-  const selector = createElementSelector(element);
   const styles = extractElementCss(element);
 
   return {
     element,
-    snippet,
+    snippet: resolvedContext.elementInfo,
     htmlPreview,
-    stackString,
-    stack,
-    componentName,
-    filePath: source?.filePath ?? null,
-    lineNumber: source?.lineNumber ?? null,
-    columnNumber: source?.columnNumber ?? null,
-    fiber,
-    selector,
+    stackString: resolvedContext.stackContext,
+    stack: resolvedContext.stack,
+    componentName: resolvedContext.componentName,
+    filePath: resolvedContext.source?.filePath ?? null,
+    lineNumber: resolvedContext.source?.lineNumber ?? null,
+    columnNumber: resolvedContext.source?.columnNumber ?? null,
+    fiber: resolvedContext.fiber,
+    selector: resolvedContext.selector,
     styles,
   };
 };
 
 export { copyContent } from "./utils/copy-content.js";
+
+/**
+ * Returns the topmost selectable element at viewport coordinates. Hit testing
+ * traverses open shadow roots and same-origin iframes and continues past
+ * non-grabbable overlays. Pass a filter to replace the default grabbability
+ * predicate or a container to confine selection to its composed subtree.
+ *
+ * @example
+ * const element = getElementAtPoint(event.clientX, event.clientY, {
+ *   container: canvas,
+ *   filter: (candidate) => isElementGrabbable(candidate) && !toolbar.contains(candidate),
+ * });
+ */
+export const getElementAtPoint = (
+  clientX: number,
+  clientY: number,
+  options?: ElementAtPointOptions,
+): Element | null => {
+  const elements = getUnfilteredElementsAtPoint(clientX, clientY);
+  for (const element of elements) {
+    const resolvedElement = resolveThreeElementAtPoint(element, clientX, clientY);
+    if (matchesElementAtPointOptions(resolvedElement, options)) {
+      return resolvedElement;
+    }
+    if (resolvedElement !== element && matchesElementAtPointOptions(element, options))
+      return element;
+  }
+  return null;
+};
+
+/**
+ * Returns every selectable element at viewport coordinates in paint order,
+ * from topmost to bottommost. Uses the same shadow-root, iframe, filter, and
+ * container behavior as `getElementAtPoint`.
+ */
+export const getElementsAtPoint = (
+  clientX: number,
+  clientY: number,
+  options?: ElementAtPointOptions,
+): Element[] => {
+  const elements = getUnfilteredElementsAtPoint(clientX, clientY);
+  const matchingElements: Element[] = [];
+  for (const element of elements) {
+    const resolvedElement = resolveThreeElementAtPoint(element, clientX, clientY);
+    if (matchesElementAtPointOptions(resolvedElement, options)) {
+      matchingElements.push(resolvedElement);
+      continue;
+    }
+    if (resolvedElement !== element && matchesElementAtPointOptions(element, options)) {
+      matchingElements.push(element);
+    }
+  }
+  return matchingElements;
+};
 
 /**
  * Returns all elements at the given viewport coordinates, temporarily
@@ -91,17 +161,48 @@ export { copyContent } from "./utils/copy-content.js";
  * freeze();
  * const elements = getElementsAtPosition(e.clientX, e.clientY);
  * // elements[0] is the topmost element under the cursor
+ *
+ * @deprecated Use `getElementsAtPoint` for selectable elements. Pass
+ * `{ filter: () => true }` to preserve this function's raw-stack behavior.
  */
 export const getElementsAtPosition = (clientX: number, clientY: number): Element[] => {
-  if (!Number.isFinite(clientX) || !Number.isFinite(clientY)) return [];
-  suspendPointerEventsFreeze();
-  const elements = document.elementsFromPoint(clientX, clientY);
-  resumePointerEventsFreeze();
-  return Array.from(elements);
+  return getUnfilteredElementsAtPoint(clientX, clientY);
 };
 
-const freezeCleanupFns = new Set<() => void>();
+const freezeCleanupFunctions = new Set<() => void>();
 let _isFreezeActive = false;
+let isFreezeInProgress = false;
+let isUnfreezeInProgress = false;
+let isUnfreezeRequested = false;
+
+const unfreezeTargetAnimations = (): void => {
+  freezeAnimations([]);
+};
+
+const runFreezeCleanups = (): unknown[] => {
+  if (isUnfreezeInProgress) return [];
+  isUnfreezeInProgress = true;
+  const cleanupFunctions = Array.from(freezeCleanupFunctions).reverse();
+  const failedCleanupFunctions: Array<() => void> = [];
+  const cleanupErrors: unknown[] = [];
+  freezeCleanupFunctions.clear();
+  try {
+    for (const cleanupFunction of cleanupFunctions) {
+      try {
+        cleanupFunction();
+      } catch (error) {
+        failedCleanupFunctions.unshift(cleanupFunction);
+        cleanupErrors.push(error);
+      }
+    }
+  } finally {
+    for (const failedCleanupFunction of failedCleanupFunctions) {
+      freezeCleanupFunctions.add(failedCleanupFunction);
+    }
+    isUnfreezeInProgress = false;
+  }
+  return cleanupErrors;
+};
 
 /**
  * Freezes the page by halting React updates, pausing CSS/JS animations,
@@ -112,11 +213,33 @@ let _isFreezeActive = false;
  * freeze([document.querySelector('.modal')!]); // freezes only the modal subtree
  */
 export const freeze = (elements?: Element[]): void => {
-  _isFreezeActive = true;
-  freezeCleanupFns.add(freezeUpdates());
-  freezeCleanupFns.add(freezeAnimations(elements ?? [document.body]));
-  freezeGlobalAnimations();
-  freezePseudoStates();
+  if (_isFreezeActive || isFreezeInProgress) return;
+  isFreezeInProgress = true;
+  try {
+    freezeCleanupFunctions.add(freezeUpdatesOrThrow());
+    freezeCleanupFunctions.add(unfreezeGlobalInteractions);
+    // Batched layout reads must run before freezeAnimations injects its
+    // stylesheet and sets frozen attributes, or those writes force a second
+    // full-document style recalc under the reads.
+    freezeGlobalInteractions();
+    freezeCleanupFunctions.add(unfreezeTargetAnimations);
+    freezeAnimations(elements ?? [document.body]);
+    _isFreezeActive = true;
+  } catch (error) {
+    const rollbackErrors = runFreezeCleanups();
+    _isFreezeActive = freezeCleanupFunctions.size > 0;
+    throw new FreezeError(
+      rollbackErrors.length === 0
+        ? error
+        : new AggregateError([error, ...rollbackErrors], "Rolling back page freeze failed"),
+    );
+  } finally {
+    isFreezeInProgress = false;
+    if (isUnfreezeRequested) {
+      isUnfreezeRequested = false;
+      unfreeze();
+    }
+  }
 };
 
 /**
@@ -129,14 +252,16 @@ export const freeze = (elements?: Element[]): void => {
  * unfreeze(); // page resumes normal behavior
  */
 export const unfreeze = (): void => {
-  _isFreezeActive = false;
-  for (const cleanup of Array.from(freezeCleanupFns)) {
-    cleanup();
+  if (isFreezeInProgress) {
+    isUnfreezeRequested = true;
+    return;
   }
-  freezeCleanupFns.clear();
-  freezeAnimations([]);
-  unfreezeGlobalAnimations();
-  unfreezePseudoStates();
+  if (isUnfreezeInProgress) return;
+  const cleanupErrors = runFreezeCleanups();
+  _isFreezeActive = freezeCleanupFunctions.size > 0;
+  for (const error of cleanupErrors) {
+    reportRecoverableError(new RecoverableError("Unfreezing page failed", error));
+  }
 };
 
 /**
@@ -164,4 +289,5 @@ export const openFile = async (filePath: string, lineNumber?: number): Promise<v
   await requestOpenFile(filePath, lineNumber);
 };
 
+export { FreezeError };
 export { disposeBaselineStyles };

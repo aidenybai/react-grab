@@ -1,0 +1,9 @@
+{
+  "name": "@react-grab/e2e-development",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./dist/index.js",
+    "./primitives": "./dist/primitives.js"
+  }
+}

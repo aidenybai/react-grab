@@ -1,14 +1,16 @@
-import { createPendingSelectionPlugin } from "./create-pending-selection-plugin.js";
+import type { Plugin } from "../../types.js";
 
-export const copyPlugin = createPendingSelectionPlugin({
+export const copyPlugin: Plugin = {
   name: "copy",
-  contextMenuAction: {
-    id: "copy",
-    label: "Copy",
-    shortcut: "C",
-    showInToolbarMenu: true,
-    onAction: (context) => {
-      context.copy?.();
+  actions: [
+    {
+      id: "copy",
+      label: "Copy",
+      shortcut: "C",
+      showInToolbarMenu: true,
+      onAction: (context) => {
+        context.copy?.();
+      },
     },
-  },
-});
+  ],
+};

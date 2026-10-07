@@ -2,9 +2,55 @@
 import { readdir, readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
-const REGRESSION_PERCENT_THRESHOLD = 10;
-const IMPROVEMENT_PERCENT_THRESHOLD = -10;
+const DEFAULT_PERCENT_THRESHOLD = 10;
+// Frame-time percentiles and the memory probe's single before/after snapshot
+// were observed swinging this much between CI runs of identical code (GC
+// timing, runner scheduling), so only larger moves count as signal.
+const FRAME_TIME_PERCENT_THRESHOLD = 30;
+const MEMORY_PERCENT_THRESHOLD = 25;
+// Saturated scenarios (hundreds of ms per interaction) inherit the runner's
+// scheduling variance proportionally — identical code measured ±25% across CI
+// runs — so heavy baselines need the wide threshold regardless of metric.
+const HEAVY_BASELINE_MS = 100;
+const HEAVY_BASELINE_PERCENT_THRESHOLD = 30;
 const SMALL_ABSOLUTE_NOISE_FLOOR_MS = 0.5;
+// Event timing (INP) is quantized to 8ms buckets, so a change of one bucket is
+// indistinguishable from measurement noise; only a two-bucket move is signal.
+const INP_QUANTIZATION_STEP_MS = 8;
+const INP_NOISE_FLOOR_MS = INP_QUANTIZATION_STEP_MS * 2;
+// Single-frame metrics (p95/max over ~60 frames) move in whole vsync steps on
+// a shared runner whenever one frame slips, so one frame of movement is noise.
+const FRAME_INTERVAL_NOISE_FLOOR_MS = 1000 / 60 + 1;
+// Long task / LoAF sums have a reporting cliff at the 50ms threshold (a task
+// jittering across it appears/disappears wholesale from the sum) and swing by
+// hundreds of ms run-to-run on shared CI runners for animation-heavy
+// scenarios, measured on identical code.
+const LONG_TASK_THRESHOLD_NOISE_FLOOR_MS = 500;
+// Even with GC-stabilized, median-of-samples readings, heap deltas on
+// app-dominated scenarios still swing a few hundred KB between CI runs
+// (shared-runner GC scheduling); real leaks compound per iteration and
+// clear this floor quickly.
+const HEAP_NOISE_FLOOR_KB = 512;
+const DOM_NODE_NOISE_FLOOR = 60;
+const PROCESS_CPU_NOISE_FLOOR_PERCENT = 10;
+const PROCESS_CPU_PERCENT_THRESHOLD = 20;
+const GPU_PROCESS_CPU_NOISE_FLOOR_PERCENT = 3;
+const GPU_PROCESS_CPU_PERCENT_THRESHOLD = 20;
+const PAIRED_CPU_NOISE_FLOOR_PERCENT = 1;
+const ANIMATION_TICK_RATE_NOISE_FLOOR_PER_SECOND = 3;
+const ANIMATION_DRAW_RATIO_NOISE_FLOOR = 0.05;
+const ANIMATION_TIMELINE_DUTY_NOISE_FLOOR_PERCENT = 5;
+const HARDWARE_GPU_NOISE_FLOOR_PERCENT = 10;
+const HARDWARE_GPU_PERCENT_THRESHOLD = 20;
+const RENDERING_NOISE_FLOOR_MS = 1;
+const RENDERING_PERCENT_THRESHOLD = 20;
+const SELECTOR_MATCH_ATTEMPT_NOISE_FLOOR = 100;
+const COMPOSITOR_FRAME_RATE_NOISE_FLOOR_FPS = 3;
+const COMPOSITOR_DUTY_CYCLE_NOISE_FLOOR_PERCENT = 5;
+const COMPOSITOR_FRAME_PERCENT_THRESHOLD = 20;
+const COMPOSITED_LAYER_COUNT_NOISE_FLOOR = 2;
+const COMPOSITED_AREA_NOISE_FLOOR_VIEWPORTS = 0.5;
+const COMPOSITED_LAYER_PERCENT_THRESHOLD = 20;
 
 const baselineDir = process.argv[2] ?? "packages/react-grab/perf/baseline";
 const currentDir = process.argv[3] ?? "packages/react-grab/perf/current";
@@ -14,71 +60,395 @@ const loadReportsFromDir = async (dirPath) => {
   try {
     entries = await readdir(dirPath);
   } catch {
-    return new Map();
+    return { scenarioReports: new Map(), animationControlReports: new Map() };
   }
-  const reportsByScenario = new Map();
+  const scenarioReports = new Map();
+  const animationControlReports = new Map();
   for (const entry of entries) {
     if (!entry.endsWith(".json")) continue;
     if (entry.endsWith(".trace.json")) continue;
     const raw = await readFile(resolve(dirPath, entry), "utf8");
-    reportsByScenario.set(entry.replace(/\.json$/, ""), JSON.parse(raw));
+    const report = JSON.parse(raw);
+    const reportName = entry.replace(/\.json$/, "");
+    if (report?.aggregate) scenarioReports.set(reportName, report);
+    if (report?.kind === "animation-scheduling-controls") {
+      animationControlReports.set(reportName, report);
+    }
   }
-  return reportsByScenario;
+  return { scenarioReports, animationControlReports };
 };
 
-const formatDeltaCell = (baselineValue, currentValue) => {
+const getPercentChange = (baselineValue, currentValue) => {
   const absoluteDelta = currentValue - baselineValue;
   const baselineMagnitude = Math.abs(baselineValue);
-  const isSmallChange = Math.abs(absoluteDelta) < SMALL_ABSOLUTE_NOISE_FLOOR_MS;
-  const percentChange =
-    baselineMagnitude < 1e-9
-      ? currentValue > 0
-        ? Infinity
-        : 0
-      : (absoluteDelta / baselineMagnitude) * 100;
-
-  const sign = absoluteDelta > 0 ? "+" : "";
-  const cellBody = `${baselineValue.toFixed(2)} → ${currentValue.toFixed(2)} (${sign}${absoluteDelta.toFixed(2)}, ${sign}${Number.isFinite(percentChange) ? percentChange.toFixed(1) + "%" : "∞"})`;
-
-  if (isSmallChange) return cellBody;
-  if (percentChange > REGRESSION_PERCENT_THRESHOLD) return `**${cellBody}** ▲`;
-  if (percentChange < IMPROVEMENT_PERCENT_THRESHOLD) return `*${cellBody}* ▼`;
-  return cellBody;
+  if (baselineMagnitude < 1e-9) return currentValue > 0 ? Infinity : 0;
+  return (absoluteDelta / baselineMagnitude) * 100;
 };
 
-const baselineReports = await loadReportsFromDir(baselineDir);
-const currentReports = await loadReportsFromDir(currentDir);
+const classifyChange = (
+  baselineValue,
+  currentValue,
+  unit,
+  noiseFloor = SMALL_ABSOLUTE_NOISE_FLOOR_MS,
+  percentThreshold = DEFAULT_PERCENT_THRESHOLD,
+  clampAtZero = false,
+) => {
+  // Memory deltas can come out negative (GC reclaimed pre-scenario garbage
+  // inside the measured window). Negative retained "growth" is a measurement
+  // artifact, not an improvement, and percent change against a negative
+  // baseline is meaningless — clamp to zero before classifying.
+  if (clampAtZero) {
+    baselineValue = Math.max(0, baselineValue);
+    currentValue = Math.max(0, currentValue);
+  }
+  const absoluteDelta = currentValue - baselineValue;
+  if (Math.abs(absoluteDelta) <= noiseFloor) return "unchanged";
+  const effectiveThreshold =
+    unit === "ms" && Math.abs(baselineValue) >= HEAVY_BASELINE_MS
+      ? Math.max(percentThreshold, HEAVY_BASELINE_PERCENT_THRESHOLD)
+      : percentThreshold;
+  const percentChange = getPercentChange(baselineValue, currentValue);
+  if (percentChange > effectiveThreshold) return "regression";
+  if (percentChange < -effectiveThreshold) return "improvement";
+  return "unchanged";
+};
 
-if (currentReports.size === 0) {
+const formatValue = (value, unit) => {
+  const useDecimal = (unit === "ms" && Math.abs(value) < 100) || unit === "×";
+  return `${useDecimal ? value.toFixed(1) : value.toFixed(0)}${unit}`;
+};
+
+const formatPercent = (percentChange) => {
+  if (!Number.isFinite(percentChange)) return "was 0";
+  const rounded = Math.round(percentChange);
+  if (rounded === 0) return "0%";
+  return `${rounded > 0 ? "+" : ""}${rounded}%`;
+};
+
+const formatChange = (baselineValue, currentValue, unit) => {
+  const percentChange = getPercentChange(baselineValue, currentValue);
+  return `${formatValue(baselineValue, unit)} → ${formatValue(currentValue, unit)} (${formatPercent(percentChange)})`;
+};
+
+const STATUS_LABELS = {
+  regression: "🔴 worse",
+  improvement: "🟢 better",
+};
+
+const METRIC_DEFINITIONS = [
+  {
+    label: "Interaction latency (INP)",
+    unit: "ms",
+    noiseFloor: INP_NOISE_FLOOR_MS,
+    getValue: (report) => report.aggregate.inp,
+  },
+  {
+    label: "Main-thread blocking (long tasks)",
+    unit: "ms",
+    noiseFloor: LONG_TASK_THRESHOLD_NOISE_FLOOR_MS,
+    getValue: (report) => report.aggregate.longTasks.sum,
+  },
+  {
+    label: "Janky frames (LoAF total)",
+    unit: "ms",
+    noiseFloor: LONG_TASK_THRESHOLD_NOISE_FLOOR_MS,
+    getValue: (report) => report.aggregate.longAnimationFrames.sum,
+  },
+  {
+    label: "Frame time (p95)",
+    unit: "ms",
+    noiseFloor: FRAME_INTERVAL_NOISE_FLOOR_MS,
+    percentThreshold: FRAME_TIME_PERCENT_THRESHOLD,
+    getValue: (report) => report.aggregate.frames.p95,
+  },
+  {
+    label: "Frame time (worst)",
+    unit: "ms",
+    noiseFloor: FRAME_INTERVAL_NOISE_FLOOR_MS,
+    percentThreshold: FRAME_TIME_PERCENT_THRESHOLD,
+    getValue: (report) => report.aggregate.frames.max,
+  },
+  {
+    label: "Heap growth",
+    unit: "KB",
+    noiseFloor: HEAP_NOISE_FLOOR_KB,
+    percentThreshold: MEMORY_PERCENT_THRESHOLD,
+    clampAtZero: true,
+    getValue: (report) => report.memory?.delta?.jsHeapUsedKb,
+  },
+  {
+    label: "Leaked DOM nodes",
+    unit: "",
+    noiseFloor: DOM_NODE_NOISE_FLOOR,
+    percentThreshold: MEMORY_PERCENT_THRESHOLD,
+    clampAtZero: true,
+    getValue: (report) => report.memory?.delta?.domNodes,
+  },
+  {
+    label: "Browser process CPU",
+    unit: "%",
+    noiseFloor: PROCESS_CPU_NOISE_FLOOR_PERCENT,
+    percentThreshold: PROCESS_CPU_PERCENT_THRESHOLD,
+    getValue: (report) => report.processCpu?.aggregate?.totalCorePercent,
+  },
+  {
+    label: "GPU process CPU",
+    unit: "%",
+    noiseFloor: GPU_PROCESS_CPU_NOISE_FLOOR_PERCENT,
+    percentThreshold: GPU_PROCESS_CPU_PERCENT_THRESHOLD,
+    getValue: (report) =>
+      report.processCpu?.aggregate?.byType?.GPU?.corePercent ??
+      report.processCpu?.aggregate?.byType?.gpu?.corePercent,
+  },
+  {
+    label: "Renderer process CPU",
+    unit: "%",
+    noiseFloor: GPU_PROCESS_CPU_NOISE_FLOOR_PERCENT,
+    percentThreshold: GPU_PROCESS_CPU_PERCENT_THRESHOLD,
+    getValue: (report) => report.processCpu?.aggregate?.byType?.renderer?.corePercent,
+  },
+  {
+    label: "Animation ticks",
+    unit: "/s",
+    noiseFloor: ANIMATION_TICK_RATE_NOISE_FLOOR_PER_SECOND,
+    percentThreshold: COMPOSITOR_FRAME_PERCENT_THRESHOLD,
+    getValue: (report) => report.rendering?.animationScheduling?.animationTicksPerSecond,
+  },
+  {
+    label: "Active animation timeline duty",
+    unit: "%",
+    noiseFloor: ANIMATION_TIMELINE_DUTY_NOISE_FLOOR_PERCENT,
+    percentThreshold: COMPOSITOR_FRAME_PERCENT_THRESHOLD,
+    getValue: (report) => report.animationLifecycle?.activeTimelineDutyCyclePercent,
+  },
+  {
+    label: "Animation-attributable renderer CPU",
+    unit: "%",
+    noiseFloor: PAIRED_CPU_NOISE_FLOOR_PERCENT,
+    percentThreshold: GPU_PROCESS_CPU_PERCENT_THRESHOLD,
+    clampAtZero: true,
+    getValue: (report) => report.animationCounterfactual?.activeMinusPaused?.rendererCorePercent,
+  },
+  {
+    label: "Animation-attributable GPU-process CPU",
+    unit: "%",
+    noiseFloor: PAIRED_CPU_NOISE_FLOOR_PERCENT,
+    percentThreshold: GPU_PROCESS_CPU_PERCENT_THRESHOLD,
+    clampAtZero: true,
+    getValue: (report) => report.animationCounterfactual?.activeMinusPaused?.gpuProcessCorePercent,
+  },
+  {
+    label: "Animation-attributable graphics CPU",
+    unit: "%",
+    noiseFloor: PAIRED_CPU_NOISE_FLOOR_PERCENT,
+    percentThreshold: GPU_PROCESS_CPU_PERCENT_THRESHOLD,
+    clampAtZero: true,
+    getValue: (report) =>
+      report.animationCounterfactual?.activeMinusPaused?.combinedGraphicsPipelineCorePercent,
+  },
+  {
+    label: "Hardware GPU busy",
+    unit: "%",
+    noiseFloor: HARDWARE_GPU_NOISE_FLOOR_PERCENT,
+    percentThreshold: HARDWARE_GPU_PERCENT_THRESHOLD,
+    getValue: (report) =>
+      report.hardwareGpu?.aggregate?.browserBusyMeanPercent ??
+      report.hardwareGpu?.aggregate?.systemBusyMeanPercent,
+  },
+  {
+    label: "Compositor frame production",
+    unit: "fps",
+    noiseFloor: COMPOSITOR_FRAME_RATE_NOISE_FLOOR_FPS,
+    percentThreshold: COMPOSITOR_FRAME_PERCENT_THRESHOLD,
+    getValue: (report) => report.rendering?.frames?.productionRateFps,
+  },
+  {
+    label: "Compositor production duty cycle",
+    unit: "%",
+    noiseFloor: COMPOSITOR_DUTY_CYCLE_NOISE_FLOOR_PERCENT,
+    percentThreshold: COMPOSITOR_FRAME_PERCENT_THRESHOLD,
+    getValue: (report) => report.rendering?.frames?.productionDutyCyclePercent,
+  },
+  {
+    label: "Composited content layers",
+    unit: "",
+    noiseFloor: COMPOSITED_LAYER_COUNT_NOISE_FLOOR,
+    percentThreshold: COMPOSITED_LAYER_PERCENT_THRESHOLD,
+    getValue: (report) => report.compositing?.maximumContentLayerCount,
+  },
+  {
+    label: "Composited surface area",
+    unit: "×",
+    noiseFloor: COMPOSITED_AREA_NOISE_FLOOR_VIEWPORTS,
+    percentThreshold: COMPOSITED_LAYER_PERCENT_THRESHOLD,
+    getValue: (report) => report.compositing?.maximumClippedContentAreaViewportMultiple,
+  },
+  {
+    label: "Painted area",
+    unit: "×",
+    noiseFloor: COMPOSITED_AREA_NOISE_FLOOR_VIEWPORTS,
+    percentThreshold: COMPOSITED_LAYER_PERCENT_THRESHOLD,
+    getValue: (report) => report.compositing?.paintedAreaViewportMultiple,
+  },
+  {
+    label: "Paint work",
+    unit: "ms",
+    noiseFloor: RENDERING_NOISE_FLOOR_MS,
+    percentThreshold: RENDERING_PERCENT_THRESHOLD,
+    getValue: (report) => report.rendering?.paint?.totalDurationMs,
+  },
+  {
+    label: "CSS selector matching",
+    unit: "ms",
+    noiseFloor: RENDERING_NOISE_FLOOR_MS,
+    percentThreshold: RENDERING_PERCENT_THRESHOLD,
+    getValue: (report) => report.rendering?.selectorStats?.totalElapsedMs,
+  },
+  {
+    label: "CSS selector attempts",
+    unit: "",
+    noiseFloor: SELECTOR_MATCH_ATTEMPT_NOISE_FLOOR,
+    percentThreshold: RENDERING_PERCENT_THRESHOLD,
+    getValue: (report) => report.rendering?.selectorStats?.matchAttempts,
+  },
+  {
+    label: "Compositor work",
+    unit: "ms",
+    noiseFloor: RENDERING_NOISE_FLOOR_MS,
+    percentThreshold: RENDERING_PERCENT_THRESHOLD,
+    getValue: (report) => report.rendering?.compositor?.totalDurationMs,
+  },
+];
+
+const ANIMATION_CONTROL_METRIC_DEFINITIONS = [
+  {
+    label: "Active graphics-pipeline CPU",
+    unit: "%",
+    noiseFloor: PROCESS_CPU_NOISE_FLOOR_PERCENT,
+    percentThreshold: PROCESS_CPU_PERCENT_THRESHOLD,
+    getValue: (modeReport) => modeReport.comparison?.active.cpu.combinedGraphicsPipelineCorePercent,
+  },
+  {
+    label: "Graphics CPU over paused",
+    unit: "%",
+    noiseFloor: PAIRED_CPU_NOISE_FLOOR_PERCENT,
+    percentThreshold: PROCESS_CPU_PERCENT_THRESHOLD,
+    clampAtZero: true,
+    getValue: (modeReport) =>
+      modeReport.comparison?.activeMinusPaused.combinedGraphicsPipelineCorePercent,
+  },
+  {
+    label: "Animation ticks",
+    unit: "/s",
+    noiseFloor: ANIMATION_TICK_RATE_NOISE_FLOOR_PER_SECOND,
+    percentThreshold: COMPOSITOR_FRAME_PERCENT_THRESHOLD,
+    getValue: (modeReport) =>
+      modeReport.trace?.pipeline?.animationScheduling?.animationTicksPerSecond,
+  },
+  {
+    label: "Draws per animation tick",
+    unit: "×",
+    noiseFloor: ANIMATION_DRAW_RATIO_NOISE_FLOOR,
+    percentThreshold: COMPOSITOR_FRAME_PERCENT_THRESHOLD,
+    getValue: (modeReport) =>
+      modeReport.trace?.pipeline?.animationScheduling?.drawsPerAnimationTick,
+  },
+  {
+    label: "Compositor frame production",
+    unit: "fps",
+    noiseFloor: COMPOSITOR_FRAME_RATE_NOISE_FLOOR_FPS,
+    percentThreshold: COMPOSITOR_FRAME_PERCENT_THRESHOLD,
+    getValue: (modeReport) => modeReport.trace?.pipeline?.frames?.productionRateFps,
+  },
+  {
+    label: "Compositor production duty cycle",
+    unit: "%",
+    noiseFloor: COMPOSITOR_DUTY_CYCLE_NOISE_FLOOR_PERCENT,
+    percentThreshold: COMPOSITOR_FRAME_PERCENT_THRESHOLD,
+    getValue: (modeReport) => modeReport.trace?.pipeline?.frames?.productionDutyCyclePercent,
+  },
+  {
+    label: "Active animation timeline duty",
+    unit: "%",
+    noiseFloor: ANIMATION_TIMELINE_DUTY_NOISE_FLOOR_PERCENT,
+    percentThreshold: COMPOSITOR_FRAME_PERCENT_THRESHOLD,
+    getValue: (modeReport) => modeReport.trace?.animationLifecycle?.activeTimelineDutyCyclePercent,
+  },
+];
+
+const expandAnimationControlModes = (report) => {
+  const reportsByMode = new Map();
+  for (const comparison of report.comparisons ?? []) {
+    reportsByMode.set(comparison.mode, { comparison });
+  }
+  for (const trace of report.traces ?? []) {
+    const modeReport = reportsByMode.get(trace.mode) ?? {};
+    modeReport.trace = trace.renderTrace;
+    reportsByMode.set(trace.mode, modeReport);
+  }
+  return reportsByMode;
+};
+
+const baselineReportSet = await loadReportsFromDir(baselineDir);
+const currentReportSet = await loadReportsFromDir(currentDir);
+const baselineReports = baselineReportSet.scenarioReports;
+const currentReports = currentReportSet.scenarioReports;
+const baselineAnimationControls = baselineReportSet.animationControlReports;
+const currentAnimationControls = currentReportSet.animationControlReports;
+
+if (currentReports.size === 0 && currentAnimationControls.size === 0) {
   console.log("> Perf diff skipped: no current data found.");
   process.exit(0);
 }
 
-if (baselineReports.size === 0) {
+if (baselineReports.size === 0 && baselineAnimationControls.size === 0) {
   console.log(
     "> Perf diff skipped: no baseline data — likely the first run on the base ref, or the bench harness didn't exist there yet. Current numbers are still uploaded as an artifact.",
   );
   process.exit(0);
 }
 
-const lines = [];
-lines.push("## Perf diff — baseline (base ref) vs current (this PR)");
-lines.push("");
-lines.push(
-  `Bold + ▲ = regression worse than +${REGRESSION_PERCENT_THRESHOLD}%. ` +
-    `Italic + ▼ = improvement better than ${IMPROVEMENT_PERCENT_THRESHOLD}%. ` +
-    `Changes under ${SMALL_ABSOLUTE_NOISE_FLOOR_MS}ms absolute are treated as noise.`,
-);
-lines.push("");
-lines.push(
-  "| Scenario | INP (ms) | LongTasks sum (ms) | LoAF sum (ms) | Frames p95 (ms) | Frames max (ms) |",
-);
-lines.push(
-  "|----------|----------|--------------------|---------------|------------------|------------------|",
-);
-
+const changedRows = [];
+const detailRows = [];
+const animationControlDetailRows = [];
 const scenariosOnlyInCurrent = [];
 const scenariosOnlyInBaseline = [];
+let comparedScenarioCount = 0;
+
+const compareReportMetrics = (scenarioName, baselineReport, currentReport, metricDefinitions) => {
+  const detailCells = [];
+  for (const {
+    label,
+    unit,
+    noiseFloor,
+    percentThreshold,
+    clampAtZero,
+    getValue,
+  } of metricDefinitions) {
+    const baselineValue = getValue(baselineReport);
+    const currentValue = getValue(currentReport);
+    if (typeof baselineValue !== "number" || typeof currentValue !== "number") {
+      detailCells.push("–");
+      continue;
+    }
+    const changeText = formatChange(baselineValue, currentValue, unit);
+    const status = classifyChange(
+      baselineValue,
+      currentValue,
+      unit,
+      noiseFloor,
+      percentThreshold,
+      clampAtZero ?? false,
+    );
+    if (status === "unchanged") {
+      detailCells.push(changeText);
+    } else {
+      detailCells.push(`${changeText} ${STATUS_LABELS[status]}`);
+      changedRows.push({ scenarioName, metricLabel: label, changeText, status });
+    }
+  }
+  return detailCells;
+};
 
 for (const scenarioName of [...currentReports.keys()].sort()) {
   const currentReport = currentReports.get(scenarioName);
@@ -87,20 +457,141 @@ for (const scenarioName of [...currentReports.keys()].sort()) {
     scenariosOnlyInCurrent.push(scenarioName);
     continue;
   }
-  const baselineAggregate = baselineReport.aggregate;
-  const currentAggregate = currentReport.aggregate;
-  lines.push(
-    `| ${scenarioName} ` +
-      `| ${formatDeltaCell(baselineAggregate.inp, currentAggregate.inp)} ` +
-      `| ${formatDeltaCell(baselineAggregate.longTasks.sum, currentAggregate.longTasks.sum)} ` +
-      `| ${formatDeltaCell(baselineAggregate.longAnimationFrames.sum, currentAggregate.longAnimationFrames.sum)} ` +
-      `| ${formatDeltaCell(baselineAggregate.frames.p95, currentAggregate.frames.p95)} ` +
-      `| ${formatDeltaCell(baselineAggregate.frames.max, currentAggregate.frames.max)} |`,
+  comparedScenarioCount++;
+
+  const detailCells = compareReportMetrics(
+    scenarioName,
+    baselineReport,
+    currentReport,
+    METRIC_DEFINITIONS,
   );
+  detailRows.push(`| ${scenarioName} | ${detailCells.join(" | ")} |`);
+
+  for (const metricName of Object.keys(currentReport.extra ?? {}).sort()) {
+    const currentValue = currentReport.extra[metricName];
+    const baselineValue = baselineReport.extra?.[metricName];
+    if (typeof currentValue !== "number" || typeof baselineValue !== "number") continue;
+    const changeText = formatChange(baselineValue, currentValue, "ms");
+    const status = classifyChange(baselineValue, currentValue, "ms");
+    if (status !== "unchanged") {
+      changedRows.push({ scenarioName, metricLabel: metricName, changeText, status });
+    }
+    detailRows.push(
+      `| ${scenarioName} (${metricName}) | ${changeText} | ${METRIC_DEFINITIONS.slice(1)
+        .map(() => "–")
+        .join(" | ")} |`,
+    );
+  }
 }
 
 for (const baselineOnlyName of baselineReports.keys()) {
   if (!currentReports.has(baselineOnlyName)) scenariosOnlyInBaseline.push(baselineOnlyName);
+}
+
+for (const [reportName, currentControlReport] of [...currentAnimationControls].sort()) {
+  const baselineControlReport = baselineAnimationControls.get(reportName);
+  const currentModes = expandAnimationControlModes(currentControlReport);
+  const controlScenarioName = currentControlReport.scenario ?? reportName;
+  if (!baselineControlReport) {
+    scenariosOnlyInCurrent.push(
+      ...[...currentModes.keys()].map((mode) => `${controlScenarioName}/${mode}`),
+    );
+    continue;
+  }
+  const baselineModes = expandAnimationControlModes(baselineControlReport);
+  for (const [mode, currentModeReport] of [...currentModes].sort()) {
+    const scenarioName = `${controlScenarioName}/${mode}`;
+    const baselineModeReport = baselineModes.get(mode);
+    if (!baselineModeReport) {
+      scenariosOnlyInCurrent.push(scenarioName);
+      continue;
+    }
+    comparedScenarioCount++;
+    const detailCells = compareReportMetrics(
+      scenarioName,
+      baselineModeReport,
+      currentModeReport,
+      ANIMATION_CONTROL_METRIC_DEFINITIONS,
+    );
+    animationControlDetailRows.push(`| ${scenarioName} | ${detailCells.join(" | ")} |`);
+  }
+  for (const baselineMode of baselineModes.keys()) {
+    if (!currentModes.has(baselineMode)) {
+      scenariosOnlyInBaseline.push(`${controlScenarioName}/${baselineMode}`);
+    }
+  }
+}
+
+for (const [reportName, baselineControlReport] of baselineAnimationControls) {
+  if (currentAnimationControls.has(reportName)) continue;
+  scenariosOnlyInBaseline.push(
+    ...[...expandAnimationControlModes(baselineControlReport).keys()].map(
+      (mode) => `${reportName}/${mode}`,
+    ),
+  );
+}
+
+const regressions = changedRows.filter(({ status }) => status === "regression");
+const improvements = changedRows.filter(({ status }) => status === "improvement");
+
+const lines = [];
+lines.push("## Performance report — this PR vs base branch");
+lines.push("");
+
+if (regressions.length === 0 && improvements.length === 0) {
+  lines.push(`✅ **No performance changes detected** across ${comparedScenarioCount} scenarios.`);
+} else {
+  const summaryParts = [];
+  if (regressions.length > 0) {
+    summaryParts.push(
+      `🔴 **${regressions.length} regression${regressions.length === 1 ? "" : "s"}**`,
+    );
+  }
+  if (improvements.length > 0) {
+    summaryParts.push(
+      `🟢 **${improvements.length} improvement${improvements.length === 1 ? "" : "s"}**`,
+    );
+  }
+  lines.push(`${summaryParts.join(" · ")} across ${comparedScenarioCount} scenarios.`);
+  lines.push("");
+  lines.push("| Scenario | Metric | Base → PR | Verdict |");
+  lines.push("|----------|--------|-----------|---------|");
+  const sortedChangedRows = [...regressions, ...improvements];
+  for (const { scenarioName, metricLabel, changeText, status } of sortedChangedRows) {
+    lines.push(`| ${scenarioName} | ${metricLabel} | ${changeText} | ${STATUS_LABELS[status]} |`);
+  }
+}
+
+lines.push("");
+lines.push(
+  `<sub>A metric counts as changed only past per-metric thresholds sized to measured shared-runner variance on identical code: interaction latency ±${DEFAULT_PERCENT_THRESHOLD}% and ${INP_NOISE_FLOOR_MS}ms (measured in ${INP_QUANTIZATION_STEP_MS}ms steps), frame times ±${FRAME_TIME_PERCENT_THRESHOLD}%, long-task/LoAF sums ±${DEFAULT_PERCENT_THRESHOLD}% and ${LONG_TASK_THRESHOLD_NOISE_FLOOR_MS}ms, memory ±${MEMORY_PERCENT_THRESHOLD}% and ${HEAP_NOISE_FLOOR_KB}KB / ${DOM_NODE_NOISE_FLOOR} nodes, process CPU ±${PROCESS_CPU_PERCENT_THRESHOLD}% and ${PROCESS_CPU_NOISE_FLOOR_PERCENT} points, GPU-process CPU ±${GPU_PROCESS_CPU_PERCENT_THRESHOLD}% and ${GPU_PROCESS_CPU_NOISE_FLOOR_PERCENT} points, animation ticks ±${COMPOSITOR_FRAME_PERCENT_THRESHOLD}% and ${ANIMATION_TICK_RATE_NOISE_FLOOR_PER_SECOND}/s, draws/tick ±${COMPOSITOR_FRAME_PERCENT_THRESHOLD}% and ${ANIMATION_DRAW_RATIO_NOISE_FLOOR}, hardware GPU ±${HARDWARE_GPU_PERCENT_THRESHOLD}% and ${HARDWARE_GPU_NOISE_FLOOR_PERCENT} points, compositor production ±${COMPOSITOR_FRAME_PERCENT_THRESHOLD}% and ${COMPOSITOR_FRAME_RATE_NOISE_FLOOR_FPS}fps / ${COMPOSITOR_DUTY_CYCLE_NOISE_FLOOR_PERCENT} duty-cycle points, composited layers ±${COMPOSITED_LAYER_PERCENT_THRESHOLD}% and ${COMPOSITED_LAYER_COUNT_NOISE_FLOOR} layers / ${COMPOSITED_AREA_NOISE_FLOOR_VIEWPORTS} viewport areas, rendering stages ±${RENDERING_PERCENT_THRESHOLD}% and ${RENDERING_NOISE_FLOOR_MS}ms; any ms metric with a ≥${HEAVY_BASELINE_MS}ms baseline needs ±${HEAVY_BASELINE_PERCENT_THRESHOLD}%.</sub>`,
+);
+if (detailRows.length > 0) {
+  lines.push("");
+  lines.push("<details>");
+  lines.push(`<summary>All ${detailRows.length} standard scenarios (full numbers)</summary>`);
+  lines.push("");
+  lines.push(`| Scenario | ${METRIC_DEFINITIONS.map(({ label }) => label).join(" | ")} |`);
+  lines.push(`|----------|${METRIC_DEFINITIONS.map(() => "---").join("|")}|`);
+  lines.push(...detailRows);
+  lines.push("");
+  lines.push("</details>");
+}
+
+if (animationControlDetailRows.length > 0) {
+  lines.push("");
+  lines.push("<details>");
+  lines.push(
+    `<summary>All ${animationControlDetailRows.length} animation scheduling controls (full numbers)</summary>`,
+  );
+  lines.push("");
+  lines.push(
+    `| Control | ${ANIMATION_CONTROL_METRIC_DEFINITIONS.map(({ label }) => label).join(" | ")} |`,
+  );
+  lines.push(`|---------|${ANIMATION_CONTROL_METRIC_DEFINITIONS.map(() => "---").join("|")}|`);
+  lines.push(...animationControlDetailRows);
+  lines.push("");
+  lines.push("</details>");
 }
 
 if (scenariosOnlyInCurrent.length > 0) {

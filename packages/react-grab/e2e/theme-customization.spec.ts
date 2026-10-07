@@ -51,8 +51,7 @@ test.describe("Theme Customization", () => {
   test.describe("Selection Box", () => {
     test("should show selection box by default", async ({ reactGrab }) => {
       await reactGrab.activate();
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("li:first-child");
 
       const isVisible = await reactGrab.isSelectionBoxVisible();
       expect(isVisible).toBe(true);
@@ -63,8 +62,7 @@ test.describe("Theme Customization", () => {
         theme: { selectionBox: { enabled: false } },
       });
       await reactGrab.activate();
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("li:first-child");
 
       const bounds = await reactGrab.getSelectionBoxBounds();
       expect(bounds).toBeNull();
@@ -111,8 +109,7 @@ test.describe("Theme Customization", () => {
   test.describe("Grabbed Boxes", () => {
     test("should show grabbed boxes by default", async ({ reactGrab }) => {
       await reactGrab.activate();
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("li:first-child");
 
       await reactGrab.clickElement("li:first-child");
       await reactGrab.page.waitForTimeout(200);
@@ -126,8 +123,7 @@ test.describe("Theme Customization", () => {
         theme: { grabbedBoxes: { enabled: false } },
       });
       await reactGrab.activate();
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("li:first-child");
 
       await reactGrab.clickElement("li:first-child");
       await reactGrab.page.waitForTimeout(200);
@@ -140,8 +136,7 @@ test.describe("Theme Customization", () => {
   test.describe("Element Label", () => {
     test("should show element label by default", async ({ reactGrab }) => {
       await reactGrab.activate();
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("li:first-child");
 
       const isVisible = await reactGrab.isSelectionLabelVisible();
       expect(isVisible).toBe(true);
@@ -152,8 +147,7 @@ test.describe("Theme Customization", () => {
         theme: { elementLabel: { enabled: false } },
       });
       await reactGrab.activate();
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("li:first-child");
 
       const labelInfo = await reactGrab.getSelectionLabelInfo();
       expect(labelInfo.isVisible).toBe(false);
@@ -182,8 +176,7 @@ test.describe("Theme Customization", () => {
       await reactGrab.updateOptions({ theme: { enabled: false } });
 
       await reactGrab.activate();
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("li:first-child");
 
       const isSelectionBoxVisible = await reactGrab.isSelectionBoxVisible();
       expect(isSelectionBoxVisible).toBe(false);

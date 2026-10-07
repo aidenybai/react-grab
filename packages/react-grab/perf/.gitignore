@@ -1,6 +1,4 @@
 *.json
-!baseline-latest.json
-!stage-*.json
 *.log
 
 # Per-run perf bench outputs written by e2e/perf-bench.spec.ts → PERF_LABEL.
@@ -11,9 +9,7 @@
 # baseline with `pnpm test:perf:baseline` and diff against it during
 # optimization work. CI compares its own runs across commits via the
 # uploaded artifact (.github/workflows/test-perf.yml).
-current/
-baseline/
-feature/
+*/
 
-# CDP trace dumps (PERF_TRACE=1) are 5-100MB each. Always local, never committed.
-*.trace.json
+# CPU profile dumps (PERF_TRACE=1). Always local, never committed.
+*.cpuprofile

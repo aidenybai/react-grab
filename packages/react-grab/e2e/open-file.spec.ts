@@ -17,14 +17,14 @@ test.describe("Open File", () => {
           hooks: {
             onOpenFile: () => {
               (window as { __OPEN_FILE_CALLED__?: boolean }).__OPEN_FILE_CALLED__ = true;
+              return true;
             },
           },
         });
       });
 
       await reactGrab.activate();
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("li:first-child");
       await reactGrab.waitForSelectionSource();
 
       await expect
@@ -42,8 +42,7 @@ test.describe("Open File", () => {
 
     test("Cmd+O should do nothing without onOpenFile callback", async ({ reactGrab }) => {
       await reactGrab.activate();
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("li:first-child");
 
       await reactGrab.page.keyboard.down(reactGrab.modifierKey);
       await reactGrab.page.keyboard.press("o");
@@ -110,8 +109,7 @@ test.describe("Open File", () => {
       });
 
       await reactGrab.activate();
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("li:first-child");
 
       await reactGrab.rightClickElement("li:first-child");
 
@@ -143,8 +141,7 @@ test.describe("Open File", () => {
       });
 
       await reactGrab.activate();
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("li:first-child");
 
       await reactGrab.rightClickElement("li:first-child");
       await reactGrab.page.waitForTimeout(100);
@@ -161,8 +158,7 @@ test.describe("Open File", () => {
 
     test("Open should not be clickable without onOpenFile callback", async ({ reactGrab }) => {
       await reactGrab.activate();
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("li:first-child");
 
       await reactGrab.rightClickElement("li:first-child");
       await reactGrab.page.waitForTimeout(200);
@@ -196,8 +192,7 @@ test.describe("Open File", () => {
       });
 
       await reactGrab.activate();
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("li:first-child");
 
       await reactGrab.page.keyboard.down(reactGrab.modifierKey);
       await reactGrab.page.keyboard.press("o");
@@ -239,8 +234,7 @@ test.describe("Open File", () => {
       });
 
       await reactGrab.activate();
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("li:first-child");
 
       await reactGrab.page.keyboard.down(reactGrab.modifierKey);
       await reactGrab.page.keyboard.press("o");
@@ -280,8 +274,8 @@ test.describe("Open File", () => {
       });
 
       await reactGrab.activate();
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("li:first-child span");
+      await reactGrab.waitForSelectionSource();
 
       await reactGrab.page.evaluate((attrName) => {
         const host = document.querySelector(`[${attrName}]`);
@@ -305,7 +299,7 @@ test.describe("Open File", () => {
         return (window as { __OPEN_FILE_CALLED__?: boolean }).__OPEN_FILE_CALLED__ ?? false;
       });
 
-      expect(typeof openFileCalled).toBe("boolean");
+      expect(openFileCalled).toBe(true);
     });
   });
 
@@ -333,8 +327,7 @@ test.describe("Open File", () => {
 
       await reactGrab.activate();
 
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("li:first-child");
       await reactGrab.waitForSelectionSource();
 
       await expect
@@ -349,8 +342,7 @@ test.describe("Open File", () => {
         )
         .toBeGreaterThanOrEqual(1);
 
-      await reactGrab.hoverElement("li:nth-child(2)");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("li:nth-child(2)");
       await reactGrab.waitForSelectionSource();
 
       await expect

@@ -1,5 +1,86 @@
 # react-grab
 
+## 0.2.0
+
+### Minor Changes
+
+- f350003: Remove the Style action and panel, including its keyboard shortcuts, inline previews, CSS property controls, design-token handling, and edit-related action context and renderer types. Simplify the toolbar to its Copy control while keeping Comment available through the context menu and action menu.
+
+### Patch Changes
+
+- 4dbdee5: Improve copied element context and labels with stable semantic selectors, authored component names, nearest-source resolution, race-safe refresh-aware source caching, bounded previews and keys, nested control labels, consistent trace budgets, and lossless multi-element selection.
+- Updated dependencies [f350003]
+  - @react-grab/cli@0.2.0
+
+## 0.1.50
+
+### Patch Changes
+
+- 575dc58: Prioritize interactive React Three Fiber objects during canvas selection so passive particles and helper geometry do not steal hits, while preserving passive-object fallback behavior.
+  - @react-grab/cli@0.1.50
+
+## 0.1.49
+
+### Patch Changes
+
+- 9a1c4f0: Ship the accumulated selection, copy, customization, and reliability improvements since 0.1.48:
+  - Grab elements inside open Shadow DOM roots and same-origin iframes, including nested and transformed frames, while preserving source context, overlays, drag selection, editor navigation, and cleanup behavior.
+  - Select Three.js and React Three Fiber objects directly from canvas renderers, with component metadata, source context, bounds, CSS extraction, and editing support.
+  - Add public element-picker primitives for filtered or container-scoped hit testing, safe bounds snapshots, transactional page freezing, and editor navigation. The `grab` alias now exposes its documented `primitives` and stylesheet subpaths too.
+  - Keep held selections attached to their React fibers across DOM replacements and make copy failures recoverable with Retry and Ok controls. Cancel stale or in-flight copy work, reject empty transformed output, restore hovered copy labels, and isolate plugin, action, and subscriber failures.
+  - Harden activation, teardown, and host-page recovery. Invalid custom activation keys no longer crash initialization; repeated or failed disposal completes safely; toolbar state survives body replacement; Style previews, animations, pseudo states, pointer behavior, and iframe resources are restored reliably.
+  - Improve component-name and Solid source resolution, immediate theme updates, dark-mode label contrast, auto-scroll boundary handling, toolbar snapping, and selection rendering performance.
+  - @react-grab/cli@0.1.49
+
+## 0.1.48
+
+### Patch Changes
+
+- bc3a591: Fix the grab hanging on "Grabbing…" when the app saturates the dev server's connection pool. Source resolution (bundle and source-map fetches via bippy, plus Next.js server-frame symbolication) now runs through a concurrency-capped, abortable queue with a timeout, so it no longer queues indefinitely behind the app's own requests. Requires bippy ≥0.5.42 so an aborted source-map fetch no longer poisons bippy's cache and later grabs recover.
+
+  Also fixes:
+  - A click immediately after keyboard navigation selecting a stale element instead of the one under the pointer.
+  - The page jumping when focus is restored after a grab (focus now restores with `preventScroll`).
+  - Being unable to select page content while a modal sets `body { pointer-events: none }` (e.g. Radix), via a hit-test override.
+
+  Plus activation and drag performance: animations freeze via the Web Animations API instead of a universal-selector recalc, activation batches its layout reads before writes, the React-update freeze walks fibers iteratively, and drag de-duplication is O(n·d) instead of O(n²).
+
+- e56fcc1: Style mode now resolves committed values to the project's design tokens when copying. Tokens are derived from the CSS custom properties already defined in the page's cascade, so this works for any library that exposes design tokens as CSS variables (shadcn/ui, Radix, Chakra, MUI, Tailwind v4 `@theme`, Panda, vanilla-extract, …) rather than a single hard-coded framework. When a tweaked color matches a token, or a length matches a token whose name shares the property's family (spacing/size/radius/font-size/…), the copied CSS annotates the declaration with a `/* var(--token) */` hint and the prompt nudges the agent to prefer the token over the raw value.
+
+  Arrow-key stepping in the Style panel now snaps a px property through that token scale (e.g. `←`/`→` walk the spacing tokens) instead of always nudging ±1px. `Shift` keeps the coarse raw step (×10) and `Alt`/`Option` does a fine raw ±1px step — both opt out of snapping so values can land between tokens. A value sitting outside the scale falls back to a raw step so stepping never dead-ends. When a framework exposes spacing as a single base unit instead of discrete tokens (Tailwind v4's `--spacing`), stepping walks that base-unit grid.
+
+  Color tokens are resolved through the browser's own rasterizer, so modern wide-gamut values that `getComputedStyle` returns — `lab()`, `lch()`, `oklab()`, `oklch()`, `color()` — are matched too (these are what Tailwind v4 / shadcn themes compile to), not just hex/rgb/hsl.
+
+- 853ec52: Fix theme detection mis-classifying an undeclared light page as dark for visitors on a dark OS. When a page has no theme marker, no `color-scheme`, and no painted background, detection now derives the real backdrop from the CSS `Canvas` system color instead of guessing from `prefers-color-scheme`. `Canvas` honors the root element's used `color-scheme`, so it stays light under the default `normal` (regardless of the OS) and only tracks the OS preference when the page opts into a dark-capable scheme such as `light dark` - matching exactly what the browser paints behind the page.
+  - @react-grab/cli@0.1.48
+
+## 0.1.47
+
+### Patch Changes
+
+- 5407d4e: Surface deeper copy context for wrapper-heavy elements. App-owned shared-UI / design-system frames (files under `components/ui/`, `packages/ui/`, `design-system(s)/`, or `primitives/`, e.g. shadcn's `components/ui` or a monorepo `packages/ui`) are now treated like `node_modules` frames: still shown, but exempt from the compact line budget, so a grabbed wrapper digs through its UI primitives to the meaningful feature source by default. Adds a `maxContextLines` option (also settable via the script `data-options` attribute) to raise the budget further for large apps and agent/edit prompts — restoring the option the CLI already writes.
+
+  Also hardens the trace: a non-finite/negative `maxContextLines` no longer disables the hard line cap (it falls back to the default), and consecutive duplicate trace lines from shared-UI frames are collapsed so the output stays readable.
+  - @react-grab/cli@0.1.47
+
+## 0.1.46
+
+### Patch Changes
+
+- b85b9b1: Make app theme detection (which drives the overlay's inverted theme) more robust:
+  - Read background luminance through the existing `parseAnyColor` helper so pages whose background is authored with `oklch()` (e.g. Tailwind v4) are no longer mis-detected. Browsers serialize these computed colors in their own color space rather than `rgb()`, so the previous `rgb()`-only luminance heuristic silently failed and fell back to `prefers-color-scheme` — a forced-light page then looked dark to dark-OS visitors.
+  - Treat a dual `color-scheme` (`light dark` / `dark light`) as "decided by the OS preference / actual paint" instead of blindly trusting the first listed token, which mis-detected dark-OS visitors on sites that opt into both schemes.
+  - Inspect `<body>` in addition to `<html>` for theme markers (class, `data-theme`/`data-bs-theme`/etc., and presence attributes) so apps that theme the body are detected.
+  - Fall back from the body background to the root element when the body background is transparent.
+  - @react-grab/cli@0.1.46
+
+## 0.1.45
+
+### Patch Changes
+
+- e83406b: Surface the React `key` of the picked element in its copied context. Elements rendered through `.map()` share the same JSX source location, so the source line alone couldn't tell list instances apart. The context now walks the fiber tree to the nearest list-item key (the host element's own key, or the enclosing keyed list-item component's key) and includes it, letting agents disambiguate which mapped instance was selected.
+  - @react-grab/cli@0.1.45
+
 ## 0.1.44
 
 ### Patch Changes

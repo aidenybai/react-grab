@@ -2,7 +2,8 @@ import { createSignal, onCleanup, type Accessor } from "solid-js";
 import type { Position } from "../types.js";
 import type { SnapEdge } from "../components/toolbar/state.js";
 import { TOOLBAR_DRAG_THRESHOLD_PX, TOOLBAR_SNAP_ANIMATION_DURATION_MS } from "../constants.js";
-import { nativeRequestAnimationFrame } from "./native-raf.js";
+import { nativeCancelAnimationFrame, nativeRequestAnimationFrame } from "./native-raf.js";
+import { ignoreRealInput } from "./runtime-mode.js";
 import {
   getRatioFromPosition,
   getPositionFromEdgeAndRatio,
@@ -42,12 +43,19 @@ export const createToolbarDrag = (config: ToolbarDragConfig): ToolbarDragResult 
   let lastPointerPosition = { x: 0, y: 0, time: 0 };
   let pointerStartPosition = { x: 0, y: 0 };
   let didDragOccur = false;
+  let snapAnimationFrame: number | undefined;
   let snapAnimationTimeout: ReturnType<typeof setTimeout> | undefined;
   let dragAbortController: AbortController | null = null;
 
   const teardownDragListeners = () => {
     dragAbortController?.abort();
     dragAbortController = null;
+  };
+
+  const cancelSnapAnimationFrame = () => {
+    if (snapAnimationFrame === undefined) return;
+    nativeCancelAnimationFrame(snapAnimationFrame);
+    snapAnimationFrame = undefined;
   };
 
   const handleWindowPointerMove = (event: PointerEvent) => {
@@ -114,13 +122,15 @@ export const createToolbarDrag = (config: ToolbarDragConfig): ToolbarDragResult 
     // orientation (horizontal to vertical), altering its dimensions. The first
     // frame waits for the DOM update and the second for layout to settle so
     // getBoundingClientRect returns the post-transition size.
-    nativeRequestAnimationFrame(() => {
+    cancelSnapAnimationFrame();
+    snapAnimationFrame = nativeRequestAnimationFrame(() => {
       const postRenderRect = containerRef?.getBoundingClientRect();
       const updatedDimensions = postRenderRect
         ? { width: postRenderRect.width, height: postRenderRect.height }
         : config.getExpandedDimensions();
 
-      nativeRequestAnimationFrame(() => {
+      snapAnimationFrame = nativeRequestAnimationFrame(() => {
+        snapAnimationFrame = undefined;
         const snappedPosition = getPositionFromEdgeAndRatio(
           snap.edge,
           ratio,
@@ -143,9 +153,9 @@ export const createToolbarDrag = (config: ToolbarDragConfig): ToolbarDragResult 
     });
   };
 
-  const handlePointerDown = (event: PointerEvent) => {
+  const handlePointerDown = ignoreRealInput((event: PointerEvent) => {
     if (event.button !== 0) return;
-    if (config.isCollapsed()) return;
+    if (config.isCollapsed() || isSnapping()) return;
 
     const containerRef = config.getContainerRef();
     const rect = containerRef?.getBoundingClientRect();
@@ -172,7 +182,7 @@ export const createToolbarDrag = (config: ToolbarDragConfig): ToolbarDragResult 
     window.addEventListener("pointermove", handleWindowPointerMove, { signal });
     window.addEventListener("pointerup", handleWindowPointerUp, { signal });
     window.addEventListener("pointercancel", handleWindowPointerUp, { signal });
-  };
+  });
 
   const createDragAwareHandler = (callback: () => void) => (event: MouseEvent) => {
     event.stopImmediatePropagation();
@@ -185,6 +195,7 @@ export const createToolbarDrag = (config: ToolbarDragConfig): ToolbarDragResult 
 
   onCleanup(() => {
     teardownDragListeners();
+    cancelSnapAnimationFrame();
     clearTimeout(snapAnimationTimeout);
   });
 

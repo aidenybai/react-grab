@@ -32,8 +32,7 @@ test.describe("Hold Activation Mode", () => {
   test("should allow selection after API activation", async ({ reactGrab }) => {
     await reactGrab.activate();
 
-    await reactGrab.hoverElement("li:first-child");
-    await reactGrab.waitForSelectionBox();
+    await reactGrab.hoverUntilSelected("li:first-child");
 
     const isVisible = await reactGrab.isOverlayVisible();
     expect(isVisible).toBe(true);
@@ -82,8 +81,7 @@ test.describe("Hold Activation Mode", () => {
   test("should copy heading element after API activation", async ({ reactGrab }) => {
     await reactGrab.activate();
 
-    await reactGrab.hoverElement("[data-testid='main-title']");
-    await reactGrab.waitForSelectionBox();
+    await reactGrab.hoverUntilSelected("[data-testid='main-title']");
 
     await reactGrab.clickElement("[data-testid='main-title']");
     await reactGrab.page.waitForTimeout(500);

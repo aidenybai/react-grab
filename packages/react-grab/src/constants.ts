@@ -21,11 +21,56 @@ export const INPUT_TEXT_SELECTION_ACTIVATION_DELAY_MS = 600;
 export const DEFAULT_KEY_HOLD_DURATION_MS = 100;
 export const DEFAULT_MAX_CONTEXT_LINES = 3;
 export const MAX_TRACE_CONTEXT_LINES = 20;
+// Path segments marking app-owned reusable UI directories (shadcn's
+// components/ui, a monorepo packages/ui, headless primitives). A bare `/ui/`
+// is deliberately excluded: Next's App Router convention places feature code
+// under `app/ui/`, so matching any `ui` segment would demote real features.
+// See is-shared-ui-source-path for how these are treated.
+export const SHARED_UI_SOURCE_PATH_SEGMENTS: readonly string[] = [
+  "/components/ui/",
+  "/packages/ui/",
+  "/design-system/",
+  "/design-systems/",
+  "/primitives/",
+];
 export const SYMBOLICATION_TIMEOUT_MS = 5000;
+// Upper bound on a single queued source-resolution fetch (bundle, source map,
+// and symbolication together). Sits above SYMBOLICATION_TIMEOUT_MS so the
+// symbolication POST degrades on its own first; this only fires when bippy's
+// un-cancelable bundle fetch is stuck behind a saturated connection pool, and
+// exists to free the queue slot rather than to bound normal latency.
+export const SOURCE_FETCH_TIMEOUT_MS = 8000;
+export const FIBER_CONTEXT_REVISION_MAX_ATTEMPTS = 2;
+// Cap on react-grab's own concurrent source-resolution fetches.
+//
+// Resolving a grabbed element's source location fetches its JS bundle and source
+// map (through bippy) and, on Next.js, POSTs to the dev symbolication endpoint.
+// In development these run over HTTP/1.1, where Chrome keeps at most ~6 open
+// connections per origin. A real app's data fetches routinely hold all 6 (a
+// dashboard waiting on several slow API calls), so a react-grab fetch waits in
+// the browser's connection queue behind them. That wait is what surfaces as the
+// "Grabbing…" state never resolving.
+//
+// We cannot speed up the app's requests, so we avoid adding to the pressure
+// instead: capping our own in-flight fetches below the pool size leaves
+// connections for the page and bounds the fan-out when a drag-select hovers
+// dozens of elements in a row. Without the cap each hovered element starts its
+// own fetch at once, and react-grab becomes part of the saturation it is
+// waiting on.
+//
+// This is deliberately NOT the `keepalive` request limit. `keepalive` (the
+// modern navigator.sendBeacon) keeps a request alive across a page navigation,
+// but the Fetch spec caps its body at 64 KB and allows only ~15 inflight
+// keepalive requests for the whole page; source bundles are larger than 64 KB
+// and a grab never navigates away, so keepalive does not apply here. The limit
+// we work around is the ordinary per-origin connection pool, which constrains
+// every fetch whether or not it sets keepalive.
+export const MAX_CONCURRENT_SOURCE_FETCHES = 3;
 export const MIN_HOLD_FOR_ACTIVATION_AFTER_COPY_MS = 200;
 export const FINDER_TIMEOUT_MS = 200;
 export const MAX_SELECTOR_COMBINATIONS = 10_000;
 export const SELECTOR_ATTR_VALUE_MAX_LENGTH_CHARS = 120;
+export const BROAD_SELECTOR_TARGET_DESCENDANT_RATIO = 0.5;
 
 export const DRAG_THRESHOLD_PX = 2;
 
@@ -33,15 +78,41 @@ export const ELEMENT_DETECTION_THROTTLE_MS = 32;
 export const PENDING_DETECTION_STALENESS_MS = 200;
 export const COMPONENT_NAME_DEBOUNCE_MS = 100;
 export const DRAG_PREVIEW_DEBOUNCE_MS = 32;
+export const DRAG_PREVIEW_MAX_WAIT_MS = 100;
+export const DRAG_PREVIEW_FRAME_BUDGET_MS = 16;
 export const BOUNDS_CACHE_TTL_MS = 16;
+export const THREE_PREVIEW_ARRAY_MAX_LENGTH = 4;
+export const THREE_SELECTION_FALLBACK_BOUNDS_PX = 16;
+export const THREE_DRAG_SELECTION_MAX_INDIVIDUAL_INSTANCES = 512;
+export const IFRAME_LAYOUT_METRICS_CACHE_TTL_MS = 16;
+export const VISUAL_VIEWPORT_CACHE_TTL_MS = 16;
 export const BORDER_RADIUS_CACHE_TTL_MS = 200;
+export const BORDER_RADIUS_SCALE_PRECISION_DECIMAL_PLACES = 3;
 export const BOUNDS_RECALC_INTERVAL_MS = 100;
+export const ELEMENT_RELINK_GRACE_ATTEMPTS = 1;
 
 export const AUTO_SCROLL_EDGE_THRESHOLD_PX = 25;
 export const AUTO_SCROLL_SPEED_PX = 10;
 
 export const Z_INDEX_OVERLAY = 2147483647;
 export const Z_INDEX_OVERLAY_CANVAS = 2147483645;
+// Below react-grab's own overlays so the toolbar stays clickable, above page
+// content so the shield absorbs the page's hover, focus, and click. Page content
+// stacked inside react-grab's own range (2147483645 and up) paints over the
+// shield and keeps receiving hover; staying below the overlays is the tradeoff
+// that keeps the toolbar usable.
+export const Z_INDEX_HIT_TEST_SHIELD = 2147483644;
+// Subtracting N overlapping frame holes can partition the viewport into O(N^2)
+// rectangles, so past this count the shield falls back to one hole spanning
+// every frame rather than creating unbounded panels on each scroll frame.
+export const HIT_TEST_SHIELD_MAX_PANELS = 12;
+// deltaMode line/page wheel events (Firefox, some mice) carry notch counts
+// instead of pixels; a line is worth roughly one line box.
+export const WHEEL_LINE_DELTA_PX = 16;
+// Subpixel scroll positions never reach the exact scrollable extent, so scroll
+// room is measured with a tolerance before declaring an axis exhausted.
+export const SCROLL_ROOM_EPSILON_PX = 1;
+export const DOCUMENT_NODE_TYPE = 9;
 
 export const DRAG_LERP_FACTOR = 0.7;
 export const BASELINE_FRAME_DURATION_MS = 1000 / 60;
@@ -72,6 +143,9 @@ export const ARROW_PANEL_OVERLAP_PX = 1;
 export const LABEL_GAP_PX = 4;
 export const PREVIEW_TEXT_MAX_LENGTH = 100;
 export const PREVIEW_ATTR_VALUE_MAX_LENGTH = 15;
+export const PREVIEW_IDENTIFYING_ATTR_VALUE_MAX_LENGTH_CHARS = 120;
+export const PREVIEW_ATTRIBUTE_MAX_COUNT = 8;
+export const LIST_ITEM_KEY_MAX_LENGTH_CHARS = 120;
 export const PREVIEW_PRIORITY_ATTRS: readonly string[] = [
   "id",
   "class",
@@ -105,7 +179,16 @@ export const PREVIEW_IDENTIFYING_ATTRS = new Set([
   "open",
 ]);
 
-export const PREVIEW_DESCENDANT_TEXT_TAGS = new Set(["a", "code", "pre"]);
+export const PREVIEW_DESCENDANT_TEXT_TAGS = new Set([
+  "a",
+  "button",
+  "code",
+  "label",
+  "option",
+  "pre",
+  "summary",
+  "text",
+]);
 export const PREVIEW_SKIPPED_TEXT_TAGS = new Set(["script", "style", "template", "noscript"]);
 
 export const MODIFIER_KEYS: readonly string[] = ["Meta", "Control", "Shift", "Alt"];
@@ -113,6 +196,30 @@ export const MODIFIER_KEYS: readonly string[] = ["Meta", "Control", "Shift", "Al
 export const ARROW_KEYS = new Set(["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"]);
 
 export const FROZEN_ELEMENT_ATTRIBUTE = "data-react-grab-frozen";
+export const SAME_ORIGIN_FRAME_ATTRIBUTE = "data-react-grab-same-origin-frame";
+export const HIT_TEST_SHIELD_ATTRIBUTE = "data-react-grab-hit-test-shield";
+
+// Pausing animations individually via WAAPI avoids the full-document style
+// recalc that a universal `*` selector forces — profiled at ~62ms on a real
+// (CSS-heavy) app even with a single animation on the page. But each WAAPI
+// pause/finish has a per-animation cost, so above this many running animations
+// one batched `*`-selector recalc wins. Real apps sit far below this; the
+// threshold only guards pathological animation-heavy pages.
+export const WAAPI_GLOBAL_FREEZE_MAX_ANIMATIONS = 200;
+export const ANIMATION_FRAME_LOOP_MIN_SELF_SCHEDULES = 4;
+
+// Theme-detection thresholds (see detect-app-theme.ts). A background below
+// this relative luminance reads as a dark theme.
+export const LUMINANCE_DARK_THRESHOLD = 0.18;
+// Text this light sits well above any light theme's (dark) body text, so it only
+// appears when the app paints onto a dark surface - revealing a dark theme.
+export const LIGHT_TEXT_LUMINANCE_THRESHOLD = 0.6;
+// Faint text composites toward the backdrop, making its own color an unreliable
+// theme signal, so the foreground heuristic ignores anything more translucent.
+export const OPAQUE_TEXT_MIN_ALPHA = 0.5;
+
+// Marks the overlay's comment input; queried by the demo driver and prompt-mode checks in core.
+export const REACT_GRAB_INPUT_ATTRIBUTE = "data-react-grab-input";
 
 export const USER_IGNORE_ATTRIBUTE = "data-react-grab-ignore";
 
@@ -132,12 +239,12 @@ export const TOOLBAR_COLLAPSED_LONG_PX = 30;
 // can flip true mid-fade-in and start a dim transition on the outer
 // container while the inner content is still materializing.
 export const TOOLBAR_COLLAPSE_ANIMATION_DURATION_MS = 260;
-export const TOOLBAR_DEFAULT_WIDTH_PX = 78;
+export const TOOLBAR_DEFAULT_WIDTH_PX = 38;
 export const TOOLBAR_DEFAULT_HEIGHT_PX = 28;
 export const TOOLBAR_DEFAULT_POSITION_RATIO = 0.5;
 export const DEFAULT_ACTION_ID = "copy";
 export const COMMENT_ACTION_ID = "comment";
-export const EDIT_ACTION_ID = "edit";
+export const LEGACY_STYLE_ACTION_ID = "edit";
 
 export const TOOLTIP_DELAY_MS = 400;
 export const TOOLTIP_GRACE_PERIOD_MS = 800;
@@ -159,14 +266,25 @@ export const DRAG_SELECTION_MIN_SAMPLES_PER_AXIS = 3;
 export const DRAG_SELECTION_MAX_SAMPLES_PER_AXIS = 20;
 export const DRAG_SELECTION_MAX_TOTAL_SAMPLE_POINTS = 100;
 export const DRAG_SELECTION_EDGE_INSET_PX = 1;
+export const DRAG_SELECTION_SAMPLE_COORDINATE_VALUES = 2;
+export const DRAG_SELECTION_MAX_NEIGHBOR_SCAN_ELEMENTS = 64;
+export const DRAG_SELECTION_MAX_LOCAL_COLLECTION_ELEMENTS = 32;
+export const DRAG_SELECTION_MAX_TEXT_FLOW_NODES = 64;
+export const DRAG_SELECTION_MAX_TEXT_NODES = 32;
+export const DRAG_SELECTION_MAX_TEXT_RECTS = 64;
+export const MIN_HIT_TEST_VIEWPORT_DIMENSION_PX = 1;
 
 export const MAX_ARROW_NAVIGATION_HISTORY = 50;
 export const MIN_HORIZONTAL_NAV_SIZE_PX = 16;
-export const HORIZONTAL_NAV_RECT_MATCH_TOLERANCE_PX = 2;
+
+export const MAX_HIERARCHY_ANCESTORS = 6;
+export const MAX_HIERARCHY_SIBLINGS = 8;
+export const MAX_HIERARCHY_CHILDREN = 6;
+export const MAX_HIERARCHY_SCAN_STEPS = 100;
+export const HIERARCHY_INDENT_PX = 12;
 
 export const ELEMENT_POSITION_CACHE_DISTANCE_THRESHOLD_PX = 2;
 export const ELEMENT_POSITION_THROTTLE_MS = 16;
-export const POINTER_EVENTS_RESUME_DEBOUNCE_MS = 100;
 export const VISIBILITY_CACHE_TTL_MS = 50;
 
 export const ZOOM_DETECTION_THRESHOLD = 0.01;
@@ -179,6 +297,7 @@ export const DROPDOWN_ANIMATION_DURATION_MS = 120;
 export const DROPDOWN_VIEWPORT_PADDING_PX = 8;
 export const DROPDOWN_ANCHOR_GAP_PX = 8;
 export const TOOLBAR_MENU_MIN_WIDTH_PX = 100;
+export const HIERARCHY_MENU_MIN_WIDTH_PX = 160;
 export const DROPDOWN_OFFSCREEN_POSITION = { left: -9999, top: -9999 };
 
 export const DROPDOWN_EDGE_TRANSFORM_ORIGIN = {
@@ -192,73 +311,21 @@ export const NEXTJS_REVALIDATION_DELAY_MS = 1000;
 
 export const TEXTAREA_MAX_HEIGHT_PX = 95;
 
-export const EDIT_PROPERTY_LIST_MAX_HEIGHT_PX = 280;
-export const EDIT_PROPERTY_MAX_COUNT = 40;
-export const EDIT_TRANSPARENT_COLOR_HEX = "#00000000";
-export const EDIT_TRANSPARENT_COLOR_LABEL = "transparent";
-export const EDIT_ROOT_FONT_SIZE_PX = 16;
-export const EDIT_PANEL_MIN_WIDTH_PX = 200;
-export const EDIT_PANEL_MAX_WIDTH_PX = 320;
-export const EDIT_SHIFT_STEP_MULTIPLIER = 10;
-// Idle window after the last control-interact pulse before the
-// transient-interaction signal clears. Must comfortably exceed the
-// long-press repeat cadence (60ms) so holding ←/→ stays "interacting",
-// but short enough that hover-swap re-enables almost immediately
-// after a release.
-export const EDIT_PANEL_ADJUSTING_IDLE_MS = 150;
-export const EDIT_DISCARD_PROMPT_IDLE_MS = 2000;
-export const EDIT_PANEL_ACTIVE_KEY_FLASH_MS = 100;
-export const EDIT_INLINE_NUMERIC_REPLACE_IDLE_MS = 500;
-export const EDIT_SLIDER_CLICK_THRESHOLD_PX = 3;
-export const EDIT_SLIDER_HASH_MARK_COUNT = 9;
-// Rubber-band: cursor must overshoot DEAD_ZONE_PX before the track
-// pulls; stretch grows sqrt(past / SOFT_RANGE_PX) up to MAX_PX, springs
-// back over SETTLE_MS on release.
-export const EDIT_SLIDER_RUBBER_DEAD_ZONE_PX = 32;
-export const EDIT_SLIDER_RUBBER_SOFT_RANGE_PX = 200;
-export const EDIT_SLIDER_RUBBER_MAX_PX = 8;
-export const EDIT_SLIDER_RUBBER_SETTLE_MS = 350;
-export const EDIT_SLIDER_SPRING_EASING = "cubic-bezier(0.34, 1.56, 0.64, 1)";
-export const EDIT_VALUE_BUMP_PX = 2;
-export const EDIT_VALUE_BUMP_MS = 280;
-export const EDIT_STEP_REPEAT_INITIAL_DELAY_MS = 280;
-export const EDIT_STEP_REPEAT_INTERVAL_MS = 60;
-export const SLOT_TRANSITION_MS = 350;
-export const SLOT_STAGGER_MS = 18;
-export const TAILWIND_SPACING_MAX_UNITS = 96;
-export const TAILWIND_BORDER_MAX_PX = 8;
-export const TAILWIND_Z_INDEX_MAX = 50;
-export const TAILWIND_OPACITY_GRANULARITY = 5;
-export const EDIT_SEARCH_TAILWIND_INTENT_SCORE = 12000;
-export const EDIT_SEARCH_TAILWIND_PREFIX_SCORE = 9000;
-export const EDIT_SEARCH_EXACT_ALIAS_SCORE = 10000;
-export const EDIT_SEARCH_PREFIX_ALIAS_SCORE = 8000;
-export const EDIT_SEARCH_STARTS_WITH_SCORE = 5000;
-export const EDIT_SEARCH_SUBSTRING_SCORE = 1000;
-export const EDIT_SEARCH_POSITION_PENALTY = 100;
-export const EDIT_SEARCH_LENGTH_PENALTY = 1;
-export const EDIT_COMPACT_SLIDER_MIN_WIDTH_PX = 96;
-
-export const CSS_VALUE_DECIMAL_PLACES = 2;
-// Tailwind v4's `rounded-full` is calc(infinity * 1px). Browsers clamp
-// it to their internal length maximum (~3.36e7px in Chromium, ~1.79e7px
-// in Firefox, float max in WebKit) — all far past this threshold and
-// none a real length. Cap to the row's max bound instead of showing
-// (and re-emitting) 33554400px.
-export const CSS_LENGTH_INFINITY_THRESHOLD_PX = 1e7;
-export const OPACITY_PERCENT_MAX = 100;
-export const FONT_SIZE_LINE_HEIGHT_RATIO = 1.2;
-// Tailwind's spacing scale: `p-1` = 0.25rem = 4px, so each "unit"
-// in `p-{n}` translates to n × 4px when auto-applied from the search.
-export const TAILWIND_SPACING_UNIT_PX = 4;
-
-export const PIXELS_PER_REM = 16;
-
 export const IME_COMPOSING_KEY_CODE = 229;
 export const SELECTION_LABEL_OFFSCREEN_PX = -9999;
 export const SHIFT_SELECTION_LABEL_MIN_ANCHOR_RATIO = 0;
 export const SHIFT_SELECTION_LABEL_MAX_ANCHOR_RATIO = 1;
 export const SHIFT_SELECTION_LABEL_FALLBACK_ANCHOR_RATIO = 0;
+
+// Demo driver (react-grab/demo). The pointer artwork is 19×26 with its tip near
+// the top-left, so the cursor element is offset by these so the tip — not the
+// bounding box — lands on the animation target.
+export const DEMO_CURSOR_TIP_X_PX = 5;
+export const DEMO_CURSOR_TIP_Y_PX = 4;
+export const DEMO_CURSOR_FADE_MS = 300;
+export const DEMO_CLICK_PULSE_MS = 220;
+export const DEMO_CLICK_PULSE_MIN_SCALE = 0.8;
+export const DEMO_TYPE_CHAR_MS = 55;
 
 export const RELEVANT_CSS_PROPERTIES = new Set([
   "display",

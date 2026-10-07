@@ -2,13 +2,12 @@ import { test, expect } from "./fixtures.js";
 
 test.describe("Prompt Mode", () => {
   test.describe("Entering Prompt Mode", () => {
-    test("context menu edit should enter prompt mode when comment action is registered", async ({
+    test("context menu Comment should enter prompt mode when the action is registered", async ({
       reactGrab,
     }) => {
       await reactGrab.registerCommentAction();
       await reactGrab.activate();
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("li:first-child");
 
       await reactGrab.rightClickElement("li:first-child");
       await reactGrab.clickContextMenuItem("Comment");
@@ -18,8 +17,7 @@ test.describe("Prompt Mode", () => {
 
     test("single click should copy without entering prompt mode", async ({ reactGrab }) => {
       await reactGrab.activate();
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("li:first-child");
 
       await reactGrab.clickElement("li:first-child");
 
@@ -194,7 +192,7 @@ test.describe("Prompt Mode", () => {
   test.describe("Keyboard Shortcuts in Prompt Mode", () => {
     test("arrow keys should not navigate elements in prompt mode", async ({ reactGrab }) => {
       await reactGrab.registerCommentAction();
-      await reactGrab.enterPromptMode("li:first-child");
+      await reactGrab.enterPromptMode("li:first-child span");
       await reactGrab.typeInInput("Line 1\nLine 2");
 
       await reactGrab.pressArrowDown();
@@ -203,7 +201,7 @@ test.describe("Prompt Mode", () => {
       expect(isPromptMode).toBe(true);
       expect(await reactGrab.getInputValue()).toBe("Line 1\nLine 2");
       const isFirstItemStillSelected = await reactGrab.page.evaluate(() => {
-        const firstItem = document.querySelector("li:first-child");
+        const firstItem = document.querySelector("li:first-child span");
         return window.__REACT_GRAB__?.getState().targetElement === firstItem;
       });
       expect(isFirstItemStillSelected).toBe(true);
@@ -249,7 +247,7 @@ test.describe("Prompt Mode", () => {
       await expect.poll(() => reactGrab.isPromptModeActive()).toBe(false);
     });
 
-    test("context menu edit maintains overlay in prompt mode", async ({ reactGrab }) => {
+    test("comment prompt mode maintains the overlay", async ({ reactGrab }) => {
       await reactGrab.registerCommentAction();
       await reactGrab.enterPromptMode("li:first-child");
 
@@ -265,8 +263,7 @@ test.describe("Prompt Mode", () => {
       await reactGrab.activate();
       await reactGrab.scrollPage(100);
 
-      await reactGrab.hoverElement("li:first-child");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("li:first-child");
 
       await reactGrab.rightClickElement("li:first-child");
       await reactGrab.clickContextMenuItem("Comment");

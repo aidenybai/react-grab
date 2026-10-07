@@ -7,8 +7,7 @@ test.describe("Element Context Fallback", () => {
     }) => {
       await reactGrab.activate();
 
-      await reactGrab.hoverElement("[data-testid='todo-list'] h1");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("[data-testid='todo-list'] h1");
       await reactGrab.clickElement("[data-testid='todo-list'] h1");
 
       const clipboard = await reactGrab.getClipboardContent();
@@ -19,26 +18,89 @@ test.describe("Element Context Fallback", () => {
     test("should produce useful context for nested elements", async ({ reactGrab }) => {
       await reactGrab.activate();
 
-      await reactGrab.hoverElement("[data-testid='nested-button']");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("[data-testid='nested-button']");
       await reactGrab.clickElement("[data-testid='nested-button']");
 
       const clipboard = await reactGrab.getClipboardContent();
       expect(clipboard).toMatch(/^\[<\w+[\s>]/);
-      expect(clipboard).toContain("NestedCard");
+      expect(clipboard).toContain("DeeplyNested");
     });
 
     test("should produce useful context for todo items", async ({ reactGrab }) => {
       await reactGrab.activate();
 
       const todoItem = "[data-testid='todo-list'] ul li:first-child span";
-      await reactGrab.hoverElement(todoItem);
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected(todoItem);
       await reactGrab.clickElement(todoItem);
 
       const clipboard = await reactGrab.getClipboardContent();
       expect(clipboard).toMatch(/^\[<\w+[\s>]/);
       expect(clipboard).toContain("TodoItem");
+    });
+
+    test("should prefer an actionable ancestor over a weak role with trusted source", async ({
+      reactGrab,
+    }) => {
+      const didCopy = await reactGrab.copyElementViaApi("[data-testid='production-icon-link'] svg");
+      expect(didCopy).toBe(true);
+
+      const clipboard = await reactGrab.getClipboardContent();
+      expect(clipboard).toContain("<svg");
+      expect(clipboard).toContain('selector: [data-testid="production-icon-link"]');
+      expect(clipboard).not.toContain('selector: [role="img"]');
+    });
+
+    test("should surface the list-item key for mapped host elements", async ({ reactGrab }) => {
+      await reactGrab.activate();
+
+      const mappedItem = "[data-testid='dynamic-element-2']";
+      await reactGrab.hoverUntilSelected(mappedItem);
+      await reactGrab.clickElement(mappedItem);
+
+      const clipboard = await reactGrab.getClipboardContent();
+      expect(clipboard).toContain('key: "2"');
+    });
+
+    test("should surface the list-item key for mapped component instances", async ({
+      reactGrab,
+    }) => {
+      await reactGrab.activate();
+
+      const todoItem = "[data-testid='todo-list'] ul li:nth-child(3) span";
+      await reactGrab.hoverUntilSelected(todoItem);
+      await reactGrab.clickElement(todoItem);
+
+      const clipboard = await reactGrab.getClipboardContent();
+      expect(clipboard).toContain('key: "3"');
+    });
+
+    test("should surface the wrapper key when picking inside a mapped child component", async ({
+      reactGrab,
+    }) => {
+      await reactGrab.activate();
+
+      const cardBody = "[data-testid='mapped-card-bravo'] p";
+      await reactGrab.hoverUntilSelected(cardBody);
+      await reactGrab.clickElement(cardBody);
+
+      const clipboard = await reactGrab.getClipboardContent();
+      expect(clipboard).toContain('key: "bravo"');
+    });
+
+    test("should not surface a key for a keyed replacement outside a list", async ({
+      reactGrab,
+    }) => {
+      const didCopy = await reactGrab.copyElementViaApi("[data-testid='fiber-swap-target']");
+
+      expect(didCopy).toBe(true);
+      expect(await reactGrab.getClipboardContent()).not.toContain("key:");
+    });
+
+    test("should not surface a key for an unkeyed owner target", async ({ reactGrab }) => {
+      const didCopy = await reactGrab.copyElementViaApi("[data-testid='direct-owner-target']");
+
+      expect(didCopy).toBe(true);
+      expect(await reactGrab.getClipboardContent()).not.toContain("key:");
     });
   });
 
@@ -67,8 +129,7 @@ test.describe("Element Context Fallback", () => {
 
       await reactGrab.activate();
 
-      await reactGrab.hoverElement("#plain-dom-element");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("#plain-dom-element");
       await reactGrab.clickElement("#plain-dom-element");
 
       const clipboard = await reactGrab.getClipboardContent();
@@ -98,8 +159,7 @@ test.describe("Element Context Fallback", () => {
 
       await reactGrab.activate();
 
-      await reactGrab.hoverElement("#test-svg-icon");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("#test-svg-icon");
       await reactGrab.clickElement("#test-svg-icon");
 
       const clipboard = await reactGrab.getClipboardContent();
@@ -108,6 +168,193 @@ test.describe("Element Context Fallback", () => {
       expect(clipboard).toContain('class="icon-class"');
       expect(clipboard).toContain('aria-label="Close the modal dialog"');
       expect(clipboard).not.toContain("viewBox");
+    });
+
+    test("should include visible text for SVG text elements", async ({ reactGrab }) => {
+      await reactGrab.page.evaluate(() => {
+        const svgElement = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        const textElement = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        const textSpanElement = document.createElementNS("http://www.w3.org/2000/svg", "tspan");
+        textElement.id = "svg-visible-label";
+        textSpanElement.textContent = "Quarterly revenue";
+        textElement.appendChild(textSpanElement);
+        svgElement.appendChild(textElement);
+        document.body.appendChild(svgElement);
+      });
+
+      const didCopy = await reactGrab.copyElementViaApi("#svg-visible-label");
+      expect(didCopy).toBe(true);
+
+      const clipboard = await reactGrab.getClipboardContent();
+      expect(clipboard).toContain('<text id="svg-visible-label">Quarterly revenue</text>');
+    });
+
+    test("should hover and copy pointer-events-none SVG text instead of its chart root", async ({
+      reactGrab,
+    }) => {
+      await reactGrab.page.evaluate(() => {
+        const wrapperElement = document.createElement("div");
+        Object.assign(wrapperElement.style, {
+          left: "200px",
+          position: "fixed",
+          top: "200px",
+          zIndex: "999",
+        });
+        const svgElement = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        svgElement.setAttribute("height", "100");
+        svgElement.setAttribute("width", "400");
+        const textElement = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        textElement.id = "pointer-events-none-svg-label";
+        textElement.setAttribute("font-size", "24");
+        textElement.setAttribute("x", "20");
+        textElement.setAttribute("y", "50");
+        textElement.style.pointerEvents = "none";
+        textElement.textContent = "composer-2.5";
+        svgElement.appendChild(textElement);
+        wrapperElement.appendChild(svgElement);
+        document.body.appendChild(wrapperElement);
+      });
+
+      await reactGrab.activate();
+      await reactGrab.hoverUntilTargetSelected("#pointer-events-none-svg-label");
+      await reactGrab.clickElement("#pointer-events-none-svg-label");
+
+      const clipboard = await reactGrab.getClipboardContent();
+      expect(clipboard).toContain('<text id="pointer-events-none-svg-label">composer-2.5</text>');
+
+      await reactGrab.activate();
+      await reactGrab.hoverUntilTargetSelected("#pointer-events-none-svg-label");
+      await reactGrab.pressArrowUp();
+      await expect.poll(async () => (await reactGrab.getSelectionLabelInfo()).tagName).toBe("svg");
+      await reactGrab.pressArrowDown();
+      await expect.poll(async () => (await reactGrab.getSelectionLabelInfo()).tagName).toBe("text");
+    });
+
+    test("should refine a native container hit to pointer-events-none HTML text", async ({
+      reactGrab,
+    }) => {
+      await reactGrab.page.evaluate(() => {
+        const buttonElement = document.createElement("button");
+        Object.assign(buttonElement.style, {
+          fontSize: "24px",
+          left: "200px",
+          padding: "20px",
+          position: "fixed",
+          top: "200px",
+          zIndex: "999",
+        });
+        const labelElement = document.createElement("span");
+        labelElement.id = "pointer-events-none-html-label";
+        labelElement.style.pointerEvents = "none";
+        labelElement.textContent = "Nested label";
+        buttonElement.appendChild(labelElement);
+        document.body.appendChild(buttonElement);
+      });
+
+      await reactGrab.activate();
+      await reactGrab.hoverUntilTargetSelected("#pointer-events-none-html-label");
+      await reactGrab.clickElement("#pointer-events-none-html-label");
+
+      const clipboard = await reactGrab.getClipboardContent();
+      expect(clipboard).toContain('<span id="pointer-events-none-html-label">Nested label</span>');
+    });
+
+    test("should use a semantic link selector for a source-less SVG path", async ({
+      reactGrab,
+    }) => {
+      await reactGrab.page.evaluate(() => {
+        const wrapper = document.createElement("div");
+        Object.assign(wrapper.style, {
+          position: "fixed",
+          top: "200px",
+          left: "200px",
+          zIndex: "999",
+        });
+        const link = document.createElement("a");
+        link.href = "/source-less-icon";
+        link.setAttribute("aria-label", "Source-less icon link");
+        const svgElement = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        svgElement.style.width = "50px";
+        svgElement.style.height = "50px";
+        svgElement.setAttribute("role", "img");
+        const pathElement = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        pathElement.setAttribute("d", "M0 0h24v24H0z");
+        svgElement.appendChild(pathElement);
+        link.appendChild(svgElement);
+        wrapper.appendChild(link);
+        document.body.appendChild(wrapper);
+      });
+
+      const didCopy = await reactGrab.copyElementViaApi(
+        "a[aria-label='Source-less icon link'] path",
+      );
+      expect(didCopy).toBe(true);
+
+      const clipboard = await reactGrab.getClipboardContent();
+      expect(clipboard).toContain("<path");
+      expect(clipboard).toContain('selector: [aria-label="Source-less icon link"]');
+    });
+
+    test("should prefer a nearby control over a distant labeled region", async ({ reactGrab }) => {
+      await reactGrab.page.evaluate(() => {
+        const labeledRegion = document.createElement("section");
+        labeledRegion.setAttribute("aria-label", "Distant labeled region");
+        const button = document.createElement("button");
+        button.className = "source-less-control";
+        const span = document.createElement("span");
+        span.className = "source-less-control-leaf";
+        span.textContent = "Nested control";
+        button.appendChild(span);
+        labeledRegion.appendChild(button);
+        document.body.appendChild(labeledRegion);
+      });
+
+      const didCopy = await reactGrab.copyElementViaApi(".source-less-control-leaf");
+      expect(didCopy).toBe(true);
+
+      const clipboard = await reactGrab.getClipboardContent();
+      expect(clipboard).toContain(".source-less-control");
+      expect(clipboard).not.toContain('selector: [aria-label="Distant labeled region"]');
+    });
+
+    test("should prefer a unique id over a distant labeled region", async ({ reactGrab }) => {
+      await reactGrab.page.evaluate(() => {
+        const labeledRegion = document.createElement("section");
+        labeledRegion.setAttribute("aria-label", "Broad labeled region");
+        const identifiedTarget = document.createElement("div");
+        identifiedTarget.id = "source-less-identified-target";
+        const span = document.createElement("span");
+        span.className = "source-less-identified-leaf";
+        span.textContent = "Identified target";
+        identifiedTarget.appendChild(span);
+        labeledRegion.appendChild(identifiedTarget);
+        document.body.appendChild(labeledRegion);
+      });
+
+      const didCopy = await reactGrab.copyElementViaApi(".source-less-identified-leaf");
+      expect(didCopy).toBe(true);
+
+      const clipboard = await reactGrab.getClipboardContent();
+      expect(clipboard).toContain("selector: #source-less-identified-target");
+      expect(clipboard).not.toContain('selector: [aria-label="Broad labeled region"]');
+    });
+
+    test("should not elevate a leaf to the application mount root", async ({ reactGrab }) => {
+      await reactGrab.page.evaluate(() => {
+        const applicationRoot = document.getElementById("root");
+        if (!applicationRoot) throw new Error("Missing application root");
+        const leaf = document.createElement("div");
+        leaf.className = "source-less-root-leaf";
+        leaf.textContent = "Root-nested leaf";
+        applicationRoot.appendChild(leaf);
+      });
+
+      const didCopy = await reactGrab.copyElementViaApi(".source-less-root-leaf");
+      expect(didCopy).toBe(true);
+
+      const clipboard = await reactGrab.getClipboardContent();
+      expect(clipboard).toContain(".source-less-root-leaf");
+      expect(clipboard).not.toMatch(/selector: #root\]$/);
     });
 
     test("should truncate long outerHTML to max length", async ({ reactGrab }) => {
@@ -123,21 +370,50 @@ test.describe("Element Context Fallback", () => {
         });
         const longElement = document.createElement("div");
         longElement.id = "long-dom-element";
+        longElement.setAttribute("aria-label", "&".repeat(300));
         longElement.className = "a".repeat(300);
-        longElement.textContent = "b".repeat(300);
+        longElement.textContent = "<".repeat(300);
         wrapper.appendChild(longElement);
         document.body.appendChild(wrapper);
       });
 
       await reactGrab.activate();
 
-      await reactGrab.hoverElement("#long-dom-element");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("#long-dom-element");
       await reactGrab.clickElement("#long-dom-element");
 
       const clipboard = await reactGrab.getClipboardContent();
       expect(clipboard).toContain("long-dom-element");
       expect(clipboard.length).toBeLessThanOrEqual(510);
+    });
+
+    test("should retain class when other attributes fill the preview budget", async ({
+      reactGrab,
+    }) => {
+      await reactGrab.page.evaluate(() => {
+        const button = document.createElement("button");
+        button.id = "preview-budget-target";
+        button.className = "class-marker";
+        button.setAttribute("aria-label", "Preview budget target");
+        button.setAttribute("data-testid", "preview-budget-target");
+        button.setAttribute("role", "button");
+        button.setAttribute("name", "preview-budget");
+        button.setAttribute("title", "Preview budget");
+        button.setAttribute("type", "button");
+        button.setAttribute("data-state", "open");
+        button.setAttribute("data-value", "preview");
+        button.setAttribute("tabindex", "0");
+        button.textContent = "Preview budget target";
+        document.body.appendChild(button);
+      });
+
+      const didCopy = await reactGrab.copyElementViaApi(".class-marker");
+      expect(didCopy).toBe(true);
+
+      const clipboard = await reactGrab.getClipboardContent();
+      expect(clipboard).toContain(
+        '<button id="preview-budget-target" class="class-marker" aria-label=',
+      );
     });
 
     test("should include descendant text for syntax highlighted code blocks", async ({
@@ -209,7 +485,9 @@ test.describe("Element Context Fallback", () => {
       expect(didCopy).toBe(true);
 
       const clipboard = await reactGrab.getClipboardContent();
-      expect(clipboard).toContain('<a href="/docs/ci-and-prs/github-actions-setup"');
+      expect(clipboard).toContain(
+        'href="/docs/ci-and-prs/github-actions-setup">GitHub Actions setup',
+      );
       expect(clipboard).toContain("GitHub Actions setup");
       expect(clipboard).not.toContain("# GitHub Actions setup");
       expect(clipboard).toContain('selector: [href="/docs/ci-and-prs/github-actions-setup"]');
@@ -282,9 +560,7 @@ test.describe("Element Context Fallback", () => {
       expect(elementInfo).toContain("<span ...>");
     });
 
-    test("should preserve newlines inside attribute values in copied references", async ({
-      reactGrab,
-    }) => {
+    test("should encode structural characters inside attribute values", async ({ reactGrab }) => {
       await reactGrab.page.evaluate(() => {
         const wrapper = document.createElement("div");
         Object.assign(wrapper.style, {
@@ -298,7 +574,7 @@ test.describe("Element Context Fallback", () => {
 
         const saveButton = document.createElement("button");
         saveButton.id = "multiline-label-button";
-        saveButton.setAttribute("aria-label", "Save\n  draft");
+        saveButton.setAttribute("aria-label", 'Save "draft" & close\n  next');
         saveButton.textContent = "Save";
 
         wrapper.appendChild(saveButton);
@@ -309,7 +585,8 @@ test.describe("Element Context Fallback", () => {
       expect(didCopy).toBe(true);
 
       const clipboard = await reactGrab.getClipboardContent();
-      expect(clipboard).toContain('aria-label="Save\n  draft"');
+      expect(clipboard).toContain('aria-label="Save &quot;draft&quot; &amp; close&#10;  next"');
+      expect(clipboard).not.toContain('aria-label="Save "draft"');
     });
 
     test("should include nested text for mixed inline content", async ({ reactGrab }) => {

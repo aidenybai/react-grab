@@ -54,6 +54,8 @@ interface LabelController {
     status: SelectionLabelInstance["status"],
   ) => string[];
   updateAfterCopy: (instanceId: string, didSucceed: boolean, errorMessage?: string) => void;
+  markRetrying: (instanceId: string) => void;
+  dismissInstance: (instanceId: string) => void;
   cancelAllFades: () => void;
   clearAll: () => void;
   handleHoverChange: (instanceId: string, isHovered: boolean) => void;
@@ -86,6 +88,7 @@ const buildLabelInstance = (options: BuildLabelInstanceOptions): SelectionLabelI
 export const createLabelController = (
   store: LabelStoreBridge,
   getLabelInstances: () => readonly SelectionLabelInstance[],
+  onClearAll?: () => void,
 ): LabelController => {
   const fadeTimeouts = new Map<string, number>();
 
@@ -107,6 +110,7 @@ export const createLabelController = (
   const clearAll = () => {
     cancelAllFades();
     store.clearLabelInstances();
+    onClearAll?.();
   };
 
   const scheduleFade = (instanceId: string) => {
@@ -169,24 +173,39 @@ export const createLabelController = (
   const updateAfterCopy = (instanceId: string, didSucceed: boolean, errorMessage?: string) => {
     if (didSucceed) {
       store.updateLabelInstance(instanceId, "copied");
+      scheduleFade(instanceId);
     } else {
+      // Errors are actionable (Retry/Ok), so the label persists until it is
+      // acknowledged or superseded by the next grab instead of auto-fading.
+      cancelFade(instanceId);
       store.updateLabelInstance(instanceId, "error", errorMessage || "Unknown error");
     }
-    scheduleFade(instanceId);
+  };
+
+  const markRetrying = (instanceId: string) => {
+    cancelFade(instanceId);
+    store.updateLabelInstance(instanceId, "copying");
+  };
+
+  const dismissInstance = (instanceId: string) => {
+    cancelFade(instanceId);
+    store.removeLabelInstance(instanceId);
   };
 
   const handleHoverChange = (instanceId: string, isHovered: boolean) => {
-    if (isHovered) {
-      cancelFade(instanceId);
-      return;
-    }
     const instance = getLabelInstances().find((labelInstance) => labelInstance.id === instanceId);
     if (!instance) return;
-    if (
-      instance.status === "copied" ||
-      instance.status === "error" ||
-      instance.status === "fading"
-    ) {
+
+    if (isHovered) {
+      cancelFade(instanceId);
+      if (instance.status === "fading") {
+        store.updateLabelInstance(instanceId, "copied");
+      }
+      return;
+    }
+    // Error labels are dismissed explicitly (Retry/Ok), so unhovering must not
+    // start a fade; only the transient copied/fading labels fade on hover-out.
+    if (instance.status === "copied" || instance.status === "fading") {
       scheduleFade(instanceId);
     }
   };
@@ -195,6 +214,8 @@ export const createLabelController = (
     createInstance,
     createPerElementInstances,
     updateAfterCopy,
+    markRetrying,
+    dismissInstance,
     cancelAllFades,
     clearAll,
     handleHoverChange,

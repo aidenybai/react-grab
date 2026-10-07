@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "openstory/solid";
 import { expect, waitFor } from "openstory/test";
-import { ContextMenu } from "react-grab/src/components/context-menu.js";
-import type { Position } from "react-grab/src/types.js";
+import { ContextMenu } from "@react-grab-source/components/context-menu.js";
+import type { Position } from "@react-grab-source/types.js";
 import { DEMO_BOUNDS } from "./demo-bounds.js";
 import { createMenuActions } from "./fixtures.js";
 import { Canvas, TargetBox } from "./target-box.js";

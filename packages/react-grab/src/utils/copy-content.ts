@@ -1,5 +1,7 @@
 import { VERSION } from "../constants.js";
 import type { ReactGrabEntry } from "../types.js";
+import { escapeHtmlText } from "./escape-html-text.js";
+import { IS_DEMO } from "./runtime-mode.js";
 
 const REACT_GRAB_MIME_TYPE = "application/x-react-grab";
 
@@ -17,10 +19,12 @@ interface ReactGrabMetadata {
   timestamp: number;
 }
 
-const escapeHtml = (text: string): string =>
-  text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-
 export const copyContent = (content: string, options?: CopyContentOptions): boolean => {
+  // Demo mode never touches the visitor's real clipboard (and synthetic events
+  // lack the user gesture execCommand needs), so report success to play the
+  // "Copied" feedback without writing.
+  if (IS_DEMO) return true;
+
   const elementName = options?.componentName ?? "div";
   const entries = options?.entries ?? [
     {
@@ -45,7 +49,7 @@ export const copyContent = (content: string, options?: CopyContentOptions): bool
     event.clipboardData?.setData("text/plain", content);
     event.clipboardData?.setData(
       "text/html",
-      `<meta charset='utf-8'><pre><code>${escapeHtml(content)}</code></pre>`,
+      `<meta charset='utf-8'><pre><code>${escapeHtmlText(content)}</code></pre>`,
     );
     event.clipboardData?.setData(REACT_GRAB_MIME_TYPE, JSON.stringify(reactGrabMetadata));
   };
@@ -55,17 +59,17 @@ export const copyContent = (content: string, options?: CopyContentOptions): bool
   // Clipboard API. The hidden textarea provides the selection context that
   // execCommand requires, and the copy handler installed above intercepts the
   // browser's default behavior to set our custom clipboard data.
+  const textarea = document.createElement("textarea");
   document.addEventListener("copy", copyHandler);
 
-  const textarea = document.createElement("textarea");
-  textarea.value = content;
-  textarea.style.position = "fixed";
-  textarea.style.left = "-9999px";
-  textarea.ariaHidden = "true";
-  document.body.appendChild(textarea);
-  textarea.select();
-
   try {
+    textarea.value = content;
+    textarea.style.position = "fixed";
+    textarea.style.left = "-9999px";
+    textarea.ariaHidden = "true";
+    document.body.appendChild(textarea);
+    textarea.select();
+
     if (typeof document.execCommand !== "function") {
       return false;
     }

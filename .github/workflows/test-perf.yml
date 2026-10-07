@@ -10,17 +10,53 @@ permissions:
   contents: read
 
 jobs:
-  test-perf:
+  perf-shard:
+    name: perf-shard (${{ matrix.artifact_suffix || format('regular-{0}-of-15', matrix.shard) }})
     runs-on: ubuntu-latest
-    # PR runs do the bench twice (base ref + HEAD) so the cost roughly
-    # doubles vs. a push-to-main run.
-    timeout-minutes: 40
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+        include:
+          # Pair each shard's base and HEAD samples on one runner while spreading
+          # independent scenarios across runners to preserve process isolation.
+          - shard: dense-animation-control
+            test_shard: "1/1"
+            test_grep: "activate-deactivate-dense-animations @perf"
+            test_grep_invert: "(?!)"
+            artifact_suffix: dense-animation-control
+          - shard: animation-controls-legacy-production-count
+            test_shard: "1/1"
+            test_grep: "animation-scheduling-controls @perf"
+            test_grep_invert: "(?!)"
+            animation_control_mode: legacy-production-count
+            animation_include_paused_trace: "1"
+            artifact_suffix: animation-controls-legacy-production-count
+          - shard: animation-controls-legacy-one-indicator
+            test_shard: "1/1"
+            test_grep: "animation-scheduling-controls @perf"
+            test_grep_invert: "(?!)"
+            animation_control_mode: legacy-one-indicator
+            artifact_suffix: animation-controls-legacy-one-indicator
+          - shard: animation-controls-infinite-stepped
+            test_shard: "1/1"
+            test_grep: "animation-scheduling-controls @perf"
+            test_grep_invert: "(?!)"
+            animation_control_mode: infinite-stepped
+            artifact_suffix: animation-controls-infinite-stepped
+          - shard: animation-controls-finite-static-holds
+            test_shard: "1/1"
+            test_grep: "animation-scheduling-controls @perf"
+            test_grep_invert: "(?!)"
+            animation_control_mode: finite-static-holds
+            artifact_suffix: animation-controls-finite-static-holds
 
     steps:
       - name: Checkout
         uses: actions/checkout@v6
         with:
-          fetch-depth: 0
+          fetch-depth: 1
 
       - name: Install pnpm
         uses: pnpm/action-setup@v6
@@ -37,53 +73,128 @@ jobs:
       - name: Install Playwright browsers
         run: pnpm --filter react-grab exec playwright install chromium --with-deps
 
-      # ─── Baseline run (PR only) ────────────────────────────────────────
-      # Swap `packages/react-grab/src/` to the base ref so the same
-      # bench harness measures the OLD library code. The harness itself
-      # (`e2e/perf-*.ts`, `scripts/diff-perf-runs.mjs`) and the e2e-app
-      # stimulus stay at HEAD so the only variable across runs is
-      # react-grab's source.
+      # Swap only `packages/react-grab/src/` so the HEAD harness and fixture
+      # measure the base library code. Each shard keeps its base and HEAD
+      # measurements on the same runner to preserve paired CPU/GPU controls.
       - name: Swap react-grab src to base ref
         id: swap-base
         if: github.event_name == 'pull_request'
         run: |
-          git fetch origin "${{ github.base_ref }}" --depth=1
-          if git cat-file -e "origin/${{ github.base_ref }}:packages/react-grab/src" 2>/dev/null; then
-            git checkout "origin/${{ github.base_ref }}" -- packages/react-grab/src
-            echo "swapped=true" >> "$GITHUB_OUTPUT"
-            echo "Swapped react-grab/src to origin/${{ github.base_ref }} ($(git rev-parse "origin/${{ github.base_ref }}"))"
-          else
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          git fetch origin "$BASE_SHA" --depth=1
+          if ! git cat-file -e "$BASE_SHA:packages/react-grab/src" 2>/dev/null; then
             echo "Base ref lacks packages/react-grab/src; skipping baseline run."
             echo "swapped=false" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
+          git checkout "$BASE_SHA" -- packages/react-grab/src
+          echo "Swapped react-grab/src to base revision $BASE_SHA"
 
-      - name: Run perf bench against base ref src
+          # Base src builds against whatever this job installed, so a dependency
+          # change leaves it importing exports the new version dropped and the
+          # fixture's dev server never starts. Swapping the manifests too keeps
+          # the baseline a measurement of the base ref instead of a mix that
+          # cannot build, and it is the comparison a dependency bump wants.
+          if git diff --quiet "$BASE_SHA" HEAD -- '*package.json' pnpm-lock.yaml; then
+            echo "swapped=true" >> "$GITHUB_OUTPUT"
+            echo "deps_swapped=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # Manifests the PR adds have no base revision to restore, and leaving
+          # them would make the base lockfile fail its frozen check.
+          git diff --name-only --diff-filter=A "$BASE_SHA" HEAD -- '*package.json' | xargs -r rm -f
+          git checkout "$BASE_SHA" -- '*package.json' pnpm-lock.yaml
+          if pnpm install; then
+            echo "swapped=true" >> "$GITHUB_OUTPUT"
+            echo "deps_swapped=true" >> "$GITHUB_OUTPUT"
+            echo "Swapped dependencies to base revision $BASE_SHA"
+            exit 0
+          fi
+          echo "Base dependencies failed to install; skipping baseline run."
+          git checkout HEAD -- packages/react-grab/src '*package.json' pnpm-lock.yaml
+          pnpm install
+          echo "swapped=false" >> "$GITHUB_OUTPUT"
+
+      # The baseline is a measurement, not a gate: the base ref is already tested
+      # by its own CI, so a baseline that cannot build or run must not block this
+      # PR. diff-perf-runs.mjs reports the missing comparison instead.
+      - name: Run paired shard against base ref src
+        continue-on-error: true
         if: github.event_name == 'pull_request' && steps.swap-base.outputs.swapped == 'true'
         env:
           PERF_LABEL: baseline
-        # --workers=1 keeps perf measurements off the noise floor that
-        # the sharded `test-e2e` workflow creates by running 4 workers
-        # in parallel. Playwright's webServer auto-runs
-        # `pnpm --filter react-grab build` so the dev server picks up
-        # whichever src is checked out.
-        run: pnpm --filter react-grab exec playwright test --grep @perf --workers=1 --reporter=list
+          PERF_SHARDABLE: "1"
+          PERF_TEST_GREP: ${{ matrix.test_grep || '@perf' }}
+          PERF_TEST_GREP_INVERT: ${{ matrix.test_grep_invert || 'animation-scheduling-controls|activate-deactivate-dense-animations' }}
+          PERF_TEST_SHARD: ${{ matrix.test_shard || format('{0}/15', matrix.shard) }}
+          PERF_ANIMATION_CONTROL_MODE: ${{ matrix.animation_control_mode }}
+          PERF_ANIMATION_INCLUDE_PAUSED_TRACE: ${{ matrix.animation_include_paused_trace }}
+        # One worker prevents concurrent scenarios from contaminating the
+        # process and compositor measurements. Parallelism only exists across
+        # isolated GitHub runners, with the same scenario shard used for both refs.
+        run: pnpm --filter react-grab exec playwright test --grep "$PERF_TEST_GREP" --grep-invert "$PERF_TEST_GREP_INVERT" --workers=1 --shard="$PERF_TEST_SHARD" --reporter=list
 
       - name: Restore react-grab src to HEAD
         if: github.event_name == 'pull_request' && steps.swap-base.outputs.swapped == 'true'
-        run: git checkout HEAD -- packages/react-grab/src
+        run: |
+          git checkout HEAD -- packages/react-grab/src
+          if [ "${{ steps.swap-base.outputs.deps_swapped }}" = "true" ]; then
+            git checkout HEAD -- '*package.json' pnpm-lock.yaml
+            pnpm install
+          fi
 
-      # ─── HEAD run ──────────────────────────────────────────────────────
-      - name: Run perf bench against HEAD src
+      - name: Run paired shard against HEAD src
         env:
           PERF_LABEL: current
-        run: pnpm --filter react-grab exec playwright test --grep @perf --workers=1 --reporter=list
+          PERF_SHARDABLE: "1"
+          PERF_TEST_GREP: ${{ matrix.test_grep || '@perf' }}
+          PERF_TEST_GREP_INVERT: ${{ matrix.test_grep_invert || 'animation-scheduling-controls|activate-deactivate-dense-animations' }}
+          PERF_TEST_SHARD: ${{ matrix.test_shard || format('{0}/15', matrix.shard) }}
+          PERF_ANIMATION_CONTROL_MODE: ${{ matrix.animation_control_mode }}
+          PERF_ANIMATION_INCLUDE_PAUSED_TRACE: ${{ matrix.animation_include_paused_trace }}
+        run: pnpm --filter react-grab exec playwright test --grep "$PERF_TEST_GREP" --grep-invert "$PERF_TEST_GREP_INVERT" --workers=1 --shard="$PERF_TEST_SHARD" --reporter=list
 
-      # ─── Diff & surface ────────────────────────────────────────────────
+      - name: Upload shard reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: perf-reports-${{ matrix.artifact_suffix || format('regular-{0}-of-15', matrix.shard) }}
+          path: packages/react-grab/perf/
+          if-no-files-found: warn
+          retention-days: 1
+
+  test-perf:
+    needs: perf-shard
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Download shard reports
+        uses: actions/download-artifact@v4
+        with:
+          pattern: perf-reports-*
+          path: packages/react-grab/perf
+          merge-multiple: true
+
       - name: Compute baseline-vs-current diff
-        if: always() && github.event_name == 'pull_request'
-        run: node packages/react-grab/scripts/diff-perf-runs.mjs packages/react-grab/perf/baseline packages/react-grab/perf/current | tee -a "$GITHUB_STEP_SUMMARY"
+        if: github.event_name == 'pull_request' && needs.perf-shard.result == 'success'
+        run: |
+          node packages/react-grab/scripts/diff-perf-runs.mjs packages/react-grab/perf/baseline packages/react-grab/perf/current | tee perf-diff.md >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Upload perf reports
+      - name: Upload perf diff
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: perf-diff
+          path: perf-diff.md
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Upload merged perf reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -91,3 +202,61 @@ jobs:
           path: packages/react-grab/perf/
           if-no-files-found: warn
           retention-days: 14
+
+      - name: Verify perf shards
+        if: always() && needs.perf-shard.result != 'success'
+        run: |
+          echo "One or more paired perf shards failed: ${{ needs.perf-shard.result }}"
+          exit 1
+
+  # The write-scoped token never coexists with a job that executes PR code.
+  # This job only downloads the merged diff and maintains one sticky comment,
+  # while the benchmark and aggregation jobs retain read-only permissions.
+  perf-comment:
+    needs: test-perf
+    if: always() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      pull-requests: write
+
+    steps:
+      - name: Download perf diff
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: perf-diff
+
+      - name: Post perf diff as PR comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { readFileSync } = require("node:fs");
+            const marker = "<!-- perf-diff-comment -->";
+            let diffBody;
+            try {
+              diffBody = readFileSync("perf-diff.md", "utf8").trim();
+            } catch {
+              return;
+            }
+            if (!diffBody) return;
+            const body = `${marker}\n${diffBody}\n\n<sub>Commit ${context.payload.pull_request.head.sha.slice(0, 7)} · full reports in the \`perf-bench-${context.payload.pull_request.number}\` artifact.</sub>`;
+            const { data: comments } = await github.rest.issues.listComments({
+              ...context.repo,
+              issue_number: context.payload.pull_request.number,
+              per_page: 100,
+            });
+            const existingComment = comments.find((comment) => comment.body?.startsWith(marker));
+            if (existingComment) {
+              await github.rest.issues.updateComment({
+                ...context.repo,
+                comment_id: existingComment.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                ...context.repo,
+                issue_number: context.payload.pull_request.number,
+                body,
+              });
+            }

@@ -1,6 +1,21 @@
+import type { JSX } from "solid-js";
+
 export interface Position {
   x: number;
   y: number;
+}
+
+export interface ElementAtPointOptions {
+  container?: Element;
+  filter?: (element: Element) => boolean;
+}
+
+export interface ElementBounds {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  borderRadius: string;
 }
 
 export type DeepPartial<T> = {
@@ -135,10 +150,13 @@ export type ActivationMode = "toggle" | "hold";
 
 export type OverlayDismissSource = "keyboard" | "pointer";
 
-export interface ActionContextHooks {
-  transformHtmlContent: (html: string, elements: Element[]) => Promise<string>;
+export interface OpenFileActionHooks {
   onOpenFile: (filePath: string, lineNumber?: number) => boolean | void;
   transformOpenFileUrl: (url: string, filePath: string, lineNumber?: number) => string;
+}
+
+export interface ActionContextHooks extends OpenFileActionHooks {
+  transformHtmlContent: (html: string, elements: Element[]) => Promise<string>;
 }
 
 export interface ActionContext {
@@ -157,108 +175,6 @@ export interface ActionContext {
 
 export interface ContextMenuActionContext extends ActionContext {
   copy?: () => void;
-  enterEditMode?: () => void;
-}
-
-interface EditablePropertyBase {
-  // Stable identity across renders and sessionStorage. For aggregates this
-  // is a comma-joined cssProperties (e.g. "padding-top,padding-bottom") so
-  // the key survives DOM round-trips without parsing back.
-  key: string;
-  label: string;
-  cssProperties: readonly string[];
-  tailwindAliases: string[];
-  isPrioritized: boolean;
-  isDefault: boolean;
-  // True when this entry is the highest-level form that captures the
-  // current snapshot (e.g. "padding" when all 4 sides are equal). Default
-  // view shows only canonical rows; searching surfaces the rest.
-  isCanonical: boolean;
-}
-
-export interface NumericEditableProperty extends EditablePropertyBase {
-  kind: "numeric";
-  min: number;
-  max: number;
-  value: number;
-  original: number;
-  unit: string;
-}
-
-export interface ColorEditableProperty extends EditablePropertyBase {
-  kind: "color";
-  value: string;
-  original: string;
-}
-
-export interface EnumEditableOption {
-  value: string;
-  label: string;
-}
-
-export interface EnumEditableProperty extends EditablePropertyBase {
-  kind: "enum";
-  value: string;
-  original: string;
-  options: ReadonlyArray<EnumEditableOption>;
-}
-
-export type EditableProperty =
-  | NumericEditableProperty
-  | ColorEditableProperty
-  | EnumEditableProperty;
-
-interface NumericPendingEdit {
-  kind: "numeric";
-  key: string;
-  cssProperties: readonly string[];
-  value: number;
-  unit: string;
-}
-
-interface ColorPendingEdit {
-  kind: "color";
-  key: string;
-  cssProperties: readonly string[];
-  value: string;
-}
-
-interface EnumPendingEdit {
-  kind: "enum";
-  key: string;
-  cssProperties: readonly string[];
-  value: string;
-}
-
-export type PendingEdit = NumericPendingEdit | ColorPendingEdit | EnumPendingEdit;
-
-export type PendingEdits = PendingEdit[];
-
-export interface PendingEditsEntry {
-  filePath: string;
-  lineNumber: number;
-  edits: PendingEdits;
-}
-
-export interface PreviewStyles {
-  apply: (cssProperties: readonly string[], cssValue: string) => void;
-  restore: () => void;
-  hasAppliedStyles: () => boolean;
-}
-
-export interface EditPanelState {
-  element: Element;
-  position: Position;
-  selectionBounds: OverlayBounds;
-  properties: EditableProperty[];
-  preview: PreviewStyles;
-  filePath?: string;
-  lineNumber?: number;
-  componentName?: string;
-  tagName?: string;
-  htmlPreview?: string;
-  initialSearchQuery?: string;
-  hasSessionEdits?: boolean;
 }
 
 export interface ContextMenuAction {
@@ -271,15 +187,35 @@ export interface ContextMenuAction {
   onAction: (context: ContextMenuActionContext) => void | Promise<void>;
 }
 
-export interface ArrowNavigationItem {
-  tagName: string;
-  componentName?: string;
+// A predicate over a DOM element (e.g. "is this element grabbable?").
+export interface ElementPredicate {
+  (element: Element): boolean;
 }
 
-export interface ArrowNavigationState {
-  items: ArrowNavigationItem[];
+// A single rendered row of the hierarchy dropdown (renderer-facing: no element
+// reference, only what is drawn).
+export interface HierarchyItem {
+  tagName: string;
+  componentName?: string;
+  // Indentation level within the hierarchy tree (0 = outermost ancestor).
+  depth: number;
+  // Whether this row is the last among its displayed siblings, used to pick
+  // the terminal-style connector glyph (└─ vs ├─).
+  isLast: boolean;
+}
+
+// Internal hierarchy node that pairs a real DOM element with its position in
+// the rendered ancestor/sibling/child tree. The element reference is kept in
+// core (never sent to the renderer).
+export interface HierarchyEntry {
+  element: Element;
+  depth: number;
+  isLast: boolean;
+}
+
+export interface HierarchyState {
+  items: HierarchyItem[];
   activeIndex: number;
-  isVisible: boolean;
 }
 
 export interface PerformWithFeedbackOptions {
@@ -289,32 +225,32 @@ export interface PerformWithFeedbackOptions {
 }
 
 export interface PluginHooks {
-  onActivate?: () => void;
-  onDeactivate?: () => void;
-  onElementHover?: (element: Element) => void;
+  onActivate?: () => void | Promise<void>;
+  onDeactivate?: () => void | Promise<void>;
+  onElementHover?: (element: Element) => void | Promise<void>;
   onElementSelect?: (element: Element) => boolean | void | Promise<boolean>;
-  onDragStart?: (startX: number, startY: number) => void;
-  onDragEnd?: (elements: Element[], bounds: DragRect) => void;
+  onDragStart?: (startX: number, startY: number) => void | Promise<void>;
+  onDragEnd?: (elements: Element[], bounds: DragRect) => void | Promise<void>;
   onBeforeCopy?: (elements: Element[]) => void | Promise<void>;
   transformCopyContent?: (content: string, elements: Element[]) => string | Promise<string>;
-  onAfterCopy?: (elements: Element[], success: boolean) => void;
-  onCopySuccess?: (elements: Element[], content: string) => void;
-  onCopyError?: (error: Error) => void;
-  onStateChange?: (state: ReactGrabState) => void;
-  onPromptModeChange?: (isPromptMode: boolean, context: PromptModeContext) => void;
+  onAfterCopy?: (elements: Element[], success: boolean) => void | Promise<void>;
+  onCopySuccess?: (elements: Element[], content: string) => void | Promise<void>;
+  onCopyError?: (error: Error) => void | Promise<void>;
+  onStateChange?: (state: ReactGrabState) => void | Promise<void>;
+  onPromptModeChange?: (isPromptMode: boolean, context: PromptModeContext) => void | Promise<void>;
   onSelectionBox?: (
     visible: boolean,
     bounds: OverlayBounds | null,
     element: Element | null,
-  ) => void;
-  onDragBox?: (visible: boolean, bounds: OverlayBounds | null) => void;
-  onGrabbedBox?: (bounds: OverlayBounds, element: Element) => void;
+  ) => void | Promise<void>;
+  onDragBox?: (visible: boolean, bounds: OverlayBounds | null) => void | Promise<void>;
+  onGrabbedBox?: (bounds: OverlayBounds, element: Element) => void | Promise<void>;
   onElementLabel?: (
     visible: boolean,
     variant: ElementLabelVariant,
     context: ElementLabelContext,
-  ) => void;
-  onContextMenu?: (element: Element, position: Position) => void;
+  ) => void | Promise<void>;
+  onContextMenu?: (element: Element, position: Position) => void | Promise<void>;
   onOpenFile?: (filePath: string, lineNumber?: number) => boolean | void;
   transformHtmlContent?: (html: string, elements: Element[]) => string | Promise<string>;
   transformAgentContext?: (
@@ -330,7 +266,7 @@ export interface PluginConfig {
   options?: SettableOptions;
   actions?: ContextMenuAction[];
   hooks?: PluginHooks;
-  cleanup?: () => void;
+  cleanup?: () => undefined;
 }
 
 export interface Plugin {
@@ -344,11 +280,27 @@ export interface Plugin {
 
 export interface Options {
   enabled?: boolean;
+  /**
+   * Confine React Grab to a single container element instead of the whole page.
+   * Hit-testing, the toolbar viewport, and scroll re-anchoring are scoped to it.
+   * Used by the demo build to scope the showcase to its card.
+   */
+  container?: HTMLElement;
   activationMode?: ActivationMode;
   keyHoldDuration?: number;
   allowActivationInsideInput?: boolean;
   activationKey?: ActivationKey;
   getContent?: (elements: Element[]) => Promise<string> | string;
+  /**
+   * Maximum number of source-location lines included in the copied / prompted
+   * context for a grabbed element. Larger apps often render a target through
+   * several wrapper components, so the compact default can point an agent at a
+   * wrapper instead of the meaningful surface. Raise this to opt into a deeper,
+   * more detailed trace. Low-signal library frames are always surfaced for free
+   * and never count against this budget.
+   * @default 3
+   */
+  maxContextLines?: number;
   /**
    * Whether to freeze React state updates while React Grab is active.
    * This prevents UI changes from interfering with element selection.
@@ -366,12 +318,35 @@ export interface Options {
 export interface SettableOptions extends Options {
   enabled?: never;
   telemetry?: never;
+  container?: never;
 }
 
 export interface SourceInfo {
   filePath: string;
   lineNumber: number | null;
+  columnNumber: number | null;
   componentName: string | null;
+}
+
+export interface SelectedElementPayload {
+  tagName: string;
+  id?: string;
+  className?: string;
+  textContent?: string;
+  componentName?: string;
+  filePath?: string;
+  lineNumber?: number;
+  columnNumber?: number;
+}
+
+export interface ElementSelectedEventDetail {
+  elements: SelectedElementPayload[];
+}
+
+declare global {
+  interface WindowEventMap {
+    "react-grab:element-selected": CustomEvent<ElementSelectedEventDetail>;
+  }
 }
 
 export interface ToolbarState {
@@ -399,6 +374,7 @@ export interface ReactGrabAPI {
   getToolbarState: () => ToolbarState | null;
   setToolbarState: (state: Partial<ToolbarState>) => void;
   onToolbarStateChange: (callback: (state: ToolbarState) => void) => () => void;
+  reset: () => void;
   dispose: () => void;
   copyElement: (elements: Element | Element[]) => Promise<boolean>;
   getSource: (element: Element) => Promise<SourceInfo | null>;
@@ -449,23 +425,31 @@ export interface FrozenLabelEntry {
   mouseX?: number;
 }
 
+export interface FrozenLabelEntryAccessor {
+  read: () => FrozenLabelEntry | null;
+}
+
+export interface SelectionLabelInstanceAccessor {
+  read: () => SelectionLabelInstance | null;
+}
+
 export interface ReactGrabRendererProps {
   selectionVisible?: boolean;
   selectionBounds?: OverlayBounds;
   selectionBoundsMultiple?: OverlayBounds[];
   selectionShouldSnap?: boolean;
   selectionElementsCount?: number;
-  frozenLabelEntries?: FrozenLabelEntry[];
+  frozenLabelEntryAccessors?: FrozenLabelEntryAccessor[];
   pendingShiftPreviewEntry?: FrozenLabelEntry;
   selectionFilePath?: string;
-  selectionLineNumber?: number;
   selectionTagName?: string;
   selectionComponentName?: string;
   selectionLabelVisible?: boolean;
   selectionLabelStatus?: SelectionLabelStatus;
-  selectionArrowNavigationState?: ArrowNavigationState;
-  onArrowNavigationSelect?: (index: number) => void;
+  hierarchyState?: HierarchyState;
+  hierarchyMenuPosition?: DropdownAnchor | null;
   labelInstances?: SelectionLabelInstance[];
+  labelInstanceAccessors?: SelectionLabelInstanceAccessor[];
   dragVisible?: boolean;
   dragBounds?: OverlayBounds;
   grabbedBoxes?: Array<{
@@ -478,17 +462,18 @@ export interface ReactGrabRendererProps {
   inputValue?: string;
   isPromptMode?: boolean;
   onShowContextMenuInstance?: (instanceId: string) => void;
+  onRetryInstance?: (instanceId: string) => void;
+  onAcknowledgeErrorInstance?: (instanceId: string) => void;
   onLabelInstanceHoverChange?: (instanceId: string, isHovered: boolean) => void;
   onInputChange?: (value: string) => void;
   onInputSubmit?: () => void;
-  onToggleExpand?: () => void;
   selectionLabelShakeCount?: number;
   onConfirmDismiss?: () => void;
+  onOpenSelectionFile?: () => void;
   discardPrompt?: SelectionDiscardPrompt;
   toolbarVisible?: boolean;
   isActive?: boolean;
   onToggleActive?: () => void;
-  onActivateAction?: (actionId: string) => void;
   activeActionId?: string | null;
   enabled?: boolean;
   shakeCount?: number;
@@ -508,15 +493,10 @@ export interface ReactGrabRendererProps {
   toolbarMenuPosition?: DropdownAnchor | null;
   toolbarMenuActions?: ContextMenuAction[];
   defaultActionId?: string;
+  defaultActionLabel?: string;
   onSetDefaultAction?: (actionId: string) => void;
   onToggleToolbarMenu?: () => void;
   onToolbarMenuDismiss?: () => void;
-  editPanelState?: EditPanelState | null;
-  editPanelPosition?: DropdownAnchor | null;
-  onEditPanelDismiss?: () => void;
-  onEditPanelSubmit?: (pendingEdits: PendingEdits) => void;
-  onEditPanelPendingEditsChange?: (pendingEdits: PendingEdits) => void;
-  onEditPanelInteractingChange?: (interacting: boolean) => void;
 }
 
 export interface GrabbedBox {
@@ -546,7 +526,6 @@ export interface ArrowProps {
   position: ArrowPosition;
   leftPercent: number;
   leftOffsetPx: number;
-  color?: string;
   labelWidth?: number;
 }
 
@@ -560,7 +539,7 @@ export interface TagBadgeProps {
 }
 
 export interface BottomSectionProps {
-  children: import("solid-js").JSX.Element;
+  children: JSX.Element;
 }
 
 export interface DiscardPromptProps {
@@ -606,12 +585,8 @@ export interface SelectionLabelProps {
   status?: SelectionLabelStatus;
   statusText?: string;
   filePath?: string;
-  shouldToggleExpandOnClick?: boolean;
-  arrowNavigationState?: ArrowNavigationState;
-  onArrowNavigationSelect?: (index: number) => void;
   onInputChange?: (value: string) => void;
   onSubmit?: () => void;
-  onToggleExpand?: () => void;
   onOpen?: () => void;
   onDismiss?: () => void;
   selectionLabelShakeCount?: number;
@@ -620,7 +595,6 @@ export interface SelectionLabelProps {
   error?: string;
   onAcknowledgeError?: () => void;
   onRetry?: () => void;
-  isContextMenuOpen?: boolean;
   onShowContextMenu?: () => void;
   onHoverChange?: (isHovered: boolean) => void;
   hideArrow?: boolean;

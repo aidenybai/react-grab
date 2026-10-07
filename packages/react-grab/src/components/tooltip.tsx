@@ -1,5 +1,5 @@
 import { createSignal, createEffect, on, onCleanup, Show } from "solid-js";
-import type { Component, JSX } from "solid-js";
+import type { Component } from "solid-js";
 import { cn } from "../utils/cn.js";
 import { TOOLTIP_DELAY_MS, TOOLTIP_GRACE_PERIOD_MS, Z_INDEX_OVERLAY } from "../constants.js";
 
@@ -12,7 +12,7 @@ const wasTooltipRecentlyVisible = () => {
 interface TooltipProps {
   visible: boolean;
   position: "top" | "bottom" | "left" | "right";
-  children: JSX.Element;
+  textContent: string;
 }
 
 export const Tooltip: Component<TooltipProps> = (props) => {
@@ -81,9 +81,8 @@ export const Tooltip: Component<TooltipProps> = (props) => {
           shouldAnimate() && "animate-tooltip-fade-in",
         )}
         style={positionStyle()}
-      >
-        {props.children}
-      </div>
+        textContent={props.textContent}
+      />
     </Show>
   );
 };

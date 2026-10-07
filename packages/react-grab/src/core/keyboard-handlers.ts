@@ -1,20 +1,3 @@
-import type { Options } from "../types.js";
-import { getModifiersFromActivationKey } from "../utils/parse-activation-key.js";
-
-interface ModifierKeys {
-  metaKey: boolean;
-  ctrlKey: boolean;
-  shiftKey: boolean;
-  altKey: boolean;
-}
-
-export const getRequiredModifiers = (options: Options): ModifierKeys => {
-  const { metaKey, ctrlKey, shiftKey, altKey } = getModifiersFromActivationKey(
-    options.activationKey,
-  );
-  return { metaKey, ctrlKey, shiftKey, altKey };
-};
-
 interface PatchableGetter {
   (this: KeyboardEvent): string;
   __reactGrabPatched?: boolean;

@@ -1,6 +1,6 @@
 {
   "name": "react-grab",
-  "version": "0.1.44",
+  "version": "0.2.0",
   "description": "Select context for coding agents directly from your website",
   "keywords": [
     "agent",
@@ -69,7 +69,6 @@
         "default": "./dist/primitives.cjs"
       }
     },
-    "./src/*": "./src/*",
     "./styles.css": "./dist/styles.css",
     "./dist/styles.css": "./dist/styles.css",
     "./dist/*": "./dist/*.js",
@@ -83,25 +82,41 @@
     "css:watch": "tailwindcss -i ./src/styles.css -o ./dist/styles.css -w",
     "prebuild": "mkdir -p dist && tailwindcss -i ./src/styles.css -o ./dist/styles.css -m && tsx scripts/css-rem-to-px.ts",
     "build": "NODE_ENV=production vp pack",
+    "build:e2e-development": "pnpm run prebuild && NODE_ENV=development REACT_GRAB_SOURCE_LOCATIONS=true vp pack --out-dir ../../apps/e2e-react-grab-development/dist",
+    "build:e2e-development:coverage": "pnpm run prebuild && NODE_ENV=production REACT_GRAB_SOURCE_LOCATIONS=true REACT_GRAB_NO_MINIFY=true REACT_GRAB_SOURCEMAP=true vp pack --out-dir ../../apps/e2e-react-grab-development/dist",
+    "build:demo": "IS_DEMO=true pnpm build",
     "build:profiling": "pnpm run prebuild && NODE_ENV=profiling REACT_GRAB_NO_MINIFY=true REACT_GRAB_SOURCEMAP=true vp pack",
+    "build:coverage": "pnpm run prebuild && NODE_ENV=production REACT_GRAB_NO_MINIFY=true REACT_GRAB_SOURCEMAP=true vp pack",
     "dev": "concurrently \"pnpm:css:watch\" \"vp pack --watch\"",
-    "test": "vp test run tests && playwright test",
+    "test": "vp test run tests && playwright test --grep-invert @perf && E2E_ENVIRONMENT=vite-plus-development playwright test --grep @perf --workers=1",
+    "test:unit": "vp test run tests",
+    "pretest:coverage": "pnpm --filter @react-grab/playwright-coverage build",
+    "test:coverage": "COVERAGE=1 playwright test",
     "test:perf": "playwright test --grep @perf --reporter=list",
+    "test:perf:animation": "playwright test e2e/perf-bench.spec.ts --grep animation-scheduling-controls --reporter=list",
+    "test:perf:idle": "playwright test e2e/perf-bench.spec.ts --grep idle-after-activation --reporter=list",
+    "test:perf:dom-breakpoints": "PERF_DOM_BREAKPOINTS=1 playwright test e2e/perf-bench.spec.ts --grep dom-rerender-during-selection --reporter=list",
+    "test:perf:trace": "PERF_TRACE=1 playwright test --grep @perf --reporter=list",
+    "test:perf:render": "PERF_RENDER_TRACE=1 playwright test --grep @perf --reporter=list",
+    "test:perf:full": "PERF_TRACE=1 PERF_RENDER_TRACE=1 playwright test --grep @perf --reporter=list && node scripts/deopt-trace.mjs && node scripts/analyze-perf-trace.mjs perf/${PERF_LABEL:-current}",
+    "perf:analyze": "node scripts/analyze-perf-trace.mjs",
     "test:perf:baseline": "PERF_LABEL=baseline playwright test --grep @perf --reporter=list",
     "test:expect": "bun e2e/react-grab.expect.ts",
     "typecheck": "tsc --noEmit",
-    "prepublishOnly": "pnpm build",
+    "prepublishOnly": "rm -rf dist && pnpm build",
     "test:e2e:ui": "playwright test --ui",
     "perf:deopt": "node scripts/deopt-trace.mjs"
   },
   "dependencies": {
     "@react-grab/cli": "workspace:*",
-    "bippy": "^0.5.41"
+    "bippy": "^0.7.2"
   },
   "devDependencies": {
     "@babel/core": "^7.29.0",
     "@babel/preset-typescript": "^7.28.5",
+    "@jridgewell/trace-mapping": "^0.3.31",
     "@playwright/test": "^1.59.1",
+    "@react-grab/playwright-coverage": "workspace:*",
     "@tailwindcss/cli": "^4.3.0",
     "@types/babel__core": "^7.20.5",
     "@types/node": "^25.6.2",

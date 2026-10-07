@@ -1,4 +1,20 @@
 import { test, expect } from "./fixtures.js";
+import type { ReactGrabAPI } from "../src/types.js";
+
+interface CopyCancellationCase {
+  method: "deactivate" | "dispose";
+  label: string;
+}
+
+interface LifecycleWindow {
+  __REACT_GRAB__?: ReactGrabAPI;
+  initReactGrab?: () => ReactGrabAPI;
+}
+
+const COPY_CANCELLATION_CASES: CopyCancellationCase[] = [
+  { method: "deactivate", label: "deactivation" },
+  { method: "dispose", label: "disposal" },
+];
 
 test.describe("API Methods", () => {
   test.describe("Activation APIs", () => {
@@ -92,8 +108,7 @@ test.describe("API Methods", () => {
 
     test("should return isCopying correctly during copy", async ({ reactGrab }) => {
       await reactGrab.activate();
-      await reactGrab.hoverElement("h1");
-      await reactGrab.waitForSelectionBox();
+      await reactGrab.hoverUntilSelected("h1");
 
       await reactGrab.clickElement("h1");
 
@@ -166,6 +181,150 @@ test.describe("API Methods", () => {
       });
       expect(success).toBe(true);
     });
+
+    test("preserves a getContent callback passed to setOptions", async ({ reactGrab }) => {
+      const result = await reactGrab.page.evaluate(async () => {
+        const api = (
+          window as {
+            __REACT_GRAB__?: {
+              copyElement: (element: Element) => Promise<boolean>;
+              setOptions: (options: { getContent: () => string }) => void;
+            };
+          }
+        ).__REACT_GRAB__;
+        const element = document.querySelector("[data-testid='todo-list'] h1");
+        if (!api || !element) throw new Error("React Grab API or test element unavailable");
+
+        let getContentCallCount = 0;
+        api.setOptions({
+          getContent: () => {
+            getContentCallCount += 1;
+            return "custom content";
+          },
+        });
+        const callCountBeforeCopy = getContentCallCount;
+        const originalExecCommand = document.execCommand;
+        document.execCommand = () => true;
+
+        try {
+          return {
+            callCountBeforeCopy,
+            didCopy: await api.copyElement(element),
+            getContentCallCount,
+          };
+        } finally {
+          document.execCommand = originalExecCommand;
+        }
+      });
+
+      expect(result).toEqual({
+        callCountBeforeCopy: 0,
+        didCopy: true,
+        getContentCallCount: 1,
+      });
+    });
+
+    test("keeps a copy completed when deactivated during the clipboard write", async ({
+      reactGrab,
+    }) => {
+      const result = await reactGrab.page.evaluate(async () => {
+        const api = (
+          window as {
+            __REACT_GRAB__?: {
+              copyElement: (element: Element) => Promise<boolean>;
+              deactivate: () => void;
+              registerPlugin: (plugin: {
+                name: string;
+                options: { getContent: () => string };
+              }) => void;
+            };
+          }
+        ).__REACT_GRAB__;
+        const element = document.querySelector("[data-testid='todo-list'] h1");
+        if (!api || !element) throw new Error("React Grab API or test element unavailable");
+
+        api.registerPlugin({
+          name: "copy-commit-test",
+          options: { getContent: () => "content" },
+        });
+        const originalExecCommand = document.execCommand;
+        let copyCommandCount = 0;
+        document.execCommand = () => {
+          copyCommandCount += 1;
+          api.deactivate();
+          return true;
+        };
+
+        try {
+          return { didCopy: await api.copyElement(element), copyCommandCount };
+        } finally {
+          document.execCommand = originalExecCommand;
+        }
+      });
+
+      expect(result).toEqual({ didCopy: true, copyCommandCount: 1 });
+    });
+
+    for (const cancellationCase of COPY_CANCELLATION_CASES) {
+      test(`does not write after ${cancellationCase.label} cancels a pending copy`, async ({
+        reactGrab,
+      }) => {
+        const result = await reactGrab.page.evaluate(async (cancellationMethod) => {
+          const api = (
+            window as {
+              __REACT_GRAB__?: {
+                copyElement: (element: Element) => Promise<boolean>;
+                deactivate: () => void;
+                dispose: () => void;
+                registerPlugin: (plugin: {
+                  name: string;
+                  options: { getContent: () => Promise<string> };
+                }) => void;
+              };
+            }
+          ).__REACT_GRAB__;
+          const element = document.querySelector("[data-testid='todo-list'] h1");
+          if (!api || !element) throw new Error("React Grab API or test element unavailable");
+
+          let resolveContent = (_content: string): void => {};
+          let markContentRequested = (): void => {};
+          const content = new Promise<string>((resolve) => {
+            resolveContent = resolve;
+          });
+          const contentRequested = new Promise<void>((resolve) => {
+            markContentRequested = () => resolve();
+          });
+          api.registerPlugin({
+            name: "pending-copy-test",
+            options: {
+              getContent: () => {
+                markContentRequested();
+                return content;
+              },
+            },
+          });
+
+          const originalExecCommand = document.execCommand;
+          let copyCommandCount = 0;
+          document.execCommand = () => {
+            copyCommandCount += 1;
+            return true;
+          };
+
+          try {
+            const pendingCopy = api.copyElement(element);
+            await contentRequested;
+            api[cancellationMethod]();
+            resolveContent("late content");
+            return { didCopy: await pendingCopy, copyCommandCount };
+          } finally {
+            document.execCommand = originalExecCommand;
+          }
+        }, cancellationCase.method);
+
+        expect(result).toEqual({ didCopy: false, copyCommandCount: 0 });
+      });
+    }
   });
 
   test.describe("Theme via setOptions", () => {
@@ -201,19 +360,158 @@ test.describe("API Methods", () => {
     });
   });
 
-  test.describe("dispose()", () => {
-    test("should set hasInited to false on dispose", async ({ reactGrab }) => {
-      await reactGrab.activate();
-      expect(await reactGrab.isOverlayVisible()).toBe(true);
+  test.describe("Toolbar state", () => {
+    test("preserves unregistered actions in externally applied state", async ({ reactGrab }) => {
+      const defaultAction = await reactGrab.page.evaluate(() => {
+        const api = (window as LifecycleWindow).__REACT_GRAB__;
+        if (!api) throw new Error("React Grab API unavailable");
 
-      await reactGrab.dispose();
-      await reactGrab.page.waitForTimeout(200);
-
-      const canReinit = await reactGrab.page.evaluate(() => {
-        const initFn = (window as { initReactGrab?: () => void }).initReactGrab;
-        return typeof initFn === "function";
+        api.setToolbarState({ defaultAction: "custom-action" });
+        return api.getToolbarState()?.defaultAction;
       });
-      expect(canReinit).toBe(true);
+
+      expect(defaultAction).toBe("custom-action");
+    });
+
+    test("preserves registered actions in externally applied state", async ({ reactGrab }) => {
+      const defaultAction = await reactGrab.page.evaluate(() => {
+        const api = (window as LifecycleWindow).__REACT_GRAB__;
+        if (!api) throw new Error("React Grab API unavailable");
+
+        api.setToolbarState({ defaultAction: "comment" });
+        return api.getToolbarState()?.defaultAction;
+      });
+
+      expect(defaultAction).toBe("comment");
+    });
+
+    test("isolates throwing state subscribers", async ({ reactGrab }) => {
+      const result = await reactGrab.page.evaluate(() => {
+        const api = (window as LifecycleWindow).__REACT_GRAB__;
+        if (!api) throw new Error("React Grab API unavailable");
+
+        let receivedCollapsed: boolean | undefined;
+        api.onToolbarStateChange(() => {
+          throw new Error("subscriber failed");
+        });
+        api.onToolbarStateChange((state) => {
+          receivedCollapsed = state.collapsed;
+        });
+
+        api.setToolbarState({ collapsed: true });
+        return receivedCollapsed;
+      });
+
+      expect(result).toBe(true);
+    });
+
+    test("isolates subscribers from a disposed instance", async ({ reactGrab }) => {
+      const callbackCounts = await reactGrab.page.evaluate(() => {
+        const targetWindow = window as LifecycleWindow;
+        const previousApi = targetWindow.__REACT_GRAB__;
+        const initializeReactGrab = targetWindow.initReactGrab;
+        if (!previousApi || !initializeReactGrab) {
+          throw new Error("React Grab API unavailable");
+        }
+
+        let callbackCount = 0;
+        const sharedCallback = () => {
+          callbackCount += 1;
+        };
+        const unsubscribePrevious = previousApi.onToolbarStateChange(sharedCallback);
+
+        previousApi.dispose();
+        const replacementApi = initializeReactGrab();
+        targetWindow.__REACT_GRAB__ = replacementApi;
+        replacementApi.onToolbarStateChange(sharedCallback);
+
+        previousApi.setToolbarState({ collapsed: true });
+        const afterPreviousUpdate = callbackCount;
+
+        unsubscribePrevious();
+        replacementApi.setToolbarState({ collapsed: false });
+
+        return { afterPreviousUpdate, afterReplacementUpdate: callbackCount };
+      });
+
+      expect(callbackCounts).toEqual({
+        afterPreviousUpdate: 0,
+        afterReplacementUpdate: 1,
+      });
+    });
+  });
+
+  test.describe("maxContextLines via setOptions", () => {
+    test("raising maxContextLines surfaces more source lines than the compact default", async ({
+      reactGrab,
+    }) => {
+      const getStackLineCount = (selector: string) =>
+        reactGrab.page.evaluate(async (sel) => {
+          const api = (
+            window as {
+              __REACT_GRAB__?: { getStackContext: (el: Element) => Promise<string> };
+            }
+          ).__REACT_GRAB__;
+          const element = document.querySelector(sel);
+          if (!api || !element) return -1;
+          const text = await api.getStackContext(element);
+          return text.split("\n").filter(Boolean).length;
+        }, selector);
+
+      const contextTargetSelector = "[data-testid='todo-list'] ul li:first-child span";
+
+      await reactGrab.updateOptions({ maxContextLines: 1 });
+      const compactLineCount = await getStackLineCount(contextTargetSelector);
+
+      await reactGrab.updateOptions({ maxContextLines: 12 });
+      const detailedLineCount = await getStackLineCount(contextTargetSelector);
+
+      expect(compactLineCount).toBeGreaterThanOrEqual(1);
+      expect(detailedLineCount).toBeGreaterThan(compactLineCount);
+    });
+  });
+
+  test.describe("dispose()", () => {
+    test("does not normalize persisted toolbar state after same-turn disposal", async ({
+      reactGrab,
+    }) => {
+      const persistedDefaultAction = await reactGrab.page.evaluate(async () => {
+        const targetWindow = window as LifecycleWindow;
+        const initializeReactGrab = targetWindow.initReactGrab;
+        if (!initializeReactGrab) throw new Error("React Grab initializer unavailable");
+
+        targetWindow.__REACT_GRAB__?.dispose();
+        localStorage.setItem(
+          "react-grab-toolbar-state",
+          JSON.stringify({
+            edge: "bottom",
+            ratio: 0.5,
+            collapsed: false,
+            enabled: true,
+            defaultAction: "removed-action",
+          }),
+        );
+
+        const disposedApi = initializeReactGrab();
+        disposedApi.dispose();
+        await Promise.resolve();
+
+        const persistedState = JSON.parse(
+          localStorage.getItem("react-grab-toolbar-state") ?? "null",
+        );
+        localStorage.removeItem("react-grab-toolbar-state");
+        targetWindow.__REACT_GRAB__ = initializeReactGrab();
+        return persistedState?.defaultAction;
+      });
+
+      expect(persistedDefaultAction).toBe("removed-action");
+    });
+
+    test("should clear the disposed global API", async ({ reactGrab }) => {
+      await reactGrab.dispose();
+
+      const hasGlobalApi = await reactGrab.page.evaluate(() => window.__REACT_GRAB__ !== undefined);
+      expect(hasGlobalApi).toBe(false);
     });
 
     test("should remove overlay host element on dispose", async ({ reactGrab }) => {
@@ -230,13 +528,89 @@ test.describe("API Methods", () => {
     });
 
     test("should allow re-initialization after dispose", async ({ reactGrab }) => {
-      await reactGrab.activate();
-      await reactGrab.dispose();
-
-      await reactGrab.reinitialize();
+      const didInstallFreshApi = await reactGrab.reinitialize();
+      expect(didInstallFreshApi).toBe(true);
 
       await reactGrab.activate();
       expect(await reactGrab.isOverlayVisible()).toBe(true);
+    });
+
+    test("a stale API should not dispose a replacement", async ({ reactGrab }) => {
+      const result = await reactGrab.page.evaluate(() => {
+        const targetWindow: LifecycleWindow = window;
+        const staleApi = targetWindow.__REACT_GRAB__;
+        if (!staleApi || !targetWindow.initReactGrab) {
+          throw new Error("React Grab lifecycle API unavailable");
+        }
+
+        staleApi.dispose();
+        const replacementApi = targetWindow.initReactGrab();
+        targetWindow.__REACT_GRAB__ = replacementApi;
+
+        let subscriberCallCount = 0;
+        replacementApi.onToolbarStateChange(() => {
+          subscriberCallCount += 1;
+        });
+
+        staleApi.dispose();
+        replacementApi.setToolbarState({ collapsed: true });
+        const duplicateApi = targetWindow.initReactGrab();
+        const didRejectDuplicateInitialization = duplicateApi.getPlugins().length === 0;
+        if (!didRejectDuplicateInitialization) duplicateApi.dispose();
+
+        return { subscriberCallCount, didRejectDuplicateInitialization };
+      });
+
+      expect(result).toEqual({
+        subscriberCallCount: 1,
+        didRejectDuplicateInitialization: true,
+      });
+    });
+
+    test("should cancel a disposed host attachment before body is available", async ({
+      reactGrab,
+    }) => {
+      await reactGrab.page.evaluate(() => {
+        const targetWindow: LifecycleWindow = window;
+        const initReactGrab = targetWindow.initReactGrab;
+        if (!initReactGrab) throw new Error("React Grab initializer unavailable");
+        targetWindow.__REACT_GRAB__?.dispose();
+        document.body.remove();
+
+        const disposedApi = initReactGrab();
+        disposedApi.dispose();
+        const activeApi = initReactGrab();
+        targetWindow.__REACT_GRAB__ = activeApi;
+
+        const replacementBody = document.createElement("body");
+        document.documentElement.appendChild(replacementBody);
+        document.dispatchEvent(new Event("DOMContentLoaded"));
+      });
+
+      await expect
+        .poll(() =>
+          reactGrab.page.evaluate(() => document.querySelectorAll("[data-react-grab]").length),
+        )
+        .toBe(1);
+    });
+
+    test("should recheck a host reused by a replacement", async ({ reactGrab }) => {
+      await reactGrab.page.evaluate(() => {
+        const targetWindow: LifecycleWindow = window;
+        const initReactGrab = targetWindow.initReactGrab;
+        if (!initReactGrab) throw new Error("React Grab initializer unavailable");
+
+        targetWindow.__REACT_GRAB__?.dispose();
+        const replacementApi = initReactGrab();
+        targetWindow.__REACT_GRAB__ = replacementApi;
+        document.querySelector("[data-react-grab]")?.remove();
+      });
+
+      await expect
+        .poll(() =>
+          reactGrab.page.evaluate(() => document.querySelectorAll("[data-react-grab]").length),
+        )
+        .toBe(1);
     });
   });
 
@@ -311,8 +685,7 @@ test.describe("API Methods", () => {
     test("API should work after multiple activation cycles", async ({ reactGrab }) => {
       for (let i = 0; i < 3; i++) {
         await reactGrab.activate();
-        await reactGrab.hoverElement("li");
-        await reactGrab.waitForSelectionBox();
+        await reactGrab.hoverUntilSelected("li");
         await reactGrab.deactivate();
       }
 

@@ -3,21 +3,35 @@
 // user input and captures browser-native signals via the recorder
 // installed by `perf-recorder.ts`: INP (Event Timing), LoAF, Long Tasks,
 // frame deltas. For function-level attribution, run with `PERF_TRACE=1` —
-// each scenario also dumps a Chrome trace JSON (load it via DevTools
-// "Performance" panel; pair with `pnpm build:profiling` so symbols are
-// unminified).
-import { expect, getPerfGridCenters, goToPerfGrid, test } from "./perf-fixtures.js";
+// each scenario also dumps a V8 .cpuprofile (load it via DevTools
+// "Performance" panel, or run `node scripts/analyze-perf-trace.mjs` for a
+// hotspot table; pair with `pnpm build:profiling` so symbols are unminified).
+import {
+  expect,
+  getPerfGridCenters,
+  goToPerfGrid,
+  goToSizedPerfGrid,
+  test,
+} from "./perf-fixtures.js";
+import { captureAnimationSchedulingControls } from "./perf-animation-controls.js";
+import {
+  PERF_ANIMATION_CONTROL_TEST_TIMEOUT_MS,
+  PERF_CI_INP_HARD_LIMIT_MS,
+  PERF_COPY_COMPLETION_TIMEOUT_MS,
+  PERF_DENSE_ANIMATION_TEST_TIMEOUT_MS,
+  PERF_LOCAL_INP_SOFT_LIMIT_MS,
+  PERF_PLAYWRIGHT_SUITE_MODE,
+} from "./perf-constants.js";
 import { idleFrame, recordScenario } from "./perf-recorder.js";
 
-// web-vitals "needs improvement" threshold is 200ms; we cap synthetic
-// headless runs at 100ms so a real regression stands out from noise.
-const INP_SOFT_LIMIT_MS = 100;
+// Massive-grid scenarios render ~35k React cells and intentionally run at
+// single-digit fps, so they blow past the default 60s budget on CI runners.
+const MASSIVE_GRID_TEST_TIMEOUT_MS = 300_000;
 
-// Perf scenarios are timing-sensitive — retries don't make a flaky
-// measurement less flaky, they just waste minutes of CI. If a scenario
-// throws, show it immediately; multi-sample averaging inside
-// `recordScenario` is the right place to handle measurement variance.
-test.describe.configure({ mode: "serial", retries: 0 });
+// Paired CI shards need parallel mode so Playwright can divide tests between
+// runners. Every shard still uses one worker and measures base then HEAD on
+// the same machine. Non-sharded runs stay serial.
+test.describe.configure({ mode: PERF_PLAYWRIGHT_SUITE_MODE, retries: 0 });
 
 test.describe("@perf benchmarks", () => {
   test("hover-in-selection-mode @perf", async ({ reactGrab, page }, testInfo) => {
@@ -116,7 +130,7 @@ test.describe("@perf benchmarks", () => {
               );
             },
             cycleStartTimestamp,
-            { timeout: 2000 },
+            { timeout: PERF_COPY_COMPLETION_TIMEOUT_MS },
           );
           await page.keyboard.press("Escape");
           await page.waitForTimeout(80);
@@ -124,7 +138,67 @@ test.describe("@perf benchmarks", () => {
         await idleFrame(page, 4);
       },
     );
-    expect.soft(aggregate.inp).toBeLessThan(INP_SOFT_LIMIT_MS);
+    const inpLimitMs =
+      process.env.PERF_SHARDABLE === "1" ? PERF_CI_INP_HARD_LIMIT_MS : PERF_LOCAL_INP_SOFT_LIMIT_MS;
+    if (!process.env.COVERAGE) expect.soft(aggregate.inp).toBeLessThan(inpLimitMs);
+  });
+
+  // The "Grabbing… forever" case. Source resolution (bundle + source-map fetches
+  // via bippy) shares the dev server's per-origin connection pool with the app's
+  // own traffic. When the app saturates that pool, react-grab's source fetches
+  // queue behind it; unbounded, the grab waits out the app (or hangs). This
+  // saturates the pool, then measures grab→copy completion as the sourceResolveMs
+  // extra metric. The source-fetch queue's timeout + abort keeps it bounded
+  // (~8s) instead of waiting the full saturation window — the perf diff surfaces
+  // that against the base ref. INP/frames can't express this off-main-thread wait.
+  test("copy-under-saturated-network @perf", async ({ reactGrab, page }, testInfo) => {
+    const TARGET_SELECTOR = "[data-testid='nested-card']";
+    const SATURATING_REQUEST_COUNT = 10;
+    // Each saturating request resolves rather than hanging forever, so the base
+    // ref (no timeout) still completes and the diff has two numbers to compare.
+    const SATURATING_REQUEST_MS = 12_000;
+
+    await reactGrab.activate();
+
+    let sourceResolveMs = 0;
+    await recordScenario(
+      page,
+      testInfo,
+      "copy-under-saturated-network",
+      async () => {
+        await page.evaluate(
+          ({ count, ms }) => {
+            for (let index = 0; index < count; index++) {
+              fetch(`/__slow?ms=${ms}&i=${index}`).catch(() => {});
+            }
+          },
+          { count: SATURATING_REQUEST_COUNT, ms: SATURATING_REQUEST_MS },
+        );
+        // Let the requests claim the connection pool before grabbing.
+        await page.waitForTimeout(300);
+
+        sourceResolveMs = await page.evaluate(async (selector) => {
+          const api = (
+            window as unknown as {
+              __REACT_GRAB__?: { copyElement: (element: Element) => Promise<boolean> };
+            }
+          ).__REACT_GRAB__;
+          const element = document.querySelector(selector);
+          if (!api || !element) return 0;
+          const startTimestamp = performance.now();
+          await api.copyElement(element);
+          return performance.now() - startTimestamp;
+        }, TARGET_SELECTOR);
+      },
+      { samples: 1, collectExtraMetrics: () => ({ sourceResolveMs }) },
+    );
+    await reactGrab.deactivate();
+
+    // A bounded grab, not a hang. Generous because the base ref legitimately
+    // waits out the saturating requests (~12s); this only trips on a true hang,
+    // while the bounded-vs-unbounded improvement shows in the sourceResolveMs diff.
+    expect.soft(sourceResolveMs).toBeGreaterThan(0);
+    expect.soft(sourceResolveMs).toBeLessThan(SATURATING_REQUEST_MS + 8_000);
   });
 
   test("drag-selection-sweep @perf", async ({ reactGrab, page }, testInfo) => {
@@ -200,7 +274,7 @@ test.describe("@perf benchmarks", () => {
       hoverTargets.push({ x: box.x + box.width / 2, y: box.y + box.height / 2 });
     }
     if (hoverTargets.length === 0) {
-      test.skip(true, "no animated targets in e2e-app");
+      test.skip(true, "no animated targets in e2e-app-vite");
       return;
     }
 
@@ -333,9 +407,15 @@ test.describe("@perf benchmarks", () => {
       },
       // No user input + no library work — variance is approximately zero,
       // so one 2s sample is enough.
-      { samples: 1 },
+      { samples: 1, captureRenderTrace: true, captureAnimationCounterfactual: true },
     );
     await reactGrab.deactivate();
+  });
+
+  test("animation-scheduling-controls @perf", async ({ reactGrab, page }, testInfo) => {
+    testInfo.setTimeout(PERF_ANIMATION_CONTROL_TEST_TIMEOUT_MS);
+    void reactGrab;
+    await captureAnimationSchedulingControls(page, testInfo);
   });
 
   test("large-drag-selection @perf", async ({ reactGrab, page }, testInfo) => {
@@ -577,6 +657,62 @@ test.describe("@perf benchmarks", () => {
     );
   });
 
+  test("activate-deactivate-dense-animations @perf", async ({ page, perfDom }, testInfo) => {
+    test.setTimeout(PERF_DENSE_ANIMATION_TEST_TIMEOUT_MS);
+    // Dense variant of activate-with-many-animations: 4000 CSS-animated divs.
+    // Isolates the freeze path's UNSCOPED document.getAnimations() walk
+    // (freeze-animations.ts) — it is O(total running animations on the page)
+    // and runs on every activate (collect/pause) and deactivate (finish).
+    // At 150 that walk hides under the ~8.3ms frame floor; at 4000 it surfaces
+    // as long tasks / LoAF, making any future scoping/caching of getAnimations
+    // measurable here instead of invisible. Animations are transform/opacity
+    // (compositor-only), so the main-thread cost this captures is react-grab's
+    // traversal, not the browser animating them.
+    await perfDom.installCssAnimations(4000);
+
+    await recordScenario(
+      page,
+      testInfo,
+      "activate-deactivate-dense-animations",
+      async () => {
+        for (let cycleIndex = 0; cycleIndex < 20; cycleIndex++) {
+          await page.evaluate(() => window.__REACT_GRAB__?.activate?.());
+          await idleFrame(page, 1);
+          await page.evaluate(() => window.__REACT_GRAB__?.deactivate?.());
+          await idleFrame(page, 1);
+        }
+        await idleFrame(page, 4);
+      },
+      { samples: 2 },
+    );
+  });
+
+  test("activate-large-dom-sparse-animations @perf", async ({ page, perfDom }, testInfo) => {
+    // The realistic shape of a real app: a LARGE DOM (thousands of nodes) with
+    // only a HANDFUL of animated elements. Guards the activate/deactivate freeze
+    // path against costs that scale with total DOM size rather than with the
+    // number of things actually animating — the global `* { animation-play-state:
+    // paused }` recalc measures ~5ms here, so this is the floor it must stay near.
+    await perfDom.installDenseFlat(8000);
+    await perfDom.installCssAnimations(12);
+
+    await recordScenario(
+      page,
+      testInfo,
+      "activate-large-dom-sparse-animations",
+      async () => {
+        for (let cycleIndex = 0; cycleIndex < 20; cycleIndex++) {
+          await page.evaluate(() => window.__REACT_GRAB__?.activate?.());
+          await idleFrame(page, 1);
+          await page.evaluate(() => window.__REACT_GRAB__?.deactivate?.());
+          await idleFrame(page, 1);
+        }
+        await idleFrame(page, 4);
+      },
+      { samples: 2 },
+    );
+  });
+
   test("deactivate-with-many-frozen-elements @perf", async ({ reactGrab, page }, testInfo) => {
     // Shift-click 15 elements (multi-freeze), then deactivate. Stresses
     // the bulk-unfreeze of frozen elements, frozenElementBoundsAccessors
@@ -785,5 +921,141 @@ test.describe("@perf benchmarks", () => {
     );
     await page.keyboard.press("Escape");
     await page.setViewportSize({ width: 1280, height: 720 });
+  });
+
+  test("drag-sweep-massive-grid @perf", async ({ reactGrab, page }, testInfo) => {
+    test.setTimeout(MASSIVE_GRID_TEST_TIMEOUT_MS);
+    // ~35k React cells (>100k DOM nodes counting the inner spans). Full
+    // viewport drag sweeps stress getElementsInDrag's elementsFromPoint
+    // sampling, coverage filtering, and removeNestedElements at the scale
+    // where real apps report drag lag.
+    await goToSizedPerfGrid(page, 700, 50);
+
+    await recordScenario(
+      page,
+      testInfo,
+      "drag-sweep-massive-grid",
+      async () => {
+        const viewport = page.viewportSize() ?? { width: 1280, height: 720 };
+        for (let dragIndex = 0; dragIndex < 3; dragIndex++) {
+          await page.mouse.move(20, 80, { steps: 1 });
+          await page.mouse.down();
+          await page.mouse.move(viewport.width - 40, viewport.height - 40, { steps: 20 });
+          // Cancel instead of committing so the measurement isolates drag
+          // tracking from the copy pipeline.
+          await page.keyboard.press("Escape");
+          await page.mouse.up();
+          await page.waitForTimeout(60);
+        }
+        await idleFrame(page, 4);
+      },
+      {
+        samples: 2,
+        beforeEachSample: async () => {
+          await reactGrab.activate();
+          await idleFrame(page, 2);
+        },
+      },
+    );
+  });
+
+  test("drag-commit-massive-grid @perf", async ({ reactGrab, page }, testInfo) => {
+    test.setTimeout(MASSIVE_GRID_TEST_TIMEOUT_MS);
+    // Same massive grid, but the drag commits: exercises the full copy
+    // pipeline (freeze, payload build with innerText reads, clipboard)
+    // against a huge accumulated selection.
+    await goToSizedPerfGrid(page, 700, 50);
+
+    await recordScenario(
+      page,
+      testInfo,
+      "drag-commit-massive-grid",
+      async () => {
+        const viewport = page.viewportSize() ?? { width: 1280, height: 720 };
+        await page.mouse.move(20, 80, { steps: 1 });
+        await page.mouse.down();
+        await page.mouse.move(viewport.width - 40, viewport.height - 40, { steps: 12 });
+        await page.mouse.up();
+        await page.waitForTimeout(400);
+        await page.keyboard.press("Escape");
+        await idleFrame(page, 4);
+      },
+      {
+        samples: 2,
+        beforeEachSample: async () => {
+          await reactGrab.activate();
+          await idleFrame(page, 2);
+        },
+      },
+    );
+  });
+
+  test("drag-freeze-animation-storm @perf", async ({ reactGrab, page, perfDom }, testInfo) => {
+    test.setTimeout(MASSIVE_GRID_TEST_TIMEOUT_MS);
+    // Drag selection over a grid while 1500 CSS animations run: commit
+    // triggers freezeAnimations on the selected set, and every drag frame
+    // competes with the compositor for style/layout work.
+    await goToSizedPerfGrid(page, 200, 30);
+    await perfDom.installCssAnimations(1500);
+
+    await recordScenario(
+      page,
+      testInfo,
+      "drag-freeze-animation-storm",
+      async () => {
+        const viewport = page.viewportSize() ?? { width: 1280, height: 720 };
+        for (let dragIndex = 0; dragIndex < 3; dragIndex++) {
+          await page.mouse.move(40, 100, { steps: 1 });
+          await page.mouse.down();
+          await page.mouse.move(viewport.width - 60, viewport.height - 60, { steps: 16 });
+          await page.mouse.up();
+          await page.waitForTimeout(150);
+          await page.keyboard.press("Escape");
+          await page.waitForTimeout(40);
+        }
+        await idleFrame(page, 4);
+      },
+      {
+        samples: 2,
+        beforeEachSample: async () => {
+          await reactGrab.activate();
+          await idleFrame(page, 2);
+        },
+      },
+    );
+  });
+
+  test("arrow-navigation-storm @perf", async ({ reactGrab, page }, testInfo) => {
+    // Rapid arrow-key traversal over the perf grid: every press re-runs
+    // hierarchy building, sibling resolution, and frozen-selection
+    // re-rendering.
+    await goToPerfGrid(page);
+
+    const gridCells = await getPerfGridCenters(page, 1);
+    const startCell = gridCells[0];
+
+    await recordScenario(
+      page,
+      testInfo,
+      "arrow-navigation-storm",
+      async () => {
+        const arrowSequence = ["ArrowUp", "ArrowDown", "ArrowRight", "ArrowLeft"];
+        for (let pressIndex = 0; pressIndex < 60; pressIndex++) {
+          await page.keyboard.press(arrowSequence[pressIndex % arrowSequence.length]);
+          await page.waitForTimeout(20);
+        }
+        await page.keyboard.press("Escape");
+        await page.keyboard.press("Escape");
+        await idleFrame(page, 4);
+      },
+      {
+        samples: 2,
+        beforeEachSample: async () => {
+          await reactGrab.activate();
+          await page.mouse.move(startCell.x, startCell.y, { steps: 1 });
+          await page.waitForTimeout(150);
+        },
+      },
+    );
   });
 });

@@ -1,6 +1,6 @@
 {
   "name": "@react-grab/cli",
-  "version": "0.1.44",
+  "version": "0.2.0",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/aidenybai/react-grab.git"
@@ -19,6 +19,11 @@
       "types": "./dist/cli.d.ts",
       "import": "./dist/cli.js",
       "require": "./dist/cli.cjs"
+    },
+    "./api": {
+      "types": "./dist/api.d.ts",
+      "import": "./dist/api.js",
+      "require": "./dist/api.cjs"
     }
   },
   "scripts": {

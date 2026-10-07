@@ -50,7 +50,13 @@ export const parseActivationKey = (
   activationKey: ActivationKey,
 ): ((event: KeyboardEvent) => boolean) => {
   if (typeof activationKey === "function") {
-    return activationKey;
+    return (event: KeyboardEvent): boolean => {
+      try {
+        return activationKey(event);
+      } catch {
+        return false;
+      }
+    };
   }
 
   const parsed = parseString(activationKey);

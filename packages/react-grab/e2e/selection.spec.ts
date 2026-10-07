@@ -1,28 +1,27 @@
 import { test, expect } from "./fixtures.js";
+import { ATTRIBUTE_NAME } from "./constants.js";
 
 test.describe("Element Selection", () => {
   test("should show selection box when hovering over element while active", async ({
     reactGrab,
   }) => {
     await reactGrab.activate();
-    await reactGrab.hoverElement("li");
-    await reactGrab.waitForSelectionBox();
+    await reactGrab.hoverUntilSelected("li");
 
-    const hasSelectionContent = await reactGrab.page.evaluate(() => {
-      const host = document.querySelector("[data-react-grab]");
+    const hasSelectionContent = await reactGrab.page.evaluate((attrName) => {
+      const host = document.querySelector(`[${attrName}]`);
       const shadowRoot = host?.shadowRoot;
       if (!shadowRoot) return false;
-      const root = shadowRoot.querySelector("[data-react-grab]");
+      const root = shadowRoot.querySelector(`[${attrName}]`);
       return root !== null && root.innerHTML.length > 0;
-    });
+    }, ATTRIBUTE_NAME);
 
     expect(hasSelectionContent).toBe(true);
   });
 
   test("should copy element content to clipboard on click", async ({ reactGrab }) => {
     await reactGrab.activate();
-    await reactGrab.hoverElement("li");
-    await reactGrab.waitForSelectionBox();
+    await reactGrab.hoverUntilSelected("li");
 
     await reactGrab.clickElement("li");
     await expect.poll(() => reactGrab.getClipboardContent()).toBeTruthy();
@@ -33,8 +32,7 @@ test.describe("Element Selection", () => {
 
   test("should copy heading element to clipboard", async ({ reactGrab }) => {
     await reactGrab.activate();
-    await reactGrab.hoverElement("[data-testid='todo-list'] h1");
-    await reactGrab.waitForSelectionBox();
+    await reactGrab.hoverUntilSelected("[data-testid='todo-list'] h1");
 
     await reactGrab.clickElement("[data-testid='todo-list'] h1");
     await expect.poll(() => reactGrab.getClipboardContent()).toContain("Todo List");
@@ -42,8 +40,7 @@ test.describe("Element Selection", () => {
 
   test("should write React Grab clipboard metadata on copy", async ({ reactGrab }) => {
     await reactGrab.activate();
-    await reactGrab.hoverElement("[data-testid='todo-list'] h1");
-    await reactGrab.waitForSelectionBox();
+    await reactGrab.hoverUntilSelected("[data-testid='todo-list'] h1");
 
     const copyPayloadPromise = reactGrab.captureNextClipboardWrites();
     await reactGrab.clickElement("[data-testid='todo-list'] h1");
@@ -57,9 +54,11 @@ test.describe("Element Selection", () => {
     expect(clipboardMetadata.content).toContain("Todo List");
     expect(clipboardMetadata.entries).toHaveLength(1);
     expect(clipboardMetadata.entries[0].content).toContain("Todo List");
-    // The e2e dev server produces owner-stack frames without file names, so no
-    // source can resolve here; pin the explicit null to catch shape drift.
-    expect(clipboardMetadata.entries[0]).toHaveProperty("source", null);
+    expect(clipboardMetadata.entries[0].source).toMatchObject({
+      componentName: "TodoList",
+      filePath: "App.tsx",
+      origin: "app",
+    });
     expect(clipboardMetadata.entries[0].stackContext).toContain("TodoList");
     expect(Array.isArray(clipboardMetadata.entries[0].frames)).toBe(true);
     expect(clipboardMetadata.entries[0].frames.length).toBeGreaterThan(0);
@@ -81,20 +80,17 @@ test.describe("Element Selection", () => {
           };
         }
       ).__REACT_GRAB__;
-      api?.unregisterPlugin("slow-copy-hook");
+      api?.unregisterPlugin("pending-copy-hook");
       api?.registerPlugin({
-        name: "slow-copy-hook",
+        name: "pending-copy-hook",
         hooks: {
-          onBeforeCopy: async () => {
-            await new Promise((resolve) => setTimeout(resolve, 600));
-          },
+          onBeforeCopy: () => new Promise<void>(() => {}),
         },
       });
     });
 
     await reactGrab.activate();
-    await reactGrab.hoverElement("[data-testid='main-description']");
-    await reactGrab.waitForSelectionBox();
+    await reactGrab.hoverUntilSelected("[data-testid='main-description']");
     await reactGrab.clickElement("[data-testid='main-description']");
 
     await expect
@@ -131,14 +127,11 @@ test.describe("Element Selection", () => {
   test("should highlight different elements when hovering", async ({ reactGrab }) => {
     await reactGrab.activate();
 
-    await reactGrab.hoverElement("h1");
-    await reactGrab.waitForSelectionBox();
+    await reactGrab.hoverUntilSelected("h1");
 
-    await reactGrab.hoverElement("li:first-child");
-    await reactGrab.waitForSelectionBox();
+    await reactGrab.hoverUntilSelected("li:first-child");
 
-    await reactGrab.hoverElement("ul");
-    await reactGrab.waitForSelectionBox();
+    await reactGrab.hoverUntilSelected("ul");
 
     const isVisible = await reactGrab.isOverlayVisible();
     expect(isVisible).toBe(true);
@@ -165,8 +158,7 @@ test.describe("Element Selection", () => {
   test("should select nested elements correctly", async ({ reactGrab }) => {
     await reactGrab.activate();
 
-    await reactGrab.hoverElement("li:nth-child(3)");
-    await reactGrab.waitForSelectionBox();
+    await reactGrab.hoverUntilSelected("li:nth-child(3)");
     await reactGrab.clickElement("li:nth-child(3)");
 
     await expect.poll(() => reactGrab.getClipboardContent()).toBeTruthy();
@@ -193,8 +185,7 @@ test.describe("Element Selection", () => {
 test.describe("Selection Bounds and Mutations", () => {
   test("selection box should update when element size changes", async ({ reactGrab }) => {
     await reactGrab.activate();
-    await reactGrab.hoverElement("li:first-child");
-    await reactGrab.waitForSelectionBox();
+    await reactGrab.hoverUntilSelected("li:first-child");
 
     const initialBounds = await reactGrab.getSelectionBoxBounds();
     expect(initialBounds).not.toBeNull();
@@ -216,13 +207,11 @@ test.describe("Selection Bounds and Mutations", () => {
 
   test("selection should handle element being hidden", async ({ reactGrab }) => {
     await reactGrab.activate();
-    await reactGrab.hoverElement("[data-testid='toggleable-element']");
-    await reactGrab.waitForSelectionBox();
+    await reactGrab.hoverUntilSelected("[data-testid='toggleable-element']");
 
     await reactGrab.hideElement("[data-testid='toggleable-element']");
 
-    await reactGrab.hoverElement("li:first-child");
-    await reactGrab.waitForSelectionBox();
+    await reactGrab.hoverUntilSelected("li:first-child");
 
     const isVisible = await reactGrab.isSelectionBoxVisible();
     expect(isVisible).toBe(true);
@@ -230,8 +219,7 @@ test.describe("Selection Bounds and Mutations", () => {
 
   test("selection should recalculate after scroll", async ({ reactGrab }) => {
     await reactGrab.activate();
-    await reactGrab.hoverElement("li:first-child");
-    await reactGrab.waitForSelectionBox();
+    await reactGrab.hoverUntilSelected("li:first-child");
 
     const boundsBefore = await reactGrab.getSelectionBoxBounds();
 
@@ -262,11 +250,29 @@ test.describe("Selection Bounds and Mutations", () => {
 
   test("selection should work on deeply nested elements", async ({ reactGrab }) => {
     await reactGrab.activate();
-    await reactGrab.hoverElement("[data-testid='deeply-nested-text']");
-    await reactGrab.waitForSelectionBox();
+    await reactGrab.hoverUntilSelected("[data-testid='deeply-nested-text']");
 
     await reactGrab.clickElement("[data-testid='deeply-nested-text']");
 
     await expect.poll(() => reactGrab.getClipboardContent()).toContain("deeply nested");
+  });
+
+  test("selects page content through a modal's body pointer-events:none", async ({
+    reactGrab,
+    page,
+  }) => {
+    // Open a Radix-style modal that sets `body { pointer-events: none }`.
+    await page.locator("[data-testid='pe-modal-trigger']").click();
+    await expect.poll(() => page.evaluate(() => document.body.style.pointerEvents)).toBe("none");
+
+    await reactGrab.activate();
+    // The hit-test override must see through the page's pointer-events:none so an
+    // element outside the popover is still detectable. Without it,
+    // elementsFromPoint returns nothing and selection never registers.
+    await reactGrab.hoverUntilSelected("[data-testid='pe-outside-target']");
+    expect(await reactGrab.isSelectionBoxVisible()).toBe(true);
+
+    await reactGrab.clickElement("[data-testid='pe-outside-target']");
+    await expect.poll(() => reactGrab.getClipboardContent()).toContain("outside the popover");
   });
 });

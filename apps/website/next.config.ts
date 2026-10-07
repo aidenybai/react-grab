@@ -2,80 +2,44 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   serverExternalPackages: ["react-grab"],
-  // HACK: disable react compiler to avoid issues with source mangling
-  reactCompiler: false,
-  productionBrowserSourceMaps: true,
-  turbopack: {},
-  experimental: {
-    optimizeCss: true,
-    inlineCss: true,
+  // The /script.js route streams the library bundle off disk with readFile,
+  // which output tracing can't follow — without this the file is missing from
+  // the deployed function and the route 500s on Vercel.
+  outputFileTracingIncludes: {
+    "/script.js": ["../../packages/react-grab/dist/index.global.js"],
   },
   devIndicators: false,
-  webpack: (config, { dev, isServer }) => {
-    if (!isServer && !dev) {
-      config.devtool = "source-map";
-    }
-    return config;
-  },
-  redirects: async () => {
-    return [
-      {
-        source: "/docs",
-        destination: "https://github.com/aidenybai/react-grab#readme",
-        permanent: false,
-      },
-      {
-        source: "/primitives",
-        destination:
-          "https://github.com/aidenybai/react-grab/tree/main?tab=readme-ov-file#primitives",
-        permanent: false,
-      },
-      {
-        source: "/blog/:path*",
-        destination: "/",
-        permanent: true,
-      },
-      {
-        source: "/blog",
-        destination: "/",
-        permanent: true,
-      },
-    ];
-  },
-  headers: async () => {
-    return [
-      {
-        source: "/",
-        headers: [
-          {
-            key: "Vary",
-            value: "Accept",
-          },
-        ],
-      },
-    ];
-  },
-  rewrites: async () => {
-    return {
-      beforeFiles: [
+  productionBrowserSourceMaps: true,
+  redirects: async () => [
+    {
+      source: "/docs",
+      destination: "https://github.com/aidenybai/react-grab#readme",
+      permanent: false,
+    },
+    {
+      source: "/primitives",
+      destination:
+        "https://github.com/aidenybai/react-grab/tree/main?tab=readme-ov-file#primitives",
+      permanent: false,
+    },
+    {
+      // :path* matches zero or more segments, so this covers bare /blog too.
+      source: "/blog/:path*",
+      destination: "/",
+      permanent: true,
+    },
+  ],
+  headers: async () => [
+    {
+      source: "/",
+      headers: [
         {
-          source: "/",
-          destination: "/llms.txt",
-          has: [
-            {
-              type: "header",
-              key: "accept",
-              value: "(.*)text/markdown(.*)",
-            },
-          ],
-        },
-        {
-          source: "/llm.txt",
-          destination: "/llms.txt",
+          key: "Vary",
+          value: "Accept",
         },
       ],
-    };
-  },
+    },
+  ],
 };
 
 export default nextConfig;

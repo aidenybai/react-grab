@@ -1,4 +1,4 @@
-import type { OverlayBounds } from "react-grab/src/types.js";
+import type { OverlayBounds } from "@react-grab-source/types.js";
 
 const DEMO_WIDTH = 220;
 const DEMO_HEIGHT = 40;

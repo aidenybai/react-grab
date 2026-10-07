@@ -40,7 +40,8 @@ nr dev
 
 ```
 apps/
-├── e2e-app/             # E2E test target app (Vite)
+├── e2e-app-vite/        # E2E test target app (Vite)
+├── e2e-app-next/        # E2E test target app (Next, for Next-runtime paths)
 ├── openstory/           # Openstory gallery: UI states + ad-hoc targeting playground
 ├── web-extension/       # Browser extension
 └── website/             # Documentation site (react-grab.com)

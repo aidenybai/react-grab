@@ -1,23 +1,15 @@
 import {
   DEV_TOOLS_OVERLAY_Z_INDEX_THRESHOLD,
   OVERLAY_Z_INDEX_THRESHOLD,
-  USER_IGNORE_ATTRIBUTE,
   VIEWPORT_COVERAGE_THRESHOLD,
   VISIBILITY_CACHE_TTL_MS,
 } from "../constants.js";
 import { isElementVisible } from "./is-element-visible.js";
 import { isRootElement } from "./is-root-element.js";
-
-const isReactGrabElement = (element: Element): boolean => {
-  if (element.hasAttribute("data-react-grab")) return true;
-
-  const rootNode = element.getRootNode();
-  return rootNode instanceof ShadowRoot && rootNode.host.hasAttribute("data-react-grab");
-};
-
-const isUserIgnoredElement = (element: Element): boolean =>
-  element.hasAttribute(USER_IGNORE_ATTRIBUTE) ||
-  element.closest(`[${USER_IGNORE_ATTRIBUTE}]`) !== null;
+import { getElementComputedStyle } from "./get-element-computed-style.js";
+import { isReactGrabElement } from "./is-react-grab-element.js";
+import { isUserIgnoredElement } from "./is-user-ignored-element.js";
+import { getElementAdapter } from "../core/element-adapter.js";
 
 // Dev tools like react-scan create full-viewport canvas overlays with
 // pointer-events:none that elementsFromPoint still returns. Without this
@@ -58,11 +50,16 @@ interface VisibilityCache {
 
 let visibilityCache = new WeakMap<Element, VisibilityCache>();
 
+// Only for resize paths: media/container queries can flip visibility
+// synchronously on resize, so the TTL alone is not a safe staleness bound
+// there. Scroll paths must NOT call this — see invalidate-interaction-caches.
 export const clearVisibilityCache = (): void => {
   visibilityCache = new WeakMap<Element, VisibilityCache>();
 };
 
 export const isValidGrabbableElement = (element: Element): boolean => {
+  const adapter = getElementAdapter(element);
+  if (adapter) return adapter.isConnected();
   if (isRootElement(element)) {
     return false;
   }
@@ -82,19 +79,23 @@ export const isValidGrabbableElement = (element: Element): boolean => {
     return cached.isVisible;
   }
 
-  const computedStyle = window.getComputedStyle(element);
-
-  const isVisible = isElementVisible(element, computedStyle);
+  const isVisible = isElementVisible(element);
   if (!isVisible) {
     visibilityCache.set(element, { isVisible: false, timestamp: now });
     return false;
   }
 
   const couldBeOverlay =
-    element.clientWidth / window.innerWidth >= VIEWPORT_COVERAGE_THRESHOLD &&
-    element.clientHeight / window.innerHeight >= VIEWPORT_COVERAGE_THRESHOLD;
+    element.clientWidth / (element.ownerDocument.defaultView?.innerWidth ?? window.innerWidth) >=
+      VIEWPORT_COVERAGE_THRESHOLD &&
+    element.clientHeight / (element.ownerDocument.defaultView?.innerHeight ?? window.innerHeight) >=
+      VIEWPORT_COVERAGE_THRESHOLD;
 
   if (couldBeOverlay) {
+    // getComputedStyle is deferred to this branch on purpose: it is the
+    // expensive call in this function and only viewport-covering elements
+    // need the overlay heuristics.
+    const computedStyle = getElementComputedStyle(element);
     if (isDevToolsOverlay(computedStyle)) {
       return false;
     }

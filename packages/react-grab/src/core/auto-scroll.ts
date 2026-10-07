@@ -48,18 +48,24 @@ export const createAutoScroller = (
     if (direction.left) scrollDeltaX -= AUTO_SCROLL_SPEED_PX;
     if (direction.right) scrollDeltaX += AUTO_SCROLL_SPEED_PX;
 
+    let didScroll = false;
     if (scrollDeltaX !== 0 || scrollDeltaY !== 0) {
       const previousScrollX = window.scrollX;
       const previousScrollY = window.scrollY;
-      window.scrollBy(scrollDeltaX, scrollDeltaY);
+      window.scrollBy({
+        behavior: "instant",
+        left: scrollDeltaX,
+        top: scrollDeltaY,
+      });
       const didScrollByX = window.scrollX - previousScrollX;
       const didScrollByY = window.scrollY - previousScrollY;
-      if (didScrollByX !== 0 || didScrollByY !== 0) {
+      didScroll = didScrollByX !== 0 || didScrollByY !== 0;
+      if (didScroll) {
         onScrollStep?.({ x: didScrollByX, y: didScrollByY });
       }
     }
 
-    if (direction.top || direction.bottom || direction.left || direction.right) {
+    if (didScroll) {
       animationId = nativeRequestAnimationFrame(scroll);
     } else {
       animationId = null;

@@ -64,8 +64,7 @@ test.describe("Viewport and Scroll Handling", () => {
 
   test("should maintain selection after scrolling page", async ({ reactGrab }) => {
     await reactGrab.activate();
-    await reactGrab.hoverElement("li:first-child");
-    await reactGrab.waitForSelectionBox();
+    await reactGrab.hoverUntilSelected("li:first-child");
 
     await reactGrab.page.evaluate(() => {
       window.scrollBy(0, 50);
@@ -198,8 +197,7 @@ test.describe("Viewport and Scroll Handling", () => {
     reactGrab,
   }) => {
     await reactGrab.activate();
-    await reactGrab.hoverElement("[data-testid='todo-list'] li:first-child");
-    await reactGrab.waitForSelectionBox();
+    await reactGrab.hoverUntilSelected("[data-testid='todo-list'] li:first-child");
 
     await reactGrab.pressArrowDown();
     await reactGrab.page.waitForTimeout(100);
@@ -218,8 +216,7 @@ test.describe("Viewport and Scroll Handling", () => {
 
   test("should update selection position after viewport resize", async ({ reactGrab }) => {
     await reactGrab.activate();
-    await reactGrab.hoverElement("li:first-child");
-    await reactGrab.waitForSelectionBox();
+    await reactGrab.hoverUntilSelected("li:first-child");
 
     await reactGrab.page.setViewportSize({ width: 800, height: 600 });
     await reactGrab.page.waitForTimeout(200);
@@ -235,8 +232,7 @@ test.describe("Viewport and Scroll Handling", () => {
 
     await reactGrab.scrollPage(100);
 
-    await reactGrab.hoverElement("li:nth-child(5)");
-    await reactGrab.waitForSelectionBox();
+    await reactGrab.hoverUntilSelected("li:nth-child(5)");
 
     const isVisible = await reactGrab.isOverlayVisible();
     expect(isVisible).toBe(true);
@@ -257,8 +253,7 @@ test.describe("Viewport and Scroll Handling", () => {
     reactGrab,
   }) => {
     await reactGrab.activate();
-    await reactGrab.hoverElement("li:first-child");
-    await reactGrab.waitForSelectionBox();
+    await reactGrab.hoverUntilSelected("li:first-child");
 
     await reactGrab.pressArrowDown();
     await reactGrab.scrollPage(100);
@@ -271,8 +266,7 @@ test.describe("Viewport and Scroll Handling", () => {
     await reactGrab.activate();
     await reactGrab.scrollPage(50);
 
-    await reactGrab.hoverElement("li:first-child");
-    await reactGrab.waitForSelectionBox();
+    await reactGrab.hoverUntilSelected("li:first-child");
 
     await reactGrab.pressArrowDown();
     await reactGrab.pressArrowDown();
@@ -313,14 +307,12 @@ test.describe("Viewport and Scroll Handling", () => {
 
   test("should copy element after resize using click", async ({ reactGrab }) => {
     await reactGrab.activate();
-    await reactGrab.hoverElement("[data-testid='todo-list'] h1");
-    await reactGrab.waitForSelectionBox();
+    await reactGrab.hoverUntilSelected("[data-testid='todo-list'] h1");
 
     await reactGrab.page.setViewportSize({ width: 600, height: 400 });
     await reactGrab.page.waitForTimeout(200);
 
-    await reactGrab.hoverElement("[data-testid='todo-list'] h1");
-    await reactGrab.waitForSelectionBox();
+    await reactGrab.hoverUntilSelected("[data-testid='todo-list'] h1");
     await reactGrab.clickElement("[data-testid='todo-list'] h1");
 
     await expect

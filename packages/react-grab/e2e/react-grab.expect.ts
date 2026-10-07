@@ -11,7 +11,10 @@ const ensureDevServer = async () => {
   try {
     await fetch(BASE_URL);
   } catch {
-    const appDirectory = resolve(dirname(fileURLToPath(import.meta.url)), "../../../apps/e2e-app");
+    const appDirectory = resolve(
+      dirname(fileURLToPath(import.meta.url)),
+      "../../../apps/e2e-app-vite",
+    );
     execSync("pnpm dev &", { cwd: appDirectory, stdio: "ignore" });
 
     for (let elapsed = 0; elapsed < 30_000; elapsed += 500) {
@@ -34,9 +37,9 @@ for (const test of [
   "Activate via the toolbar toggle. Hover over 'Buy groceries' in the Todo List and verify a highlight appears. Click it and verify 'Copied' feedback shows. Then hover the green Submit button in the Form section, click it, and verify the overlay copies it instead of submitting the form.",
   "Activate via toolbar. Hover the page heading and right-click it. Verify a context menu appears with a Copy option. Click Copy and verify the menu closes with Copied feedback. Right-click a different element, then press Escape to dismiss.",
   "Find the collapse button on the toolbar and click it to collapse, then click again to expand. Drag the toolbar toward the top of the viewport and verify it snaps to the edge. Right-click the toggle button to open a menu, then press Escape to close it.",
-  "Activate and hover the Todo List. Press ArrowDown twice to move the highlight to successive elements, then ArrowUp to go back. Press ArrowLeft to select the parent container, then ArrowRight to go into a child.",
+  "Activate and hover the Todo List. Press ArrowDown twice to move the highlight to successive elements, then ArrowUp to go back. Press ArrowLeft and ArrowRight to move between sibling elements.",
   "Activate via toolbar. Click and drag from above 'Buy groceries' down past 'Write code' to create a selection rectangle. Release and verify multiple elements are selected with a count label and Copied feedback.",
-  "Activate, hover the heading, right-click, and click Comment. Verify a text input appears. Type 'test comment' and press Enter. Find a comments button on the toolbar and click it to verify the comment appears in a dropdown.",
+  "Activate, hover the heading, right-click, and click Comment. Verify a text input appears. Type 'test comment' and press Enter. Verify the submitted comment is copied with the selected element.",
   "Activate and hover the card labeled 'Outer Card', verify a highlight and label appear. Move into 'Middle Card' and verify the label updates. Hover 'Nested Button' and click to copy it, verify the Copied feedback.",
   "Activate and scroll down to 'Scrollable Content'. Hover a scrollable item and verify the highlight is correctly positioned. Scroll further to 'Dynamic Elements', hover one and click to copy it.",
   "Activate and hover the 'Edge Case Elements' section. Verify zero-size and invisible elements are not highlighted. Go to 'Dynamic Elements', click Add Element, verify the new element is highlightable, then click Remove on one and verify the overlay does not get stuck.",

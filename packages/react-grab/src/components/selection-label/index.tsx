@@ -12,7 +12,6 @@ import type { ArrowPosition, SelectionLabelProps } from "../../types.js";
 import {
   FADE_DURATION_MS,
   PANEL_SHADOW,
-  IME_COMPOSING_KEY_CODE,
   VIEWPORT_MARGIN_PX,
   ARROW_CENTER_PERCENT,
   ARROW_LABEL_MARGIN_PX,
@@ -22,8 +21,11 @@ import {
   Z_INDEX_OVERLAY,
 } from "../../constants.js";
 import { autoResizeTextarea } from "../../utils/auto-resize-textarea.js";
+import { focusInOverlay } from "../../utils/focus-in-overlay.js";
 import { getArrowSize } from "../../utils/get-arrow-size.js";
-import { isKeyboardEventTriggeredByInput } from "../../utils/is-keyboard-event-triggered-by-input.js";
+import { getVisualViewport } from "../../utils/get-visual-viewport.js";
+import { isKeyboardEventComposing } from "../../utils/is-keyboard-event-composing.js";
+import { getScopeContainer } from "../../utils/runtime-mode.js";
 import { cn } from "../../utils/cn.js";
 import { getTagDisplay } from "../../utils/get-tag-display.js";
 import { IconSubmit } from "../icons/icon-submit.jsx";
@@ -31,10 +33,10 @@ import { IconLoader } from "../icons/icon-loader.jsx";
 import { Arrow } from "./arrow.js";
 import { TagBadge } from "./tag-badge.js";
 import { BottomSection } from "./bottom-section.js";
+import { Surface } from "../ui/surface.js";
 import { DiscardPrompt } from "./discard-prompt.js";
 import { ErrorView } from "./error-view.js";
 import { CompletionView } from "./completion-view.js";
-import { ArrowNavigationMenu } from "./arrow-navigation-menu.js";
 
 interface LabelPosition {
   left: number;
@@ -80,24 +82,15 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
 
   const isCompletedStatus = () => props.status === "copied" || props.status === "fading";
 
-  const canToggleExpand = () =>
-    Boolean(props.shouldToggleExpandOnClick) &&
-    Boolean(props.onToggleExpand) &&
-    canInteract() &&
-    !props.discardPrompt &&
-    !props.isPromptMode;
-
   const shouldEnablePointerEvents = (): boolean => {
     if (props.isPromptMode) return true;
     if (props.discardPrompt) return true;
-    if (canToggleExpand()) return true;
     if (isCompletedStatus() && (props.onDismiss || props.onShowContextMenu)) {
       return true;
     }
     if (props.status === "error" && (props.onAcknowledgeError || props.onRetry)) {
       return true;
     }
-    if (props.arrowNavigationState?.isVisible) return true;
     return false;
   };
 
@@ -111,20 +104,8 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     setViewportVersion((version) => version + 1);
   };
 
-  const handleGlobalKeyDown = (event: KeyboardEvent) => {
-    if (isKeyboardEventTriggeredByInput(event)) return;
-
-    const isEnterToExpand =
-      event.code === "Enter" && !props.isPromptMode && !props.discardPrompt && canInteract();
-
-    if (isEnterToExpand) {
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      props.onToggleExpand?.();
-    }
-  };
-
   onMount(() => {
+    const scopeContainer = getScopeContainer();
     resizeObserver = new ResizeObserver((entries) => {
       for (const entry of entries) {
         const rect = entry.target.getBoundingClientRect();
@@ -136,9 +117,14 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           setMeasuredHeight(rect.height);
         } else if (entry.target === panelRef) {
           setPanelWidth(rect.width);
+        } else if (entry.target === scopeContainer) {
+          // Scoped instances clamp to the container's box, so its resizes must
+          // invalidate the position like a window resize does.
+          handleViewportChange();
         }
       }
     });
+    if (scopeContainer) resizeObserver.observe(scopeContainer);
     if (containerRef) {
       const rect = containerRef.getBoundingClientRect();
       setMeasuredWidth(rect.width);
@@ -153,9 +139,6 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     window.addEventListener("resize", handleViewportChange);
     window.visualViewport?.addEventListener("resize", handleViewportChange);
     window.visualViewport?.addEventListener("scroll", handleViewportChange);
-    if (props.onToggleExpand) {
-      window.addEventListener("keydown", handleGlobalKeyDown, { capture: true });
-    }
   });
 
   onCleanup(() => {
@@ -164,13 +147,6 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     window.removeEventListener("resize", handleViewportChange);
     window.visualViewport?.removeEventListener("resize", handleViewportChange);
     window.visualViewport?.removeEventListener("scroll", handleViewportChange);
-    // removeEventListener is a no-op for a listener that was never added,
-    // so it does not need to mirror the onMount onToggleExpand guard. If
-    // props.onToggleExpand were ever reactive between mount and cleanup,
-    // mirroring would leak the listener.
-    window.removeEventListener("keydown", handleGlobalKeyDown, {
-      capture: true,
-    });
   });
 
   const elementIdentity = () => `${props.tagName ?? ""}:${props.componentName ?? ""}`;
@@ -209,11 +185,14 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
         };
       }
 
-      const visualViewport = window.visualViewport;
-      const viewportLeft = visualViewport?.offsetLeft ?? 0;
-      const viewportTop = visualViewport?.offsetTop ?? 0;
-      const viewportRight = viewportLeft + (visualViewport?.width ?? window.innerWidth);
-      const viewportBottom = viewportTop + (visualViewport?.height ?? window.innerHeight);
+      // Scope-aware: inside a scoped instance (demo showcases) the container's
+      // box is the viewport, so the label stays within the showcase card
+      // instead of spilling over the host page.
+      const viewport = getVisualViewport();
+      const viewportLeft = viewport.offsetLeft;
+      const viewportTop = viewport.offsetTop;
+      const viewportRight = viewportLeft + viewport.width;
+      const viewportBottom = viewportTop + viewport.height;
 
       const isSelectionVisibleInViewport =
         bounds.x + bounds.width > viewportLeft &&
@@ -246,16 +225,14 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
       let edgeOffsetX = 0;
       let positionTop = selectionBottom + actualArrowHeight + LABEL_GAP_PX;
 
-      if (labelWidth > 0) {
-        const labelLeft = anchorX - labelWidth / 2;
-        const labelRight = anchorX + labelWidth / 2;
+      const labelLeft = anchorX - labelWidth / 2;
+      const labelRight = anchorX + labelWidth / 2;
 
-        if (labelRight > viewportRight - VIEWPORT_MARGIN_PX) {
-          edgeOffsetX = viewportRight - VIEWPORT_MARGIN_PX - labelRight;
-        }
-        if (labelLeft + edgeOffsetX < viewportLeft + VIEWPORT_MARGIN_PX) {
-          edgeOffsetX = viewportLeft + VIEWPORT_MARGIN_PX - labelLeft;
-        }
+      if (labelRight > viewportRight - VIEWPORT_MARGIN_PX) {
+        edgeOffsetX = viewportRight - VIEWPORT_MARGIN_PX - labelRight;
+      }
+      if (labelLeft + edgeOffsetX < viewportLeft + VIEWPORT_MARGIN_PX) {
+        edgeOffsetX = viewportLeft + VIEWPORT_MARGIN_PX - labelLeft;
       }
 
       const totalHeightNeeded = labelHeight + actualArrowHeight + LABEL_GAP_PX;
@@ -311,7 +288,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
   );
 
   const handleKeyDown = (event: KeyboardEvent) => {
-    if (event.isComposing || event.keyCode === IME_COMPOSING_KEY_CODE) {
+    if (isKeyboardEventComposing(event)) {
       return;
     }
 
@@ -345,11 +322,9 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
       elementsCount: props.elementsCount,
     });
 
-  const isArrowNavigationVisible = () => Boolean(props.arrowNavigationState?.isVisible);
-
   const isSinglePanelLine = createMemo(() => {
     if (props.error || props.discardPrompt) return false;
-    if (canInteract() && (props.isPromptMode || isArrowNavigationVisible())) return false;
+    if (canInteract() && props.isPromptMode) return false;
     return true;
   });
 
@@ -357,10 +332,6 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     event.stopImmediatePropagation();
     if (props.filePath && props.onOpen) {
       props.onOpen();
-      return;
-    }
-    if (canToggleExpand()) {
-      props.onToggleExpand?.();
     }
   };
 
@@ -369,7 +340,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
     const isEditableInputVisible =
       canInteract() && props.isPromptMode && !props.discardPrompt && props.onSubmit;
     if (isEditableInputVisible && inputRef) {
-      inputRef.focus({ preventScroll: true });
+      focusInOverlay(inputRef, { preventScroll: true });
     }
   };
 
@@ -382,7 +353,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
         ref={containerRef}
         data-react-grab-ignore-events
         data-react-grab-selection-label
-        class={cn("fixed font-sans text-[13px] antialiased select-none ease-out")}
+        class="fixed font-sans text-[13px] antialiased select-none"
         style={{
           top: `${positionComputation().position.top}px`,
           left: `${positionComputation().position.left}px`,
@@ -418,16 +389,10 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           />
         </Show>
 
-        <div
-          ref={panelRef}
-          class={cn(
-            "contain-layout flex items-center gap-[5px] antialiased w-fit h-fit p-0 [font-synthesis:none]",
-            isSinglePanelLine()
-              ? "rounded-full"
-              : "rounded-[14px] [corner-shape:superellipse(1.25)]",
-            "bg-[var(--rg-panel-bg)]",
-            isShaking() && "animate-shake",
-          )}
+        <Surface
+          ref={(element) => (panelRef = element)}
+          shape={isSinglePanelLine() ? "pill" : "panel"}
+          class={cn("flex items-center gap-[5px] w-fit h-fit p-0", isShaking() && "animate-shake")}
           style={{
             display: isCompletedStatus() && !props.error ? "none" : undefined,
           }}
@@ -437,27 +402,17 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
             <div class="contain-layout shrink-0 flex flex-col justify-center items-start w-fit h-fit max-w-[280px]">
               <div class="contain-layout shrink-0 flex items-center gap-1 py-1.5 px-2 w-full h-fit">
                 <IconLoader size={13} class="text-[var(--rg-text-secondary)] shrink-0" />
-                <span class="shimmer-text text-[13px] leading-4 font-sans font-medium h-fit tabular-nums overflow-hidden text-ellipsis whitespace-nowrap">
-                  {props.statusText ?? "Grabbing…"}
-                </span>
+                <span
+                  class="shimmer-text text-[13px] leading-4 font-sans font-medium h-fit tabular-nums overflow-hidden text-ellipsis whitespace-nowrap"
+                  textContent={props.statusText ?? "Grabbing…"}
+                />
               </div>
             </div>
           </Show>
 
           <Show when={canInteract() && !props.isPromptMode && !props.discardPrompt}>
-            <div
-              class="contain-layout shrink-0 flex flex-col items-start w-fit h-fit"
-              classList={{
-                "min-w-[100px]": isArrowNavigationVisible(),
-              }}
-            >
-              <div
-                class="contain-layout shrink-0 flex items-center gap-1 w-fit h-fit px-2"
-                classList={{
-                  "py-1.5": !isArrowNavigationVisible(),
-                  "pt-1.5 pb-1": isArrowNavigationVisible(),
-                }}
-              >
+            <div class="contain-layout shrink-0 flex flex-col items-start w-fit h-fit">
+              <div class="contain-layout shrink-0 flex items-center gap-1 w-fit h-fit px-2 py-1.5">
                 <TagBadge
                   tagName={tagDisplayResult().tagName}
                   componentName={tagDisplayResult().componentName}
@@ -467,13 +422,6 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                   shrink
                 />
               </div>
-              <Show when={props.arrowNavigationState?.isVisible}>
-                <ArrowNavigationMenu
-                  items={props.arrowNavigationState!.items}
-                  activeIndex={props.arrowNavigationState!.activeIndex}
-                  onSelect={(index) => props.onArrowNavigationSelect?.(index)}
-                />
-              </Show>
             </div>
           </Show>
 
@@ -498,7 +446,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                       // synchronously can fail or cause a scroll jump.
                       if (props.onSubmit) {
                         queueMicrotask(() => {
-                          element.focus({ preventScroll: true });
+                          focusInOverlay(element, { preventScroll: true });
                           autoResizeTextarea(element, TEXTAREA_MAX_HEIGHT_PX);
                         });
                       }
@@ -537,29 +485,24 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
             </div>
           </Show>
 
-          <Show when={props.discardPrompt}>
-            {(discardPrompt) => {
-              const currentDiscardPrompt = discardPrompt();
-              return (
-                <DiscardPrompt
-                  label={
-                    currentDiscardPrompt.isKeyboardSelection
-                      ? "Discard selection?"
-                      : currentDiscardPrompt.label
+          <Show when={props.discardPrompt} keyed>
+            {(discardPrompt) => (
+              <DiscardPrompt
+                label={
+                  discardPrompt.isKeyboardSelection ? "Discard selection?" : discardPrompt.label
+                }
+                showCancel={!discardPrompt.isKeyboardSelection}
+                cancelOnEscape={discardPrompt.cancelOnEscape}
+                onConfirm={discardPrompt.onConfirm}
+                onCopy={discardPrompt.onCopy}
+                onCancel={() => {
+                  if (!discardPrompt.isKeyboardSelection) {
+                    discardPrompt.onCancel?.();
                   }
-                  showCancel={!currentDiscardPrompt.isKeyboardSelection}
-                  cancelOnEscape={currentDiscardPrompt.cancelOnEscape}
-                  onConfirm={currentDiscardPrompt.onConfirm}
-                  onCopy={currentDiscardPrompt.onCopy}
-                  onCancel={() => {
-                    if (!currentDiscardPrompt.isKeyboardSelection) {
-                      currentDiscardPrompt.onCancel?.();
-                    }
-                    inputRef?.focus({ preventScroll: true });
-                  }}
-                />
-              );
-            }}
+                  focusInOverlay(inputRef, { preventScroll: true });
+                }}
+              />
+            )}
           </Show>
 
           <Show when={props.error}>
@@ -569,7 +512,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
               onRetry={props.onRetry}
             />
           </Show>
-        </div>
+        </Surface>
       </div>
     </Show>
   );

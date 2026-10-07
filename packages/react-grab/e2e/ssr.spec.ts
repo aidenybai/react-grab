@@ -94,6 +94,18 @@ test.describe("SSR Compatibility", () => {
       ].join(" ");
       expect(runInNode(code)).toBe("OK");
     });
+
+    test("production bundles should report queued plugin setup failures", () => {
+      const code = [
+        "const m = require('./dist/index.cjs');",
+        "let didWarn = false;",
+        "console.warn = () => { didWarn = true; };",
+        "m.registerPlugin({ name: 'failing-plugin' });",
+        "m.setGlobalApi({ registerPlugin: () => { throw new Error('setup failed'); } });",
+        "console.log(didWarn ? 'REPORTED' : 'SILENT');",
+      ].join(" ");
+      expect(runInNode(code)).toBe("REPORTED");
+    });
   });
 
   test.describe("Noop API", () => {

@@ -19,8 +19,8 @@ test.describe("Shift Multi-Select", () => {
   }) => {
     await reactGrab.activate();
 
-    const firstItem = reactGrab.page.locator("[data-testid='todo-list'] li").nth(0);
-    const lastItem = reactGrab.page.locator("[data-testid='todo-list'] li").nth(6);
+    const firstItem = reactGrab.page.locator("[data-testid='todo-list'] li span").nth(0);
+    const lastItem = reactGrab.page.locator("[data-testid='todo-list'] li span").nth(6);
 
     const firstBox = await firstItem.boundingBox();
     const lastBox = await lastItem.boundingBox();
@@ -50,8 +50,8 @@ test.describe("Shift Multi-Select", () => {
   }) => {
     await reactGrab.activate();
 
-    const firstItem = reactGrab.page.locator("[data-testid='todo-list'] li").nth(0);
-    const secondItem = reactGrab.page.locator("[data-testid='todo-list'] li").nth(1);
+    const firstItem = reactGrab.page.locator("[data-testid='todo-list'] li span").nth(0);
+    const secondItem = reactGrab.page.locator("[data-testid='todo-list'] li span").nth(1);
 
     const firstBox = await firstItem.boundingBox();
     const secondBox = await secondItem.boundingBox();
@@ -93,8 +93,8 @@ test.describe("Shift Multi-Select", () => {
   }) => {
     await reactGrab.activate();
 
-    const firstItem = reactGrab.page.locator("[data-testid='todo-list'] li").nth(0);
-    const secondItem = reactGrab.page.locator("[data-testid='todo-list'] li").nth(1);
+    const firstItem = reactGrab.page.locator("[data-testid='todo-list'] li span").nth(0);
+    const secondItem = reactGrab.page.locator("[data-testid='todo-list'] li span").nth(1);
 
     const firstBox = await firstItem.boundingBox();
     const secondBox = await secondItem.boundingBox();
@@ -158,7 +158,7 @@ test.describe("Shift Multi-Select", () => {
   }) => {
     await reactGrab.activate();
 
-    const firstItem = reactGrab.page.locator("[data-testid='todo-list'] li").nth(0);
+    const firstItem = reactGrab.page.locator("[data-testid='todo-list'] li span").nth(0);
 
     const firstBox = await firstItem.boundingBox();
     if (!firstBox) throw new Error("Could not get bounding box");
@@ -176,7 +176,7 @@ test.describe("Shift Multi-Select", () => {
       const label = shadowRoot?.querySelector("[data-react-grab-selection-label]");
       return label?.textContent?.replace(/\s+/g, " ").trim() ?? "";
     });
-    expect(firstLabelText).toContain("TodoItem.li");
+    expect(firstLabelText).toContain("TodoItem.span");
 
     const initialLabelBounds = await reactGrab.getSelectionLabelBounds();
     if (!initialLabelBounds) throw new Error("Could not get initial label bounds");
@@ -203,13 +203,82 @@ test.describe("Shift Multi-Select", () => {
     await reactGrab.page.keyboard.up("Shift");
   });
 
+  test("should preserve frozen and copied labels across viewport updates", async ({
+    reactGrab,
+  }) => {
+    await reactGrab.activate();
+
+    const firstItem = reactGrab.page.locator("[data-testid='todo-list'] li span").first();
+    const secondItem = reactGrab.page.locator("[data-testid='todo-list'] li span").nth(1);
+    const firstBox = await firstItem.boundingBox();
+    const secondBox = await secondItem.boundingBox();
+    if (!firstBox || !secondBox) throw new Error("Could not get bounding boxes");
+
+    await reactGrab.page.keyboard.up("Shift");
+    await reactGrab.page.keyboard.down("Shift");
+    await reactGrab.page.mouse.click(
+      firstBox.x + firstBox.width / 2,
+      firstBox.y + firstBox.height / 2,
+    );
+    await reactGrab.page.mouse.click(
+      secondBox.x + secondBox.width / 2,
+      secondBox.y + secondBox.height / 2,
+    );
+    await expect
+      .poll(async () =>
+        reactGrab.page.evaluate(() => {
+          const host = document.querySelector("[data-react-grab]");
+          return (
+            host?.shadowRoot?.querySelectorAll("[data-react-grab-selection-label]").length ?? 0
+          );
+        }),
+      )
+      .toBe(SHIFT_LABEL_ANCHORED_COUNT);
+
+    const didPreserveLabelInstance = await reactGrab.page.evaluate(async () => {
+      const host = document.querySelector("[data-react-grab]");
+      const initialLabel = host?.shadowRoot?.querySelector("[data-react-grab-selection-label]");
+      if (!initialLabel) throw new Error("Could not find frozen label");
+
+      window.dispatchEvent(new Event("scroll"));
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+
+      const currentLabel = host?.shadowRoot?.querySelector("[data-react-grab-selection-label]");
+      return currentLabel === initialLabel;
+    });
+
+    expect(didPreserveLabelInstance).toBe(true);
+    await reactGrab.page.keyboard.up("Shift");
+
+    await expect
+      .poll(async () => {
+        const instances = await reactGrab.getLabelInstancesInfo();
+        return instances.filter((instance) => instance.status === "copied").length;
+      })
+      .toBe(SHIFT_LABEL_ANCHORED_COUNT);
+
+    const didPreserveCopiedLabel = await reactGrab.page.evaluate(async () => {
+      const host = document.querySelector("[data-react-grab]");
+      const initialLabel = host?.shadowRoot?.querySelector("[data-react-grab-selection-label]");
+      if (!initialLabel) throw new Error("Could not find copied label");
+
+      window.dispatchEvent(new Event("scroll"));
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+
+      const currentLabel = host?.shadowRoot?.querySelector("[data-react-grab-selection-label]");
+      return currentLabel === initialLabel;
+    });
+
+    expect(didPreserveCopiedLabel).toBe(true);
+  });
+
   test("should keep every shift-selected label anchored to its click position", async ({
     reactGrab,
   }) => {
     await reactGrab.activate();
 
-    const firstItem = reactGrab.page.locator("[data-testid='todo-list'] li").nth(0);
-    const secondItem = reactGrab.page.locator("[data-testid='todo-list'] li").nth(1);
+    const firstItem = reactGrab.page.locator("[data-testid='todo-list'] li span").nth(0);
+    const secondItem = reactGrab.page.locator("[data-testid='todo-list'] li span").nth(1);
 
     const firstBox = await firstItem.boundingBox();
     const secondBox = await secondItem.boundingBox();
@@ -260,83 +329,13 @@ test.describe("Shift Multi-Select", () => {
     await reactGrab.page.keyboard.up("Shift");
   });
 
-  test("should expand the first frozen label without toggling the element below", async ({
-    reactGrab,
-  }) => {
-    await reactGrab.activate();
-
-    const firstItem = reactGrab.page.locator("[data-testid='todo-list'] li").nth(0);
-    const secondItem = reactGrab.page.locator("[data-testid='todo-list'] li").nth(1);
-
-    const firstBox = await firstItem.boundingBox();
-    const secondBox = await secondItem.boundingBox();
-    if (!firstBox || !secondBox) throw new Error("Could not get bounding boxes");
-
-    const firstLabelAnchorX = firstBox.x + firstBox.width * SHIFT_LABEL_CLICK_ANCHOR_RATIO;
-    const secondLabelAnchorX =
-      secondBox.x + secondBox.width * SHIFT_LABEL_SECOND_CLICK_ANCHOR_RATIO;
-
-    await reactGrab.page.keyboard.up("Shift");
-    await reactGrab.page.keyboard.down("Shift");
-    await reactGrab.page.mouse.click(firstLabelAnchorX, firstBox.y + firstBox.height / 2);
-    await reactGrab.page.mouse.click(secondLabelAnchorX, secondBox.y + secondBox.height / 2);
-
-    await expect
-      .poll(async () =>
-        reactGrab.page.evaluate(() => {
-          const host = document.querySelector("[data-react-grab]");
-          const shadowRoot = host?.shadowRoot;
-          const labels = shadowRoot?.querySelectorAll<HTMLElement>(
-            "[data-react-grab-selection-label]",
-          );
-          return labels?.length ?? 0;
-        }),
-      )
-      .toBe(SHIFT_LABEL_ANCHORED_COUNT);
-
-    const firstLabelBounds = await reactGrab.page.evaluate(() => {
-      const host = document.querySelector("[data-react-grab]");
-      const shadowRoot = host?.shadowRoot;
-      const label = shadowRoot?.querySelector<HTMLElement>("[data-react-grab-selection-label]");
-      if (!label) return null;
-      const rect = label.getBoundingClientRect();
-      return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
-    });
-    if (!firstLabelBounds) throw new Error("Could not get first frozen label bounds");
-
-    await reactGrab.page.mouse.click(
-      firstLabelBounds.x + firstLabelBounds.width / 2,
-      firstLabelBounds.y + firstLabelBounds.height / 2,
-    );
-
-    // Label expansion now opens the style-tweak edit panel (this PR
-    // re-pointed handleToggleExpand from prompt mode to edit mode).
-    // The "expansion" behavior the test was guarding against ("don't
-    // toggle the element below") is still verified by checking that
-    // the active surface opens for the first label — the panel's
-    // existence proves the first-label-click landed and didn't bubble
-    // down to toggle the element underneath.
-    await expect
-      .poll(async () =>
-        reactGrab.page.evaluate((attrName) => {
-          const host = document.querySelector(`[${attrName}]`);
-          const shadowRoot = host?.shadowRoot;
-          return Boolean(shadowRoot?.querySelector("[data-react-grab-edit-panel]"));
-        }, "data-react-grab"),
-      )
-      .toBe(true);
-
-    await reactGrab.page.keyboard.up("Shift");
-    await reactGrab.pressEscape();
-  });
-
   test("should render a copied indicator per shift-selected element after release", async ({
     reactGrab,
   }) => {
     await reactGrab.activate();
 
-    const firstItem = reactGrab.page.locator("[data-testid='todo-list'] li").nth(0);
-    const secondItem = reactGrab.page.locator("[data-testid='todo-list'] li").nth(1);
+    const firstItem = reactGrab.page.locator("[data-testid='todo-list'] li span").nth(0);
+    const secondItem = reactGrab.page.locator("[data-testid='todo-list'] li span").nth(1);
 
     const firstBox = await firstItem.boundingBox();
     const secondBox = await secondItem.boundingBox();
@@ -381,8 +380,8 @@ test.describe("Shift Multi-Select", () => {
   }) => {
     await reactGrab.activate();
 
-    const firstItem = reactGrab.page.locator("[data-testid='todo-list'] li").nth(0);
-    const secondItem = reactGrab.page.locator("[data-testid='todo-list'] li").nth(1);
+    const firstItem = reactGrab.page.locator("[data-testid='todo-list'] li span").nth(0);
+    const secondItem = reactGrab.page.locator("[data-testid='todo-list'] li span").nth(1);
 
     const firstBox = await firstItem.boundingBox();
     const secondBox = await secondItem.boundingBox();
@@ -457,9 +456,9 @@ test.describe("Shift Multi-Select", () => {
   test("should preserve drag preview while shift multi-selecting", async ({ reactGrab }) => {
     await reactGrab.activate();
 
-    const firstItem = reactGrab.page.locator("[data-testid='todo-list'] li").nth(0);
-    const secondItem = reactGrab.page.locator("[data-testid='todo-list'] li").nth(1);
-    const thirdItem = reactGrab.page.locator("[data-testid='todo-list'] li").nth(2);
+    const firstItem = reactGrab.page.locator("[data-testid='todo-list'] li span").nth(0);
+    const secondItem = reactGrab.page.locator("[data-testid='todo-list'] li span").nth(1);
+    const thirdItem = reactGrab.page.locator("[data-testid='todo-list'] li span").nth(2);
 
     const firstBox = await firstItem.boundingBox();
     const secondBox = await secondItem.boundingBox();
@@ -493,8 +492,8 @@ test.describe("Shift Multi-Select", () => {
   test("should toggle element off when shift+clicking it twice", async ({ reactGrab }) => {
     await reactGrab.activate();
 
-    const firstItem = reactGrab.page.locator("[data-testid='todo-list'] li").nth(0);
-    const secondItem = reactGrab.page.locator("[data-testid='todo-list'] li").nth(1);
+    const firstItem = reactGrab.page.locator("[data-testid='todo-list'] li span").nth(0);
+    const secondItem = reactGrab.page.locator("[data-testid='todo-list'] li span").nth(1);
 
     const firstBox = await firstItem.boundingBox();
     const secondBox = await secondItem.boundingBox();
@@ -529,7 +528,7 @@ test.describe("Shift Multi-Select", () => {
     await reactGrab.page.evaluate(() => navigator.clipboard.writeText("baseline"));
     await reactGrab.activate();
 
-    const firstItem = reactGrab.page.locator("[data-testid='todo-list'] li").nth(0);
+    const firstItem = reactGrab.page.locator("[data-testid='todo-list'] li span").nth(0);
     const firstBox = await firstItem.boundingBox();
     if (!firstBox) throw new Error("Could not get bounding box");
 
@@ -556,9 +555,9 @@ test.describe("Shift Multi-Select", () => {
   }) => {
     await reactGrab.activate();
 
-    const firstItem = reactGrab.page.locator("[data-testid='todo-list'] li").nth(0);
-    const secondItem = reactGrab.page.locator("[data-testid='todo-list'] li").nth(1);
-    const lastItem = reactGrab.page.locator("[data-testid='todo-list'] li").nth(6);
+    const firstItem = reactGrab.page.locator("[data-testid='todo-list'] li span").nth(0);
+    const secondItem = reactGrab.page.locator("[data-testid='todo-list'] li span").nth(1);
+    const lastItem = reactGrab.page.locator("[data-testid='todo-list'] li span").nth(6);
 
     const firstBox = await firstItem.boundingBox();
     const secondBox = await secondItem.boundingBox();
@@ -594,8 +593,8 @@ test.describe("Shift Multi-Select", () => {
     await reactGrab.page.evaluate(() => navigator.clipboard.writeText("baseline"));
     await reactGrab.activate();
 
-    const firstItem = reactGrab.page.locator("[data-testid='todo-list'] li").nth(0);
-    const secondItem = reactGrab.page.locator("[data-testid='todo-list'] li").nth(1);
+    const firstItem = reactGrab.page.locator("[data-testid='todo-list'] li span").nth(0);
+    const secondItem = reactGrab.page.locator("[data-testid='todo-list'] li span").nth(1);
 
     const firstBox = await firstItem.boundingBox();
     const secondBox = await secondItem.boundingBox();
@@ -631,8 +630,8 @@ test.describe("Shift Multi-Select", () => {
   test("should render a tag label under each accumulated element", async ({ reactGrab }) => {
     await reactGrab.activate();
 
-    const firstItem = reactGrab.page.locator("[data-testid='todo-list'] li").nth(0);
-    const secondItem = reactGrab.page.locator("[data-testid='todo-list'] li").nth(1);
+    const firstItem = reactGrab.page.locator("[data-testid='todo-list'] li span").nth(0);
+    const secondItem = reactGrab.page.locator("[data-testid='todo-list'] li span").nth(1);
 
     const firstBox = await firstItem.boundingBox();
     const secondBox = await secondItem.boundingBox();
@@ -663,7 +662,7 @@ test.describe("Shift Multi-Select", () => {
     expect(labelTexts.length).toBeGreaterThanOrEqual(2);
     const concatenatedLabelText = labelTexts.join(" ");
     expect(concatenatedLabelText).not.toContain("elements");
-    expect(concatenatedLabelText).toContain("li");
+    expect(concatenatedLabelText).toContain("span");
 
     await reactGrab.page.keyboard.up("Shift");
   });
@@ -673,9 +672,9 @@ test.describe("Shift Multi-Select", () => {
   }) => {
     await reactGrab.activate();
 
-    const firstItem = reactGrab.page.locator("[data-testid='todo-list'] li").nth(0);
-    const secondItem = reactGrab.page.locator("[data-testid='todo-list'] li").nth(1);
-    const lastItem = reactGrab.page.locator("[data-testid='todo-list'] li").nth(6);
+    const firstItem = reactGrab.page.locator("[data-testid='todo-list'] li span").nth(0);
+    const secondItem = reactGrab.page.locator("[data-testid='todo-list'] li span").nth(1);
+    const lastItem = reactGrab.page.locator("[data-testid='todo-list'] li span").nth(6);
 
     const firstBox = await firstItem.boundingBox();
     const secondBox = await secondItem.boundingBox();
@@ -714,8 +713,8 @@ test.describe("Shift Multi-Select", () => {
   test("should clear shift multi-select state when window loses focus", async ({ reactGrab }) => {
     await reactGrab.activate();
 
-    const firstItem = reactGrab.page.locator("[data-testid='todo-list'] li").nth(0);
-    const secondItem = reactGrab.page.locator("[data-testid='todo-list'] li").nth(1);
+    const firstItem = reactGrab.page.locator("[data-testid='todo-list'] li span").nth(0);
+    const secondItem = reactGrab.page.locator("[data-testid='todo-list'] li span").nth(1);
 
     const firstBox = await firstItem.boundingBox();
     const secondBox = await secondItem.boundingBox();
@@ -757,8 +756,8 @@ test.describe("Shift Multi-Select", () => {
   }) => {
     await reactGrab.activate();
 
-    const firstItem = reactGrab.page.locator("[data-testid='todo-list'] li").nth(0);
-    const secondItem = reactGrab.page.locator("[data-testid='todo-list'] li").nth(1);
+    const firstItem = reactGrab.page.locator("[data-testid='todo-list'] li span").nth(0);
+    const secondItem = reactGrab.page.locator("[data-testid='todo-list'] li span").nth(1);
 
     const firstBox = await firstItem.boundingBox();
     const secondBox = await secondItem.boundingBox();
@@ -792,9 +791,9 @@ test.describe("Shift Multi-Select", () => {
   test("should extend existing drag selection with shift+click", async ({ reactGrab }) => {
     await reactGrab.activate();
 
-    const firstItem = reactGrab.page.locator("[data-testid='todo-list'] li").nth(0);
-    const secondItem = reactGrab.page.locator("[data-testid='todo-list'] li").nth(1);
-    const lastItem = reactGrab.page.locator("[data-testid='todo-list'] li").nth(6);
+    const firstItem = reactGrab.page.locator("[data-testid='todo-list'] li span").nth(0);
+    const secondItem = reactGrab.page.locator("[data-testid='todo-list'] li span").nth(1);
+    const lastItem = reactGrab.page.locator("[data-testid='todo-list'] li span").nth(6);
 
     const firstBox = await firstItem.boundingBox();
     const secondBox = await secondItem.boundingBox();

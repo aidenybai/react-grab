@@ -11,13 +11,13 @@ import net from "node:net";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PACKAGE_ROOT = resolve(__dirname, "..");
 const REPO_ROOT = resolve(__dirname, "../../..");
-const OUTPUT_DIR = resolve(PACKAGE_ROOT, "perf");
+const OUTPUT_DIR = resolve(PACKAGE_ROOT, "perf", process.env.PERF_LABEL ?? "current");
 
 const E2E_APP_URL = process.env.DEOPT_TRACE_E2E_URL || "http://localhost:5175";
 const PERF_GRID_PATH = process.env.DEOPT_TRACE_PAGE_PATH || "/?perf=grid&rows=50&cols=10";
 const SERVER_READY_TIMEOUT_MS = Number(process.env.DEOPT_TRACE_SERVER_TIMEOUT_MS) || 60_000;
 const CDP_READY_TIMEOUT_MS = Number(process.env.DEOPT_TRACE_CDP_TIMEOUT_MS) || 20_000;
-const E2E_APP_FILTER = process.env.DEOPT_TRACE_E2E_FILTER || "@react-grab/e2e-app";
+const E2E_APP_FILTER = process.env.DEOPT_TRACE_E2E_FILTER || "@react-grab/e2e-app-vite";
 const DIST_ENTRY = resolve(PACKAGE_ROOT, "dist/index.js");
 
 const resolveChromeBinary = () => {
@@ -51,7 +51,7 @@ const waitForServer = async (url, timeoutMs) => {
 };
 
 const startDevServer = () => {
-  log(`starting e2e-app dev server (pnpm --filter ${E2E_APP_FILTER} dev) ...`);
+  log(`starting e2e-app-vite dev server (pnpm --filter ${E2E_APP_FILTER} dev) ...`);
   const child = spawn("pnpm", ["--filter", E2E_APP_FILTER, "dev"], {
     cwd: REPO_ROOT,
     stdio: ["ignore", "pipe", "pipe"],
@@ -108,9 +108,7 @@ const launchChromeWithDeoptTrace = async () => {
     process.env.DEOPT_TRACE_PROFILE_DIR || (process.env.TMPDIR ?? "/tmp"),
     `deopt-trace-profile-${Date.now()}`,
   );
-  const jsFlags = ["--trace-deopt", "--trace-deopt-verbose", "--log-deopt", "--code-comments"].join(
-    " ",
-  );
+  const jsFlags = ["--trace-deopt", "--trace-deopt-verbose"].join(" ");
   const args = [
     `--remote-debugging-port=${port}`,
     `--user-data-dir=${userDataDir}`,
@@ -123,7 +121,9 @@ const launchChromeWithDeoptTrace = async () => {
     "about:blank",
   ];
   log(`launching ${chromeBinary} with js-flags: ${jsFlags}`);
+  await mkdir(userDataDir, { recursive: true });
   const child = spawn(chromeBinary, args, {
+    cwd: userDataDir,
     stdio: ["ignore", "pipe", "pipe"],
     env: { ...process.env },
   });
@@ -421,7 +421,7 @@ const runScenarios = async (page) => {
 // synthetic per-cell loops above never touch (context menu, keyboard nav, copy
 // flow, modals, drag through real listeners, etc.).
 const runFullAppScenarios = async (page) => {
-  log("navigating to full e2e-app");
+  log("navigating to full e2e-app-vite");
   await page.goto(E2E_APP_URL, { waitUntil: "domcontentloaded" });
   await page.waitForFunction(() => Boolean(window.__REACT_GRAB__), null, { timeout: 10_000 });
   await page.waitForSelector("[data-testid='todo-list']", { timeout: 10_000 });
@@ -588,14 +588,17 @@ const runFullAppScenarios = async (page) => {
 const parseDeopts = (stderrText) => {
   const lines = stderrText.split(/\r?\n/);
   const deoptLines = lines.filter(
-    (line) => line.startsWith("[deoptimizing") || line.startsWith("[bailout"),
+    (line) =>
+      (line.startsWith("[deoptimizing") || line.startsWith("[bailout")) &&
+      !line.startsWith("[bailout end") &&
+      !line.startsWith("[deoptimizing end"),
   );
   const grouped = new Map();
   for (const line of deoptLines) {
-    const reasonMatch = line.match(/reason: ([^,\]]+)/);
+    const reasonMatch = line.match(/reason: (.*?)\): begin/) || line.match(/reason: ([^,\])]+)/);
     const fnMatch =
       line.match(/<JSFunction ([^ ]+)\s+\(sfi = ([^)]+)\)>/) || line.match(/<JSFunction ([^>]+)>/);
-    const kindMatch = line.match(/kind:\s*([A-Za-z]+)/);
+    const kindMatch = line.match(/kind:\s*([A-Za-z-]+)/);
     const positionMatch =
       line.match(/at\s+<([^>]+)>:(\d+)/) || line.match(/<([^:>]+):(\d+):(\d+)>/);
     const eventType = line.startsWith("[deoptimizing") ? "deopt" : "bailout";
@@ -676,17 +679,17 @@ const main = async () => {
 
   const stderrText = chromeHandle.getStderr();
   await mkdir(OUTPUT_DIR, { recursive: true });
-  const stderrPath = resolve(OUTPUT_DIR, "deopt-trace.stderr.log");
+  const stderrPath = resolve(OUTPUT_DIR, "deopt.stderr.log");
   await writeFile(stderrPath, stderrText);
   log(`wrote raw chrome stderr to ${stderrPath} (${stderrText.length} bytes)`);
 
   const { totalDeoptLines, deoptLines, summary } = parseDeopts(stderrText);
-  const summaryPath = resolve(OUTPUT_DIR, "deopt-trace.summary.json");
+  const summaryPath = resolve(OUTPUT_DIR, "deopt.summary.json");
   await writeFile(
     summaryPath,
     JSON.stringify({ totalDeoptLines, uniqueSites: summary.length, summary }, null, 2),
   );
-  const rawDeoptPath = resolve(OUTPUT_DIR, "deopt-trace.lines.log");
+  const rawDeoptPath = resolve(OUTPUT_DIR, "deopt.lines.log");
   await writeFile(rawDeoptPath, deoptLines.join("\n"));
   log(
     `wrote ${totalDeoptLines} deopt lines (${summary.length} unique) to ${summaryPath} and ${rawDeoptPath}`,

@@ -43,7 +43,7 @@ export const getPositionFromEdgeAndRatio = (
     viewport.offsetTop + viewportHeight - elementHeight - TOOLBAR_SNAP_MARGIN_PX,
   );
 
-  if (edge === "top" || edge === "bottom") {
+  if (isHorizontalEdge(edge)) {
     const availableWidth = Math.max(0, viewportWidth - elementWidth - TOOLBAR_SNAP_MARGIN_PX * 2);
     const positionX = Math.min(
       maxX,
@@ -73,7 +73,7 @@ export const getRatioFromPosition = (
   const viewportWidth = viewport.width;
   const viewportHeight = viewport.height;
 
-  if (edge === "top" || edge === "bottom") {
+  if (isHorizontalEdge(edge)) {
     const availableWidth = viewportWidth - elementWidth - TOOLBAR_SNAP_MARGIN_PX * 2;
     if (availableWidth <= 0) return TOOLBAR_DEFAULT_POSITION_RATIO;
     return Math.max(
@@ -108,7 +108,7 @@ export const calculateExpandedPositionFromCollapsed = (
 
   let newPosition: Position;
 
-  if (edge === "top" || edge === "bottom") {
+  if (isHorizontalEdge(edge)) {
     const xOffset = (expandedWidth - actualCollapsedWidth) / 2;
     const newExpandedX = collapsedPosition.x - xOffset;
     const clampedX = clampToRange(

@@ -3,7 +3,7 @@ import { Command } from "commander";
 import pc from "picocolors";
 import { handleError } from "../utils/handle-error.js";
 import { highlighter } from "../utils/highlighter.js";
-import { removeSkill } from "../utils/install-skill.js";
+import { agentLabel, removeSkill } from "../utils/install-skill.js";
 import { logger } from "../utils/logger.js";
 
 const VERSION = process.env.VERSION ?? "0.0.1";
@@ -19,14 +19,17 @@ export const remove = new Command()
 
     try {
       logger.break();
-      const removedCount = await removeSkill({ cwd: resolve(opts.cwd), global: opts.global });
+      const removedAgents = await removeSkill({ cwd: resolve(opts.cwd), global: opts.global });
+      for (const agent of removedAgents) {
+        logger.log(`  ${highlighter.success("\u2713")} ${agentLabel(agent)}`);
+      }
 
       logger.break();
-      if (removedCount === 0) {
+      if (removedAgents.length === 0) {
         logger.log("React Grab skill is not installed in any detected agent.");
       } else {
         logger.log(
-          `${highlighter.success("Removed")} the React Grab skill from ${removedCount} agent${removedCount === 1 ? "" : "s"}.`,
+          `${highlighter.success("Removed")} the React Grab skill from ${removedAgents.length} agent${removedAgents.length === 1 ? "" : "s"}.`,
         );
       }
       logger.break();

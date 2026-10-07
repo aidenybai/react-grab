@@ -7,10 +7,5 @@
   "access": "public",
   "baseBranch": "main",
   "updateInternalDependencies": "patch",
-  "ignore": [
-    "@react-grab/website",
-    "@react-grab/website-v2",
-    "@react-grab/web-extension",
-    "@react-grab/openstory"
-  ]
+  "ignore": ["@react-grab/website", "@react-grab/web-extension", "@react-grab/openstory"]
 }

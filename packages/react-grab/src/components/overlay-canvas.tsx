@@ -36,13 +36,6 @@ const LAYER_STYLES = {
   grabbed: DEFAULT_LAYER_STYLE,
 } as const;
 
-type LayerName = "drag" | "selection" | "grabbed";
-
-interface OffscreenLayer {
-  canvas: OffscreenCanvas | null;
-  context: OffscreenCanvasRenderingContext2D | null;
-}
-
 interface AnimatedBounds {
   id: string;
   current: { x: number; y: number; width: number; height: number };
@@ -81,13 +74,8 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
   let canvasHeight = 0;
   let devicePixelRatio = 1;
   let animationFrameId: number | null = null;
+  let fadeWakeTimeoutId: number | null = null;
   let previousFrameTimestamp: number | null = null;
-
-  const layers: Record<LayerName, OffscreenLayer> = {
-    drag: { canvas: null, context: null },
-    selection: { canvas: null, context: null },
-    grabbed: { canvas: null, context: null },
-  };
 
   let selectionAnimations: AnimatedBounds[] = [];
   let dragAnimation: AnimatedBounds | null = null;
@@ -95,25 +83,18 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
 
   const canvasColorSpace: PredefinedColorSpace = supportsDisplayP3() ? "display-p3" : "srgb";
 
-  const createOffscreenLayer = (
-    layerWidth: number,
-    layerHeight: number,
-    scaleFactor: number,
-  ): OffscreenLayer => {
-    const canvas = new OffscreenCanvas(layerWidth * scaleFactor, layerHeight * scaleFactor);
-    const context = canvas.getContext("2d", { colorSpace: canvasColorSpace });
-    if (context) {
-      context.scale(scaleFactor, scaleFactor);
-    }
-    return { canvas, context };
-  };
-
   const initializeCanvas = () => {
     if (!canvasRef) return;
 
     devicePixelRatio = Math.max(window.devicePixelRatio || 1, MIN_DEVICE_PIXEL_RATIO);
-    canvasWidth = window.innerWidth;
-    canvasHeight = window.innerHeight;
+    // Size to the layout viewport (documentElement.clientWidth/Height), not
+    // window.innerWidth/Height. Under browser zoom the latter shrink to the
+    // visual viewport while getBoundingClientRect — which positions the boxes —
+    // keeps returning full layout coordinates, so a canvas sized to innerWidth
+    // draws the selection box off-canvas for anything past the shrunken edge
+    // (the "selection box gone entirely when zoomed" bug).
+    canvasWidth = document.documentElement.clientWidth || window.innerWidth;
+    canvasHeight = document.documentElement.clientHeight || window.innerHeight;
 
     canvasRef.width = canvasWidth * devicePixelRatio;
     canvasRef.height = canvasHeight * devicePixelRatio;
@@ -123,10 +104,6 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
     mainContext = canvasRef.getContext("2d", { colorSpace: canvasColorSpace });
     if (mainContext) {
       mainContext.scale(devicePixelRatio, devicePixelRatio);
-    }
-
-    for (const layerName of Object.keys(layers) as LayerName[]) {
-      layers[layerName] = createOffscreenLayer(canvasWidth, canvasHeight, devicePixelRatio);
     }
   };
 
@@ -174,6 +151,9 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
     target.height = bounds.height;
     animation.borderRadius = parseBorderRadiusValue(bounds.borderRadius);
     if (targetOpacity !== undefined) {
+      if (targetOpacity > animation.targetOpacity) {
+        animation.opacity = targetOpacity;
+      }
       animation.targetOpacity = targetOpacity;
     }
   };
@@ -182,7 +162,7 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
     instance.boundsMultiple ?? [instance.bounds];
 
   const drawRoundedRectangle = (
-    context: OffscreenCanvasRenderingContext2D,
+    context: CanvasRenderingContext2D,
     rectX: number,
     rectY: number,
     rectWidth: number,
@@ -214,17 +194,11 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
   };
 
   const renderDragLayer = () => {
-    const layer = layers.drag;
-    if (!layer.context) return;
-
-    const context = layer.context;
-    context.clearRect(0, 0, canvasWidth, canvasHeight);
-
-    if (!props.dragVisible || !dragAnimation) return;
+    if (!mainContext || !props.dragVisible || !dragAnimation) return;
 
     const style = LAYER_STYLES.drag;
     drawRoundedRectangle(
-      context,
+      mainContext,
       dragAnimation.current.x,
       dragAnimation.current.y,
       dragAnimation.current.width,
@@ -236,19 +210,13 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
   };
 
   const renderSelectionLayer = () => {
-    const layer = layers.selection;
-    if (!layer.context) return;
-
-    const context = layer.context;
-    context.clearRect(0, 0, canvasWidth, canvasHeight);
-
-    if (!props.selectionVisible) return;
+    if (!mainContext || !props.selectionVisible) return;
 
     const style = LAYER_STYLES.selection;
 
     for (const animation of selectionAnimations) {
       drawRoundedRectangle(
-        context,
+        mainContext,
         animation.current.x,
         animation.current.y,
         animation.current.width,
@@ -261,21 +229,14 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
     }
   };
 
-  const renderBoundsLayer = (
-    layerName: keyof typeof LAYER_STYLES,
-    animations: AnimatedBounds[],
-  ) => {
-    const layer = layers[layerName];
-    if (!layer.context) return;
+  const renderBoundsLayer = (animations: AnimatedBounds[]) => {
+    if (!mainContext) return;
 
-    const context = layer.context;
-    context.clearRect(0, 0, canvasWidth, canvasHeight);
-
-    const style = LAYER_STYLES[layerName];
+    const style = LAYER_STYLES.grabbed;
 
     for (const animation of animations) {
       drawRoundedRectangle(
-        context,
+        mainContext,
         animation.current.x,
         animation.current.y,
         animation.current.width,
@@ -290,6 +251,7 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
 
   const compositeAllLayers = () => {
     if (!mainContext || !canvasRef) return;
+    if (canvasWidth <= 0 || canvasHeight <= 0) return;
 
     mainContext.setTransform(1, 0, 0, 1, 0, 0);
     mainContext.clearRect(0, 0, canvasRef.width, canvasRef.height);
@@ -297,15 +259,7 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
 
     renderDragLayer();
     renderSelectionLayer();
-    renderBoundsLayer("grabbed", grabbedAnimations);
-
-    const layerRenderOrder: LayerName[] = ["drag", "selection", "grabbed"];
-    for (const layerName of layerRenderOrder) {
-      const layer = layers[layerName];
-      if (layer.canvas) {
-        mainContext.drawImage(layer.canvas, 0, 0, canvasWidth, canvasHeight);
-      }
-    }
+    renderBoundsLayer(grabbedAnimations);
   };
 
   const interpolateBounds = (
@@ -362,6 +316,7 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
     );
 
     let shouldContinueAnimating = false;
+    let nextFadeDelayMs: number | null = null;
 
     if (dragAnimation?.isInitialized) {
       if (interpolateBounds(dragAnimation, dragLerpForFrame)) {
@@ -403,7 +358,7 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
         animation.fadeStartTimestamp = null;
       }
 
-      if (animation.createdAt) {
+      if (animation.createdAt !== undefined) {
         const elapsed = currentTimestamp - animation.createdAt;
         const fadeOutDeadline = FEEDBACK_DURATION_MS + FADE_DURATION_MS;
 
@@ -416,6 +371,10 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
           const easeOut = 1 - (1 - fadeProgress) * (1 - fadeProgress);
           animation.opacity = 1 - easeOut;
           shouldContinueAnimating = true;
+        } else {
+          const fadeDelayMs = FEEDBACK_DURATION_MS - elapsed;
+          nextFadeDelayMs =
+            nextFadeDelayMs === null ? fadeDelayMs : Math.min(nextFadeDelayMs, fadeDelayMs);
         }
 
         return true;
@@ -435,10 +394,23 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
     } else {
       animationFrameId = null;
       previousFrameTimestamp = null;
+      if (nextFadeDelayMs !== null) {
+        fadeWakeTimeoutId = window.setTimeout(
+          () => {
+            fadeWakeTimeoutId = null;
+            scheduleAnimationFrame();
+          },
+          Math.max(0, nextFadeDelayMs),
+        );
+      }
     }
   };
 
   const scheduleAnimationFrame = () => {
+    if (fadeWakeTimeoutId !== null) {
+      window.clearTimeout(fadeWakeTimeoutId);
+      fadeWakeTimeoutId = null;
+    }
     if (animationFrameId !== null) return;
     animationFrameId = nativeRequestAnimationFrame(runAnimationFrame);
   };
@@ -584,13 +556,15 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
           }
         }
 
+        // Boxes stay in the store for their full fade-out, so an animation
+        // whose box is gone was cleared explicitly (reset/escape) and must
+        // not linger — an orphaned remnant can't track layout shifts and
+        // would freeze at stale coordinates.
         grabbedAnimations = grabbedAnimations.filter((animation) => {
           if (animation.id.startsWith("label-")) {
             return activeLabelIds.has(animation.id);
           }
-          if (boxesById.has(animation.id)) return true;
-          if (animation.createdAt && animation.opacity > 0) return true;
-          return false;
+          return boxesById.has(animation.id);
         });
 
         scheduleAnimationFrame();
@@ -631,6 +605,9 @@ export const OverlayCanvas: Component<OverlayCanvasProps> = (props) => {
       }
       if (animationFrameId !== null) {
         nativeCancelAnimationFrame(animationFrameId);
+      }
+      if (fadeWakeTimeoutId !== null) {
+        window.clearTimeout(fadeWakeTimeoutId);
       }
     });
   });

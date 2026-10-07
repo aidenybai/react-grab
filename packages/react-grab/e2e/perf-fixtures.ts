@@ -2,7 +2,15 @@
 // DOM-injection helpers (dense tile grid, deep chain, stacked elements,
 // CSS animations) that auto-clean on test teardown.
 import type { Page } from "@playwright/test";
+import { calibratePerfRefreshInterval } from "./perf-environment.js";
 import { test as reactGrabTest } from "./fixtures.js";
+
+declare global {
+  interface PerfTestFixtures {
+    perfDom: PerfDomHelpers;
+    perfRefreshIntervalCalibration: void;
+  }
+}
 
 export const PERF_GRID_PATH = "/?perf=grid&rows=30&cols=10";
 const PERF_GRID_SELECTOR = "[data-perf-row][data-perf-column]";
@@ -17,10 +25,82 @@ export const goToPerfGrid = async (page: Page): Promise<void> => {
   );
 };
 
+export const goToSizedPerfGrid = async (
+  page: Page,
+  rowCount: number,
+  columnCount: number,
+): Promise<void> => {
+  await page.goto(`/?perf=grid&rows=${rowCount}&cols=${columnCount}`);
+  await page.waitForFunction(
+    ({ selector, threshold }) => document.querySelectorAll(selector).length >= threshold,
+    { selector: PERF_GRID_SELECTOR, threshold: rowCount * columnCount },
+    { timeout: 60_000 },
+  );
+};
+
 export interface PerfGridCenter {
   x: number;
   y: number;
 }
+
+export type HeavyView =
+  | "table"
+  | "virtual"
+  | "charts"
+  | "heatmap"
+  | "dashboard"
+  | "canvas"
+  | "animation-storm"
+  | "kanban"
+  | "editor"
+  | "scroll-fx"
+  | "toasts"
+  | "all"
+  | "gauntlet";
+
+// Selector that proves each heavy view finished its first real render (data
+// rows / chart paths present), not just that the shell mounted.
+const HEAVY_VIEW_READY_SELECTORS: Record<HeavyView, string> = {
+  table: "[data-heavy-table-row]",
+  virtual: "[data-heavy-virtual-row]",
+  charts: "[data-testid='chart-line'] svg path",
+  heatmap: "[data-testid='heatmap-cell-0-0']",
+  dashboard: "[data-heavy-feed-row]",
+  canvas: "[data-canvas-marker]",
+  "animation-storm": "[data-raf-mutator]",
+  kanban: "[data-kanban-card]",
+  editor: "[data-editor-paragraph]",
+  "scroll-fx": "[data-lazy-section]",
+  toasts: "[data-glass-card]",
+  all: "[data-heavy-table-row]",
+  gauntlet: "[data-kanban-card]",
+};
+
+export const goToHeavyView = async (page: Page, view: HeavyView): Promise<void> => {
+  await page.goto(`/?perf=heavy&view=${view}`);
+  await page.waitForSelector(HEAVY_VIEW_READY_SELECTORS[view], { timeout: 30_000 });
+};
+
+export const getElementCenters = (page: Page, selector: string, sliceCount?: number) =>
+  page.evaluate(
+    ({ selectorRef, sliceTo }) => {
+      const elements = Array.from(document.querySelectorAll(selectorRef));
+      const slice = sliceTo === undefined ? elements : elements.slice(0, sliceTo);
+      return slice
+        .map((element) => {
+          const rect = element.getBoundingClientRect();
+          return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+        })
+        .filter(
+          (center) =>
+            center.x > 0 &&
+            center.y > 0 &&
+            center.y < window.innerHeight &&
+            center.x < window.innerWidth,
+        );
+    },
+    { selectorRef: selector, sliceTo: sliceCount },
+  );
 
 export const getPerfGridCenters = (page: Page, sliceCount?: number): Promise<PerfGridCenter[]> =>
   page.evaluate(
@@ -53,7 +133,16 @@ const INSTALLER_REGISTRY: Record<keyof PerfDomHelpers, string> = {
   installDeepStack: "perf-bench-stack-container",
 };
 
-export const test = reactGrabTest.extend<{ perfDom: PerfDomHelpers }>({
+export const test = reactGrabTest.extend<PerfTestFixtures>({
+  // Depend on the lightweight root fixture so its navigation is complete,
+  // then calibrate before a heavy workload can distort the display cadence.
+  perfRefreshIntervalCalibration: [
+    async ({ reactGrab }, use) => {
+      await calibratePerfRefreshInterval(reactGrab.page);
+      await use();
+    },
+    { auto: true },
+  ],
   perfDom: async ({ page }, use) => {
     const installedRootIds: string[] = [];
     const helpers: PerfDomHelpers = {

@@ -7,18 +7,17 @@
 // coupled to React internals, so all replay paths use try/catch.
 import {
   _fiberRoots,
-  getRDTHook,
   getFiberFromHostInstance,
+  getRDTHook,
+  instrument,
   isCompositeFiber,
   type Fiber,
   type ReactRenderer,
   type FiberRoot,
 } from "bippy";
-import { logRecoverableError } from "./log-recoverable-error.js";
-
-interface FiberRootLike extends FiberRoot {
-  current: Fiber | null;
-}
+import { RecoverableError } from "../errors.js";
+import { reportRecoverableError } from "./report-recoverable-error.js";
+import { IS_DEMO } from "./runtime-mode.js";
 
 interface PendingUpdate {
   next: PendingUpdate | null;
@@ -58,6 +57,8 @@ interface PausedContextState {
 }
 
 let isUpdatesPaused = false;
+let freezeOwnerCount = 0;
+let freezeSessionId = 0;
 
 const getOrCache = <K extends object, V>(cache: WeakMap<K, V>, key: K, create: () => V): V => {
   const cached = cache.get(key);
@@ -86,24 +87,109 @@ const pendingStateUpdates: Array<() => void> = [];
 const pausedQueueStates = new WeakMap<HookQueue, PausedQueueState>();
 const pausedContextStates = new WeakMap<ContextDependency, PausedContextState>();
 const renderersWithPatchedDispatcher = new WeakSet<ReactRenderer>();
-const typedFiberRoots = _fiberRoots as Set<FiberRootLike>;
+const pausedFiberRoots = new Set<FiberRoot>();
+const fiberRootRenderers = new WeakMap<FiberRoot, ReactRenderer>();
 
-const getFiberRoot = (fiber: Fiber): FiberRootLike | null => {
+instrument({
+  name: "react-grab-freeze-updates",
+  onCommitFiberRoot: (rendererId, fiberRoot) => {
+    const renderer = getRDTHook().renderers.get(rendererId);
+    if (renderer) fiberRootRenderers.set(fiberRoot, renderer);
+  },
+});
+
+const isDomRenderer = (renderer: ReactRenderer): boolean => {
+  try {
+    const packageName = renderer.rendererPackageName;
+    return typeof packageName === "string" && packageName.startsWith("react-dom");
+  } catch {
+    return false;
+  }
+};
+
+const getFiberRoot = (fiber: Fiber): FiberRoot | null => {
   let current: Fiber | null = fiber;
   while (current.return) {
     current = current.return;
   }
-  return (current.stateNode ?? null) as FiberRootLike | null;
+  return (current.stateNode ?? null) as FiberRoot | null;
+};
+
+const findHostInstance = (fiberRoot: FiberRoot): object | null => {
+  const root = fiberRoot.current;
+  let fiber: Fiber | null = root;
+  while (fiber) {
+    const stateNode = fiber.stateNode;
+    if (
+      stateNode &&
+      typeof stateNode === "object" &&
+      typeof Reflect.get(stateNode, "nodeType") === "number"
+    ) {
+      return stateNode;
+    }
+    if (fiber.child) {
+      fiber = fiber.child;
+      continue;
+    }
+    while (fiber !== root && !fiber.sibling) {
+      fiber = fiber.return;
+      if (!fiber) return null;
+    }
+    if (fiber === root) return null;
+    fiber = fiber.sibling;
+  }
+  return null;
+};
+
+const resolveFiberRootRenderer = (fiberRoot: FiberRoot): ReactRenderer | null => {
+  const renderer = fiberRootRenderers.get(fiberRoot);
+  if (renderer) return isDomRenderer(renderer) ? renderer : null;
+
+  const domRenderers = Array.from(getRDTHook().renderers.values()).filter(isDomRenderer);
+  if (domRenderers.length === 1) {
+    const domRenderer = domRenderers[0];
+    if (domRenderer) fiberRootRenderers.set(fiberRoot, domRenderer);
+    return domRenderer ?? null;
+  }
+
+  const hostInstance = findHostInstance(fiberRoot);
+  if (!hostInstance) return null;
+
+  for (const domRenderer of domRenderers) {
+    try {
+      const hostFiber = domRenderer.findFiberByHostInstance?.(hostInstance);
+      if (hostFiber && getFiberRoot(hostFiber) === fiberRoot) {
+        fiberRootRenderers.set(fiberRoot, domRenderer);
+        return domRenderer;
+      }
+    } catch {}
+  }
+  return null;
+};
+
+const isDomFiberRoot = (fiberRoot: FiberRoot): boolean => {
+  const stateNode = fiberRoot.current?.stateNode;
+  if (!stateNode || typeof stateNode !== "object") return false;
+  const containerInfo = Reflect.get(stateNode, "containerInfo");
+  return Boolean(
+    containerInfo &&
+    typeof containerInfo === "object" &&
+    typeof Reflect.get(containerInfo, "nodeType") === "number",
+  );
 };
 
 // Collects React fiber roots, preferring bippy's tracked set but falling back
 // to a DOM walk when the app mounted before bippy instrumented the renderers.
-const collectFiberRoots = (): Set<FiberRootLike> => {
-  if (typedFiberRoots.size > 0) {
-    return typedFiberRoots;
+const collectFiberRoots = (): Set<FiberRoot> => {
+  if (_fiberRoots.size > 0) {
+    const domFiberRoots = new Set<FiberRoot>();
+    for (const fiberRoot of _fiberRoots) {
+      if (isDomFiberRoot(fiberRoot)) domFiberRoots.add(fiberRoot);
+    }
+    return domFiberRoots;
   }
 
-  const collectedRoots = new Set<FiberRootLike>();
+  const collectedRoots = new Set<FiberRoot>();
 
   const traverseDOM = (element: Element): void => {
     const fiber = getFiberFromHostInstance(element);
@@ -339,21 +425,44 @@ const resumeFiber = (fiber: Fiber): void => {
   }
 };
 
-// Two single-callback recursors instead of a polymorphic `(fiber, cb) => ...`.
-// Keeping the indirect call site monomorphic per traversal lets V8 inline the
-// callback and avoids "wrong call target" deopts when freeze/unfreeze alternate.
-const traverseFibersAndPause = (fiber: Fiber | null): void => {
-  if (!fiber) return;
-  if (isCompositeFiber(fiber)) pauseFiber(fiber);
-  traverseFibersAndPause(fiber.child);
-  traverseFibersAndPause(fiber.sibling);
+// Iterative pre-order walk over the fiber subtree rooted at `root`, via the
+// child/sibling/return pointers. Iterative (not recursive) because a large app
+// can have tens of thousands of fibers nested deep enough to blow the call
+// stack, and it avoids per-node call overhead. Two single-purpose copies keep
+// the visit call site monomorphic (a shared `(root, visit)` form deopted when
+// freeze/unfreeze alternated over the same subtree).
+const traverseFibersAndPause = (root: Fiber | null): void => {
+  let node = root;
+  while (node) {
+    if (isCompositeFiber(node)) pauseFiber(node);
+    if (node.child) {
+      node = node.child;
+      continue;
+    }
+    while (node !== root && !node.sibling) {
+      node = node.return as Fiber | null;
+      if (!node) return;
+    }
+    if (node === root) return;
+    node = node.sibling;
+  }
 };
 
-const traverseFibersAndResume = (fiber: Fiber | null): void => {
-  if (!fiber) return;
-  if (isCompositeFiber(fiber)) resumeFiber(fiber);
-  traverseFibersAndResume(fiber.child);
-  traverseFibersAndResume(fiber.sibling);
+const traverseFibersAndResume = (root: Fiber | null): void => {
+  let node = root;
+  while (node) {
+    if (isCompositeFiber(node)) resumeFiber(node);
+    if (node.child) {
+      node = node.child;
+      continue;
+    }
+    while (node !== root && !node.sibling) {
+      node = node.return as Fiber | null;
+      if (!node) return;
+    }
+    if (node === root) return;
+    node = node.sibling;
+  }
 };
 
 const patchDispatcher = (dispatcher: object): void => {
@@ -486,23 +595,27 @@ const installDispatcherPatching = (renderer: ReactRenderer): void => {
   });
 };
 
-const scheduleReactUpdate = (fiberRoots: Set<FiberRootLike>): void => {
+const scheduleReactUpdate = (
+  fiberRoots: Set<FiberRoot>,
+  scheduledFreezeSessionId: number,
+): void => {
   queueMicrotask(() => {
+    if (isUpdatesPaused || freezeSessionId !== scheduledFreezeSessionId) return;
     try {
-      for (const renderer of getRDTHook().renderers.values()) {
-        if (typeof renderer.scheduleUpdate !== "function") continue;
-        for (const fiberRoot of fiberRoots) {
-          if (fiberRoot.current) {
-            try {
-              renderer.scheduleUpdate(fiberRoot.current);
-            } catch (error) {
-              logRecoverableError("scheduleUpdate failed during unfreeze", error);
-            }
+      for (const fiberRoot of fiberRoots) {
+        const renderer = resolveFiberRootRenderer(fiberRoot);
+        if (fiberRoot.current && renderer?.scheduleUpdate) {
+          try {
+            renderer.scheduleUpdate(fiberRoot.current);
+          } catch (error) {
+            reportRecoverableError(
+              new RecoverableError("scheduleUpdate failed during unfreeze", error),
+            );
           }
         }
       }
     } catch (error) {
-      logRecoverableError("scheduleReactUpdate failed", error);
+      reportRecoverableError(new RecoverableError("scheduleReactUpdate failed", error));
     }
   });
 };
@@ -512,53 +625,106 @@ const invokeCallbacks = (callbacks: Array<() => void>): void => {
     try {
       callback();
     } catch (error) {
-      logRecoverableError("Callback failed during state replay", error);
+      reportRecoverableError(new RecoverableError("Callback failed during state replay", error));
     }
   }
 };
 
 const initializeFreezeSupport = (): void => {
   for (const renderer of getRDTHook().renderers.values()) {
+    if (!isDomRenderer(renderer)) continue;
     if (renderersWithPatchedDispatcher.has(renderer)) continue;
     installDispatcherPatching(renderer);
     renderersWithPatchedDispatcher.add(renderer);
   }
 };
 
-export const freezeUpdates = (): (() => void) => {
-  if (isUpdatesPaused) return () => {};
+const clearPendingUpdates = (): void => {
+  pendingStoreCallbacks.clear();
+  pendingTransitionCallbacks.length = 0;
+  pendingStateUpdates.length = 0;
+};
 
-  initializeFreezeSupport();
-  isUpdatesPaused = true;
-
-  const fiberRoots = collectFiberRoots();
-  for (const fiberRoot of fiberRoots) {
-    traverseFibersAndPause(fiberRoot.current);
+const resumeUpdates = (): void => {
+  const resumedFreezeSessionId = freezeSessionId;
+  const fiberRootsToResume = new Set(pausedFiberRoots);
+  try {
+    for (const fiberRoot of collectFiberRoots()) {
+      fiberRootsToResume.add(fiberRoot);
+    }
+  } catch (error) {
+    reportRecoverableError(
+      new RecoverableError("Collecting fiber roots failed during unfreeze", error),
+    );
   }
 
-  return () => {
-    if (!isUpdatesPaused) return;
+  pausedFiberRoots.clear();
+  isUpdatesPaused = false;
 
+  for (const fiberRoot of fiberRootsToResume) {
     try {
-      const fiberRootsToResume = collectFiberRoots();
-      for (const fiberRoot of fiberRootsToResume) {
-        traverseFibersAndResume(fiberRoot.current);
-      }
-
-      const storeCallbacksToInvoke = Array.from(pendingStoreCallbacks);
-      const transitionCallbacksToInvoke = pendingTransitionCallbacks.slice();
-      const stateUpdatesToInvoke = pendingStateUpdates.slice();
-
-      isUpdatesPaused = false;
-
-      invokeCallbacks(storeCallbacksToInvoke);
-      invokeCallbacks(transitionCallbacksToInvoke);
-      invokeCallbacks(stateUpdatesToInvoke);
-      scheduleReactUpdate(fiberRootsToResume);
-    } finally {
-      pendingStoreCallbacks.clear();
-      pendingTransitionCallbacks.length = 0;
-      pendingStateUpdates.length = 0;
+      traverseFibersAndResume(fiberRoot.current);
+    } catch (error) {
+      reportRecoverableError(
+        new RecoverableError("Resuming a fiber root failed during unfreeze", error),
+      );
     }
+  }
+
+  const storeCallbacksToInvoke = Array.from(pendingStoreCallbacks);
+  const transitionCallbacksToInvoke = pendingTransitionCallbacks.slice();
+  const stateUpdatesToInvoke = pendingStateUpdates.slice();
+  clearPendingUpdates();
+
+  invokeCallbacks(storeCallbacksToInvoke);
+  invokeCallbacks(transitionCallbacksToInvoke);
+  invokeCallbacks(stateUpdatesToInvoke);
+  if (!isUpdatesPaused && freezeSessionId === resumedFreezeSessionId) {
+    scheduleReactUpdate(fiberRootsToResume, resumedFreezeSessionId);
+  }
+};
+
+export const freezeUpdatesOrThrow = (): (() => void) => {
+  // Demo mode is display-only and must never pause the host app's React renders,
+  // even via the toolbar's own (ungated) freeze path.
+  if (IS_DEMO) return () => {};
+
+  const isFirstFreezeOwner = freezeOwnerCount === 0;
+  freezeOwnerCount += 1;
+
+  if (isFirstFreezeOwner) {
+    try {
+      initializeFreezeSupport();
+      freezeSessionId += 1;
+      isUpdatesPaused = true;
+
+      const fiberRoots = collectFiberRoots();
+      for (const fiberRoot of fiberRoots) {
+        pausedFiberRoots.add(fiberRoot);
+        traverseFibersAndPause(fiberRoot.current);
+      }
+    } catch (error) {
+      freezeOwnerCount -= 1;
+      if (isUpdatesPaused) resumeUpdates();
+      throw error;
+    }
+  }
+
+  let didReleaseFreeze = false;
+
+  return () => {
+    if (didReleaseFreeze) return;
+    didReleaseFreeze = true;
+    freezeOwnerCount -= 1;
+    if (freezeOwnerCount === 0) resumeUpdates();
   };
+};
+
+export const freezeUpdates = (): (() => void) => {
+  try {
+    return freezeUpdatesOrThrow();
+  } catch (error) {
+    reportRecoverableError(new RecoverableError("Pausing React updates failed", error));
+    return () => {};
+  }
 };

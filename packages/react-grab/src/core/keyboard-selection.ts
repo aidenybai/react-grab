@@ -1,4 +1,5 @@
 import { createSignal, type Accessor } from "solid-js";
+import { createPointerMovePromptHandoff } from "../utils/create-pointer-move-prompt-handoff.js";
 import { isElementConnected } from "../utils/is-element-connected.js";
 
 interface KeyboardSelectionController {
@@ -13,15 +14,17 @@ interface KeyboardSelectionController {
 
 export const createKeyboardSelectionController = (): KeyboardSelectionController => {
   const [isPendingDismiss, setIsPendingDismiss] = createSignal(false);
-  let selectedElement: Element | null = null;
-  let isMouseHandoffArmed = false;
+  const [selectedElement, setSelectedElement] = createSignal<Element | null>(null);
+  const mouseHandoff = createPointerMovePromptHandoff();
 
-  const connectedSelection = (): Element | null =>
-    isElementConnected(selectedElement) ? selectedElement : null;
+  const connectedSelection = (): Element | null => {
+    const element = selectedElement();
+    return isElementConnected(element) ? element : null;
+  };
 
   const clear = () => {
-    selectedElement = null;
-    isMouseHandoffArmed = false;
+    setSelectedElement(null);
+    mouseHandoff.clear();
     setIsPendingDismiss(false);
   };
 
@@ -36,16 +39,13 @@ export const createKeyboardSelectionController = (): KeyboardSelectionController
     selectedElement: connectedSelection,
     isPendingDismiss,
     select: (element, options) => {
-      selectedElement = element;
+      setSelectedElement(element);
       setIsPendingDismiss(false);
-      isMouseHandoffArmed = Boolean(options?.shouldPromptBeforeMouseHandoff);
+      if (options?.shouldPromptBeforeMouseHandoff) mouseHandoff.arm();
+      else mouseHandoff.clear();
     },
     clear,
-    consumeMouseHandoff: () => {
-      if (!isMouseHandoffArmed) return false;
-      isMouseHandoffArmed = false;
-      return connectedSelection() !== null;
-    },
+    consumeMouseHandoff: () => mouseHandoff.consume() && connectedSelection() !== null,
     showDismissPrompt: () => {
       if (!connectedSelection()) {
         clear();

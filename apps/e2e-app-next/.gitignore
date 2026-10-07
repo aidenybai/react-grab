@@ -1,0 +1,9 @@
+# next.js
+/.next/
+/.next-production/
+/.tsconfig-production-test.json
+/out/
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts

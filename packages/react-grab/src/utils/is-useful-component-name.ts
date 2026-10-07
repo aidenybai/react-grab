@@ -32,6 +32,7 @@ const NEXT_INTERNAL_COMPONENT_NAMES = new Set([
   "InnerScrollAndFocusHandlerOld",
   "InnerScrollAndMaybeFocusHandler",
   "InnerScrollHandlerNew",
+  "LinkComponent",
   "LoadableComponent",
   "LoadingBoundary",
   "LoadingBoundaryProvider",
@@ -59,6 +60,8 @@ const NEXT_INTERNAL_COMPONENT_NAMES = new Set([
   "html",
 ]);
 
+const PLACEHOLDER_COMPONENT_NAMES = new Set(["<anonymous>", "<unknown>", "Anonymous", "Unknown"]);
+
 const REACT_INTERNAL_COMPONENT_NAMES = new Set([
   "Suspense",
   "Fragment",
@@ -67,21 +70,33 @@ const REACT_INTERNAL_COMPONENT_NAMES = new Set([
   "SuspenseList",
 ]);
 
-const LIBRARY_INTERNAL_COMPONENT_NAMES = new Set(["MotionDOMComponent"]);
+const LIBRARY_INTERNAL_COMPONENT_NAMES = new Set(["MotionDOMComponent", "Slot", "SlotClone"]);
+const LIBRARY_INTERNAL_COMPONENT_SUFFIXES = [
+  ".Consumer",
+  ".Context",
+  ".Provider",
+  ".Slot",
+  ".SlotClone",
+  ".Slottable",
+  "ProviderProvider",
+];
 
-export const isInternalComponentName = (name: string): boolean => {
-  if (NEXT_INTERNAL_COMPONENT_NAMES.has(name)) return true;
+export const isInternalComponentName = (name: string, isNextProject = false): boolean => {
+  if (PLACEHOLDER_COMPONENT_NAMES.has(name)) return true;
+  if (isNextProject && NEXT_INTERNAL_COMPONENT_NAMES.has(name)) return true;
   if (REACT_INTERNAL_COMPONENT_NAMES.has(name)) return true;
   if (LIBRARY_INTERNAL_COMPONENT_NAMES.has(name)) return true;
+  for (const suffix of LIBRARY_INTERNAL_COMPONENT_SUFFIXES) {
+    if (name.endsWith(suffix)) return true;
+  }
   for (const prefix of NON_COMPONENT_PREFIXES) {
     if (name.startsWith(prefix)) return true;
   }
   return false;
 };
 
-export const isUsefulComponentName = (name: string): boolean => {
+export const isUsefulComponentName = (name: string, isNextProject = false): boolean => {
   if (!name) return false;
-  if (isInternalComponentName(name)) return false;
-  if (name === "SlotClone" || name === "Slot") return false;
+  if (isInternalComponentName(name, isNextProject)) return false;
   return true;
 };

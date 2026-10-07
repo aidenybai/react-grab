@@ -1,0 +1,2 @@
+export const CLIENT_SUSPENSE_DELAY_MS = 120;
+export const STREAMED_SERVER_DELAY_MS = 200;

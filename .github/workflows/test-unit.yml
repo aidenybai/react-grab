@@ -1,0 +1,37 @@
+name: Test Unit
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test-unit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install
+
+      # Vitest unit tests (src logic: source-fetch queue, symbolication abort,
+      # context formatting, …). These run against source, no build needed, and
+      # were previously not executed in CI — only `playwright test` ran.
+      - name: Run unit tests
+        run: pnpm --filter react-grab test:unit

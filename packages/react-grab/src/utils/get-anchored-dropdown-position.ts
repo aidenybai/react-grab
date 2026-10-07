@@ -10,6 +10,8 @@ interface GetAnchoredDropdownPositionOptions {
   anchor: DropdownAnchor | null;
   measuredWidth: number;
   measuredHeight: number;
+  viewportLeft?: number;
+  viewportTop?: number;
   viewportWidth: number;
   viewportHeight: number;
   anchorGapPx: number;
@@ -21,6 +23,8 @@ export const getAnchoredDropdownPosition = ({
   anchor,
   measuredWidth,
   measuredHeight,
+  viewportLeft = 0,
+  viewportTop = 0,
   viewportWidth,
   viewportHeight,
   anchorGapPx,
@@ -45,7 +49,11 @@ export const getAnchoredDropdownPosition = ({
   }
 
   return {
-    left: clampToViewport(rawLeft, measuredWidth, viewportWidth, viewportPaddingPx),
-    top: clampToViewport(rawTop, measuredHeight, viewportHeight, viewportPaddingPx),
+    left:
+      viewportLeft +
+      clampToViewport(rawLeft - viewportLeft, measuredWidth, viewportWidth, viewportPaddingPx),
+    top:
+      viewportTop +
+      clampToViewport(rawTop - viewportTop, measuredHeight, viewportHeight, viewportPaddingPx),
   };
 };

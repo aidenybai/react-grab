@@ -45,9 +45,15 @@ export const solidWebBrowserPlugin = () => {
   };
 };
 
-export const solidBabelPlugin = (filter: RegExp = /\.(tsx|jsx)$/) => ({
+export interface SolidBabelPluginOptions {
+  filter?: RegExp;
+  plugins?: babel.PluginItem[];
+}
+
+export const solidBabelPlugin = (options: SolidBabelPluginOptions = {}) => ({
   name: "solid-babel",
   transform(code: string, id: string) {
+    const filter = options.filter ?? /\.(tsx|jsx)$/;
     if (!filter.test(id)) return;
 
     const result = babel.transformSync(code, {
@@ -55,6 +61,7 @@ export const solidBabelPlugin = (filter: RegExp = /\.(tsx|jsx)$/) => ({
         ["@babel/preset-typescript", { onlyRemoveTypeImports: true }],
         "babel-preset-solid",
       ],
+      plugins: options.plugins,
       filename: id,
       sourceMaps: true,
       caller: { name: "solid-babel", supportsStaticESM: true },

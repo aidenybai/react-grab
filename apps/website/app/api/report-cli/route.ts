@@ -34,6 +34,15 @@ export const POST = async (request: Request): Promise<Response> => {
     });
   }
 
+  // `null` is valid JSON, so the parse above succeeds; reading .type off it
+  // would throw and turn a bad request into a 500.
+  if (typeof payload !== "object" || payload === null) {
+    return new Response("Invalid payload", {
+      status: 400,
+      headers: getCorsHeaders(corsOptions),
+    });
+  }
+
   console.log(`[CLI Report] ${payload.type}:`, JSON.stringify(payload, null, 2));
 
   return new Response("OK", { headers: getCorsHeaders(corsOptions) });

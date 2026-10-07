@@ -1,20 +1,14 @@
-import { Index, Show, type Component } from "solid-js";
+import { For, Show, type Component } from "solid-js";
 import type { ReactGrabRendererProps } from "../types.js";
-import {
-  DEFAULT_ACTION_ID,
-  FADE_DURATION_MS,
-  FROZEN_GLOW_COLOR,
-  FROZEN_GLOW_EDGE_PX,
-  Z_INDEX_OVERLAY_CANVAS,
-} from "../constants.js";
-import { requestOpenFile } from "../utils/open-file.js";
+import { DEFAULT_ACTION_ID } from "../constants.js";
 import { isElementConnected } from "../utils/is-element-connected.js";
 import { OverlayCanvas } from "./overlay-canvas.js";
+import { FrozenGlow } from "./frozen-glow.js";
 import { SelectionLabel } from "./selection-label/index.js";
 import { Toolbar } from "./toolbar/index.js";
 import { ContextMenu } from "./context-menu.js";
-import { EditPanel } from "./edit-panel/index.js";
 import { ToolbarMenu } from "./toolbar/toolbar-menu.js";
+import { HierarchyMenu } from "./toolbar/hierarchy-menu.js";
 
 export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
   return (
@@ -29,40 +23,25 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
         grabbedBoxes={props.grabbedBoxes}
         labelInstances={props.labelInstances}
       />
-      {/* translateZ(0) promotes to its own compositor layer so opacity
-          transitions skip main-thread repaints; contain:strict with
-          will-change:opacity pre-allocates the layer. */}
-      <div
-        style={{
-          position: "fixed",
-          top: 0,
-          right: 0,
-          bottom: 0,
-          left: 0,
-          "pointer-events": "none",
-          "z-index": Z_INDEX_OVERLAY_CANVAS,
-          opacity: props.isFrozen ? 1 : 0,
-          transition: `opacity ${FADE_DURATION_MS}ms ease-out`,
-          "will-change": "opacity",
-          contain: "strict",
-          transform: "translateZ(0)",
-          "box-shadow": `inset 0 0 ${FROZEN_GLOW_EDGE_PX}px ${FROZEN_GLOW_COLOR}`,
-        }}
-      />
-      <Show when={props.selectionLabelVisible && (props.frozenLabelEntries?.length ?? 0) > 0}>
-        <Index each={props.frozenLabelEntries ?? []}>
-          {(entry, entryIndex) => (
-            <SelectionLabel
-              tagName={entry().tagName}
-              componentName={entry().componentName}
-              selectionBounds={entry().bounds}
-              mouseX={entry().mouseX}
-              visible={true}
-              shouldToggleExpandOnClick={entryIndex === 0}
-              onToggleExpand={entryIndex === 0 ? props.onToggleExpand : undefined}
-            />
+      <FrozenGlow visible={props.isFrozen ?? false} />
+      <Show
+        when={props.selectionLabelVisible && (props.frozenLabelEntryAccessors?.length ?? 0) > 0}
+      >
+        <For each={props.frozenLabelEntryAccessors ?? []}>
+          {(entryAccessor) => (
+            <Show when={entryAccessor.read()}>
+              {(entry) => (
+                <SelectionLabel
+                  tagName={entry().tagName}
+                  componentName={entry().componentName}
+                  selectionBounds={entry().bounds}
+                  mouseX={entry().mouseX}
+                  visible={true}
+                />
+              )}
+            </Show>
           )}
-        </Index>
+        </For>
       </Show>
       <Show when={props.selectionLabelVisible && props.pendingShiftPreviewEntry}>
         {(pendingEntry) => (
@@ -79,7 +58,7 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
         when={
           props.selectionLabelVisible &&
           props.selectionBounds &&
-          (props.frozenLabelEntries?.length ?? 0) === 0
+          (props.frozenLabelEntryAccessors?.length ?? 0) === 0
         }
       >
         <SelectionLabel
@@ -92,60 +71,59 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
           isPromptMode={props.isPromptMode}
           inputValue={props.inputValue}
           status={props.selectionLabelStatus}
-          arrowNavigationState={props.selectionArrowNavigationState}
-          onArrowNavigationSelect={props.onArrowNavigationSelect}
           filePath={props.selectionFilePath}
           onInputChange={props.onInputChange}
           onSubmit={props.onInputSubmit}
-          onToggleExpand={props.onToggleExpand}
           selectionLabelShakeCount={props.selectionLabelShakeCount}
           onConfirmDismiss={props.onConfirmDismiss}
           discardPrompt={props.discardPrompt}
-          onOpen={() => {
-            if (props.selectionFilePath) {
-              requestOpenFile(props.selectionFilePath, props.selectionLineNumber);
-            }
-          }}
-          isContextMenuOpen={props.contextMenuPosition !== null}
+          onOpen={props.onOpenSelectionFile}
         />
       </Show>
-      <Index each={props.labelInstances ?? []}>
-        {(instance) => (
-          <SelectionLabel
-            tagName={instance().tagName}
-            componentName={instance().componentName}
-            elementsCount={instance().elementsCount}
-            selectionBounds={instance().bounds}
-            mouseX={instance().mouseX}
-            visible={true}
-            status={instance().status}
-            statusText={instance().statusText}
-            isPromptMode={instance().isPromptMode}
-            inputValue={instance().inputValue}
-            error={instance().errorMessage}
-            hideArrow={instance().hideArrow}
-            onShowContextMenu={(() => {
-              const currentInstance = instance();
-              const hasCompletedStatus =
-                currentInstance.status === "copied" || currentInstance.status === "fading";
-              if (!hasCompletedStatus || !isElementConnected(currentInstance.element)) {
-                return undefined;
-              }
-              return () => props.onShowContextMenuInstance?.(currentInstance.id);
-            })()}
-            onHoverChange={(isHovered) =>
-              props.onLabelInstanceHoverChange?.(instance().id, isHovered)
-            }
-          />
+      <For each={props.labelInstanceAccessors ?? []}>
+        {(instanceAccessor) => (
+          <Show when={instanceAccessor.read()}>
+            {(instance) => (
+              <SelectionLabel
+                tagName={instance().tagName}
+                componentName={instance().componentName}
+                elementsCount={instance().elementsCount}
+                selectionBounds={instance().bounds}
+                mouseX={instance().mouseX}
+                visible={true}
+                status={instance().status}
+                statusText={instance().statusText}
+                isPromptMode={instance().isPromptMode}
+                inputValue={instance().inputValue}
+                error={instance().errorMessage}
+                hideArrow={instance().hideArrow}
+                onShowContextMenu={(() => {
+                  const currentInstance = instance();
+                  const hasCompletedStatus =
+                    currentInstance.status === "copied" || currentInstance.status === "fading";
+                  if (!hasCompletedStatus || !isElementConnected(currentInstance.element)) {
+                    return undefined;
+                  }
+                  return () => props.onShowContextMenuInstance?.(currentInstance.id);
+                })()}
+                onRetry={() => props.onRetryInstance?.(instance().id)}
+                onAcknowledgeError={() => props.onAcknowledgeErrorInstance?.(instance().id)}
+                onHoverChange={(isHovered) =>
+                  props.onLabelInstanceHoverChange?.(instance().id, isHovered)
+                }
+              />
+            )}
+          </Show>
         )}
-      </Index>
+      </For>
       <Show when={props.toolbarVisible !== false}>
         <Toolbar
           isActive={props.isActive}
           isContextMenuOpen={props.contextMenuPosition !== null}
           onToggle={props.onToggleActive}
-          onActivateAction={props.onActivateAction}
           activeActionId={props.activeActionId}
+          defaultActionId={props.defaultActionId}
+          defaultActionLabel={props.defaultActionLabel}
           enabled={props.enabled}
           shakeCount={props.shakeCount}
           onStateChange={props.onToolbarStateChange}
@@ -173,14 +151,7 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
         onSetDefaultAction={props.onSetDefaultAction ?? (() => {})}
         onDismiss={props.onToolbarMenuDismiss ?? (() => {})}
       />
-      <EditPanel
-        state={props.editPanelState ?? null}
-        position={props.editPanelPosition ?? null}
-        onDismiss={props.onEditPanelDismiss ?? (() => {})}
-        onSubmit={props.onEditPanelSubmit ?? (() => {})}
-        onPendingEditsChange={props.onEditPanelPendingEditsChange}
-        onInteractingChange={props.onEditPanelInteractingChange}
-      />
+      <HierarchyMenu position={props.hierarchyMenuPosition ?? null} state={props.hierarchyState} />
     </>
   );
 };

@@ -10,9 +10,11 @@ permissions:
   contents: read
 
 jobs:
-  test-e2e:
+  test-vite-plus:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    env:
+      E2E_ENVIRONMENT: vite-plus-development
     strategy:
       fail-fast: false
       matrix:
@@ -44,5 +46,78 @@ jobs:
       # @perf scenarios run in their own workflow (test-perf.yml) on a
       # dedicated runner so multi-worker contention doesn't pollute their
       # timing measurements. Exclude them here.
-      - name: Run E2E tests
+      - name: Run Vite Plus E2E tests
         run: pnpm --filter react-grab exec playwright test --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }} --grep-invert @perf
+
+  test-frameworks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        environment:
+          - vite-plus-production
+          - vite-upstream-development
+          - vite-upstream-production
+          - next-development
+          - next-production
+          - tanstack-development
+          - tanstack-production
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Install Playwright browsers
+        run: pnpm --filter react-grab exec playwright install chromium --with-deps
+
+      - name: Run framework E2E tests
+        env:
+          E2E_ENVIRONMENT: ${{ matrix.environment }}
+        run: pnpm --filter react-grab exec playwright test --grep-invert @perf
+
+  test-fixture-builds:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build packages
+        run: pnpm build
+
+      - name: Build fixtures
+        run: pnpm build:fixtures
+
+      - name: Typecheck fixtures
+        run: pnpm typecheck:fixtures
+
+      - name: Verify generated fixture files
+        run: |
+          git diff --exit-code -- apps/e2e-app-vite apps/e2e-app-vite-upstream apps/e2e-app-next apps/e2e-app-tanstack-start
+          test -z "$(git ls-files --others --exclude-standard -- apps/e2e-app-vite apps/e2e-app-vite-upstream apps/e2e-app-next apps/e2e-app-tanstack-start)"
