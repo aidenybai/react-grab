@@ -12,7 +12,7 @@ permissions:
 jobs:
   perf-shard:
     name: perf-shard (${{ matrix.artifact_suffix || format('regular-{0}-of-15', matrix.shard) }})
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     strategy:
       fail-fast: false
@@ -166,7 +166,7 @@ jobs:
   test-perf:
     needs: perf-shard
     if: always()
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
 
     steps:
@@ -215,7 +215,7 @@ jobs:
   perf-comment:
     needs: test-perf
     if: always() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
       pull-requests: write
