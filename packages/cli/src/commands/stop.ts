@@ -1,14 +1,16 @@
-import path from "node:path";
 import { Command } from "commander";
-import { DEFAULT_WATCH_DIR } from "../utils/constants.js";
 import { stopDaemon } from "../utils/daemon.js";
+import { resolveWatchDir } from "../utils/resolve-watch-dir.js";
 
 export const stop = new Command()
   .name("stop")
   .description("stop the React Grab watcher for this dir")
-  .option("-d, --dir <dir>", "work dir holding watch.pid", DEFAULT_WATCH_DIR)
-  .action((options: { dir: string }) => {
-    const dir = path.resolve(options.dir);
+  .option(
+    "-d, --dir <dir>",
+    "work dir holding watch.pid (default: per-project dir under ~/.react-grab)",
+  )
+  .action((options: { dir?: string }) => {
+    const dir = resolveWatchDir(options.dir);
     const stoppedPid = stopDaemon(dir);
     process.stderr.write(
       stoppedPid

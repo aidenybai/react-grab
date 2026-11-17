@@ -162,9 +162,10 @@ describe("consumeGrabs eviction", () => {
     expect(idsOf(consume({ maxAgeMs: FIVE_MIN_MS }))).toEqual(["a", "b"]);
   });
 
-  it("never evicts records without a receivedAt", () => {
+  it("evicts records without a receivedAt", () => {
     appendRecord("no-timestamp");
-    expect(idsOf(consume({ maxAgeMs: 1 }))).toEqual(["no-timestamp"]);
+    expect(consume({ maxAgeMs: FIVE_MIN_MS })).toEqual([]);
+    expect(readGrabCursor(dir)).toBe(historySize());
   });
 
   it("maxAgeMs of 0 disables eviction", () => {
