@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   test-vite-plus:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     env:
       E2E_ENVIRONMENT: vite-plus-development
@@ -50,7 +50,7 @@ jobs:
         run: pnpm --filter react-grab exec playwright test --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }} --grep-invert @perf
 
   test-frameworks:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     strategy:
       fail-fast: false
@@ -89,7 +89,7 @@ jobs:
         run: pnpm --filter react-grab exec playwright test --grep-invert @perf
 
   test-fixture-builds:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
 
     steps:

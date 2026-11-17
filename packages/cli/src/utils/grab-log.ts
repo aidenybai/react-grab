@@ -147,8 +147,11 @@ export const consumeGrabs = (dir: string, options: ConsumeGrabsOptions): string[
       // Corrupt or partial line; skip it (the cursor still advances past it).
       continue;
     }
-    if (options.maxAgeMs > 0 && typeof parsed.receivedAt === "number") {
-      if (now - parsed.receivedAt > options.maxAgeMs) continue;
+    if (
+      options.maxAgeMs > 0 &&
+      (typeof parsed.receivedAt !== "number" || now - parsed.receivedAt > options.maxAgeMs)
+    ) {
+      continue;
     }
     fresh.push(line);
   }

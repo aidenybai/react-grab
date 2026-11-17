@@ -1,9 +1,7 @@
-import path from "node:path";
 import { Command } from "commander";
 import { NO_READER_MESSAGE, prepareWorkDir } from "../utils/clipboard.js";
 import {
   DEFAULT_GRAB_AGE_MS,
-  DEFAULT_WATCH_DIR,
   DEFAULT_WATCH_INTERVAL_MS,
   READ_DEFAULT_LIMIT,
   READ_WAIT_POLL_MS,
@@ -13,9 +11,10 @@ import { consumeGrabs } from "../utils/grab-log.js";
 import { parseNonNegativeInt, parseWaitMs } from "../utils/read-args.js";
 import { sleep } from "../utils/sleep.js";
 import { unrefStdin } from "../utils/unref-stdin.js";
+import { resolveWatchDir } from "../utils/resolve-watch-dir.js";
 
 interface PullOptions {
-  dir: string;
+  dir?: string;
   wait: string;
   limit: string;
   maxAge: string;
@@ -36,7 +35,10 @@ const emitAndExit = (lines: string[]): void => {
 export const pull = new Command()
   .name("pull")
   .description("start the watcher if needed, then wait for and print the next React Grab grab(s)")
-  .option("-d, --dir <dir>", "work dir for history.jsonl + watch.pid", DEFAULT_WATCH_DIR)
+  .option(
+    "-d, --dir <dir>",
+    "work dir for history.jsonl + watch.pid (default: per-project dir under ~/.react-grab)",
+  )
   .option(
     "-w, --wait <ms>",
     "how long to wait for a grab: ms, 'infinite', or 0 for none",
@@ -58,7 +60,7 @@ export const pull = new Command()
   )
   .option("--all", "print the whole history without advancing the cursor")
   .action(async (options: PullOptions) => {
-    const dir = path.resolve(options.dir);
+    const dir = resolveWatchDir(options.dir);
 
     try {
       prepareWorkDir(dir);
