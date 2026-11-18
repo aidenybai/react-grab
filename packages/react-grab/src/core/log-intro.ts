@@ -1,5 +1,6 @@
 import { LOGO_SVG } from "./logo-svg.js";
 import { isExtensionContext } from "../utils/is-extension-context.js";
+import { isAutomatedBrowser } from "../utils/is-automated-browser.js";
 
 export const logIntro = (telemetryEnabled: boolean) => {
   try {
@@ -11,7 +12,8 @@ export const logIntro = (telemetryEnabled: boolean) => {
       "",
     );
     if (telemetryEnabled && navigator.onLine && version && !isExtensionContext()) {
-      fetch(`https://www.react-grab.com/api/version?source=browser&v=${version}&t=${Date.now()}`, {
+      const source = isAutomatedBrowser() ? "automated-browser" : "browser";
+      fetch(`https://www.react-grab.com/api/version?source=${source}&v=${version}&t=${Date.now()}`, {
         referrerPolicy: "origin",
         keepalive: true,
         priority: "low",
