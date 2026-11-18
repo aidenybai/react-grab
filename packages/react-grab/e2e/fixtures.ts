@@ -685,7 +685,6 @@ const createReactGrabPageObject = (
     await waitForPromptMode(true);
     const promptInput = page.locator("textarea[data-react-grab-input]");
     await promptInput.waitFor({ state: "visible", timeout: UI_STATE_TIMEOUT_MS });
-    await promptInput.focus();
   };
 
   const isPromptModeActive = async (): Promise<boolean> => {

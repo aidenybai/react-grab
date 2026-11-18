@@ -10,6 +10,9 @@ import {
 } from "solid-js";
 import type { ArrowPosition, SelectionLabelProps } from "../../types.js";
 import {
+  COMMENT_COMPOSER_ENTER_DURATION_MS,
+  COMMENT_COMPOSER_SUBMIT_SIZE_PX,
+  COMMENT_COMPOSER_WIDTH_PX,
   FADE_DURATION_MS,
   PANEL_SHADOW,
   VIEWPORT_MARGIN_PX,
@@ -17,7 +20,9 @@ import {
   ARROW_LABEL_MARGIN_PX,
   LABEL_GAP_PX,
   SELECTION_LABEL_OFFSCREEN_PX,
+  TEXTAREA_MIN_HEIGHT_PX,
   TEXTAREA_MAX_HEIGHT_PX,
+  TEXTAREA_RESIZE_DURATION_MS,
   Z_INDEX_OVERLAY,
 } from "../../constants.js";
 import { autoResizeTextarea } from "../../utils/auto-resize-textarea.js";
@@ -392,9 +397,17 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
         <Surface
           ref={(element) => (panelRef = element)}
           shape={isSinglePanelLine() ? "pill" : "panel"}
-          class={cn("flex items-center gap-[5px] w-fit h-fit p-0", isShaking() && "animate-shake")}
+          class={cn(
+            "flex items-center gap-[5px] w-fit h-fit p-0",
+            canInteract() &&
+              props.isPromptMode &&
+              !props.discardPrompt &&
+              "animate-comment-composer-enter",
+            isShaking() && "animate-shake",
+          )}
           style={{
             display: isCompletedStatus() && !props.error ? "none" : undefined,
+            "animation-duration": `${COMMENT_COMPOSER_ENTER_DURATION_MS}ms`,
           }}
           onAnimationEnd={() => setIsShaking(false)}
         >
@@ -426,8 +439,11 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
           </Show>
 
           <Show when={canInteract() && props.isPromptMode && !props.discardPrompt}>
-            <div class="contain-layout shrink-0 flex flex-col justify-center items-start w-fit h-fit min-w-[150px] max-w-[280px]">
-              <div class="contain-layout shrink-0 flex items-center gap-1 pt-1.5 pb-1 w-fit h-fit px-2 max-w-full">
+            <div
+              class="contain-layout shrink-0 flex flex-col justify-center items-start h-fit"
+              style={{ width: `${COMMENT_COMPOSER_WIDTH_PX}px` }}
+            >
+              <div class="contain-layout shrink-0 flex items-center gap-1 pt-1 pb-0.5 w-fit h-fit px-2 max-w-full">
                 <TagBadge
                   tagName={tagDisplayResult().tagName}
                   componentName={tagDisplayResult().componentName}
@@ -437,7 +453,7 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                 />
               </div>
               <BottomSection>
-                <div class="shrink-0 flex justify-between items-end w-full min-h-4">
+                <div class="shrink-0 flex flex-col items-stretch gap-0.5 w-full">
                   <textarea
                     ref={(element) => {
                       inputRef = element;
@@ -455,12 +471,12 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                     data-react-grab-input
                     aria-label="Add context for selected element"
                     aria-keyshortcuts="Enter Escape"
-                    class="text-[var(--rg-text-primary)] text-[13px] leading-4 font-medium bg-transparent border-none resize-none flex-1 p-0 m-0 wrap-break-word overflow-y-auto"
+                    class="text-[var(--rg-text-primary)] text-[13px] leading-4 font-medium bg-transparent border-none resize-none w-full p-0 m-0 wrap-break-word overflow-y-auto"
                     style={{
-                      "field-sizing": "content",
-                      "min-height": "16px",
+                      "min-height": `${TEXTAREA_MIN_HEIGHT_PX}px`,
                       "max-height": `${TEXTAREA_MAX_HEIGHT_PX}px`,
                       "scrollbar-width": "none",
+                      transition: `height ${TEXTAREA_RESIZE_DURATION_MS}ms var(--ease-drawer)`,
                     }}
                     value={props.inputValue ?? ""}
                     onInput={handleInput}
@@ -470,15 +486,28 @@ export const SelectionLabel: Component<SelectionLabelProps> = (props) => {
                     readOnly={!props.onSubmit}
                   />
                   <Show when={props.onSubmit}>
-                    <button
-                      data-react-grab-submit
-                      type="button"
-                      aria-label="Submit context"
-                      class="contain-layout shrink-0 flex items-center justify-center size-4 rounded-full bg-[var(--rg-submit-bg)] cursor-pointer ml-1 interactive-scale a11y-hitbox"
-                      onClick={() => props.onSubmit?.()}
+                    <div
+                      class="shrink-0 flex items-center justify-end w-full"
+                      style={{ height: `${COMMENT_COMPOSER_SUBMIT_SIZE_PX}px` }}
                     >
-                      <IconSubmit size={10} aria-hidden="true" class="text-[var(--rg-submit-fg)]" />
-                    </button>
+                      <button
+                        data-react-grab-submit
+                        type="button"
+                        aria-label="Submit context"
+                        class="contain-layout box-border shrink-0 flex items-center justify-center p-0 border-none rounded-full bg-[var(--rg-submit-bg)] cursor-pointer interactive-scale a11y-hitbox"
+                        style={{
+                          width: `${COMMENT_COMPOSER_SUBMIT_SIZE_PX}px`,
+                          height: `${COMMENT_COMPOSER_SUBMIT_SIZE_PX}px`,
+                        }}
+                        onClick={() => props.onSubmit?.()}
+                      >
+                        <IconSubmit
+                          size={10}
+                          aria-hidden="true"
+                          class="text-[var(--rg-submit-fg)]"
+                        />
+                      </button>
+                    </div>
                   </Show>
                 </div>
               </BottomSection>

@@ -183,6 +183,22 @@
   will-change: transform, opacity;
 }
 
+@keyframes comment-composer-enter {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-comment-composer-enter {
+  animation-name: comment-composer-enter;
+  animation-timing-function: ease-out;
+  animation-fill-mode: both;
+  will-change: opacity;
+}
+
 .animate-shake-vertical {
   --rg-shake-x: 0;
   --rg-shake-y: 1;
