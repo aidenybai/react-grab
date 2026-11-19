@@ -10,6 +10,10 @@ export const VITE_IMPORT = `if (import.meta.env.DEV) {
   import("react-grab");
 }`;
 
+export const SVELTEKIT_IMPORT = `if (import.meta.env.DEV) {
+  void import("react-grab");
+}`;
+
 export const WEBPACK_IMPORT = `if (process.env.NODE_ENV === "development") {
   import("react-grab");
 }`;

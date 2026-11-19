@@ -6,9 +6,9 @@ import { hasReactGrabSetupCode } from "./react-grab-code.js";
 import { getReactGrabSetupFileCandidates } from "./react-grab-setup-files.js";
 
 export type PackageManager = "npm" | "yarn" | "pnpm" | "bun";
-export type Framework = "next" | "vite" | "tanstack" | "webpack" | "unknown";
+export type Framework = "next" | "vite" | "tanstack" | "webpack" | "sveltekit" | "unknown";
 export type NextRouterType = "app" | "pages" | "unknown";
-export type UnsupportedFramework = "remix" | "astro" | "sveltekit" | "gatsby" | null;
+export type UnsupportedFramework = "remix" | "astro" | "gatsby" | null;
 
 export interface ProjectInfo {
   packageManager: PackageManager;
@@ -42,6 +42,26 @@ const hasConfigFile = (projectRoot: string, configBaseName: string): boolean =>
     existsSync(join(projectRoot, `${configBaseName}.${extension}`)),
   );
 
+const findConfigFile = (projectRoot: string, configBaseName: string): string | null => {
+  for (const extension of CONFIG_EXTENSIONS) {
+    const configPath = join(projectRoot, `${configBaseName}.${extension}`);
+    if (existsSync(configPath)) return configPath;
+  }
+  return null;
+};
+
+const hasSvelteKitConfigFile = (projectRoot: string): boolean => {
+  const configPath = findConfigFile(projectRoot, "svelte.config");
+  if (!configPath) return false;
+
+  try {
+    const content = readFileSync(configPath, "utf-8");
+    return content.includes("@sveltejs/kit") || /\bkit\s*:/.test(content);
+  } catch {
+    return false;
+  }
+};
+
 const readMergedDependencies = (projectRoot: string): Record<string, string> | null => {
   const packageJsonPath = join(projectRoot, "package.json");
   if (!existsSync(packageJsonPath)) return null;
@@ -62,6 +82,7 @@ const detectFrameworkFromDependencies = (
   if (!dependencies) return "unknown";
   if (dependencies["next"]) return "next";
   if (dependencies["@tanstack/react-start"]) return "tanstack";
+  if (dependencies["@sveltejs/kit"]) return "sveltekit";
   if (dependencies["vite"]) return "vite";
   if (dependencies["webpack"]) return "webpack";
   return "unknown";
@@ -70,6 +91,7 @@ const detectFrameworkFromDependencies = (
 const detectFrameworkFromConfigFiles = (projectRoot: string): Framework => {
   if (hasConfigFile(projectRoot, "next.config")) return "next";
   if (hasConfigFile(projectRoot, "app.config")) return "tanstack";
+  if (hasSvelteKitConfigFile(projectRoot)) return "sveltekit";
   if (hasConfigFile(projectRoot, "vite.config")) return "vite";
   if (hasConfigFile(projectRoot, "webpack.config")) return "webpack";
   return "unknown";
@@ -388,7 +410,6 @@ export const detectUnsupportedFramework = (projectRoot: string): UnsupportedFram
   if (!dependencies) return null;
   if (dependencies["@remix-run/react"] || dependencies["remix"]) return "remix";
   if (dependencies["astro"]) return "astro";
-  if (dependencies["@sveltejs/kit"]) return "sveltekit";
   if (dependencies["gatsby"]) return "gatsby";
   return null;
 };

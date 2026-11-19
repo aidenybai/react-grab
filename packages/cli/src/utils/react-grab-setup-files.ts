@@ -54,6 +54,13 @@ export const getEntryFileCandidates = (projectRoot: string): string[] => [
 export const getTanStackRootFileCandidates = (projectRoot: string): string[] =>
   createFileCandidates(projectRoot, ["src/routes", "app/routes"], "__root", ROUTE_EXTENSIONS);
 
+export const getSvelteKitSetupFileCandidates = (projectRoot: string): string[] => [
+  join(projectRoot, "src", "hooks.client.ts"),
+  join(projectRoot, "src", "hooks.client.js"),
+  join(projectRoot, "src", "app.html"),
+  join(projectRoot, "src", "routes", "+layout.svelte"),
+];
+
 export const getReactGrabSetupFileCandidates = (projectRoot: string): string[] => [
   ...getLayoutFileCandidates(projectRoot),
   ...getDocumentFileCandidates(projectRoot),
@@ -61,6 +68,7 @@ export const getReactGrabSetupFileCandidates = (projectRoot: string): string[] =
   ...getIndexHtmlCandidates(projectRoot),
   ...getEntryFileCandidates(projectRoot),
   ...getTanStackRootFileCandidates(projectRoot),
+  ...getSvelteKitSetupFileCandidates(projectRoot),
 ];
 
 export const findLayoutFile = (projectRoot: string): string | null =>

@@ -157,10 +157,11 @@ The full export surface, each with its TypeScript types:
 
 ## Supported Frameworks
 
-The CLI currently configures:
-
-- Next.js App Router
-- Next.js Pages Router
-- Vite
-- TanStack Start
-- Webpack
+| Framework              | Detection                             |
+| ---------------------- | ------------------------------------- |
+| Next.js (App Router)   | `next.config.ts` + `app/` directory   |
+| Next.js (Pages Router) | `next.config.ts` + `pages/` directory |
+| Vite                   | `vite.config.ts`                      |
+| TanStack Start         | `app.config.ts`                       |
+| SvelteKit              | `svelte.config.*`                     |
+| Webpack                | `webpack.config.*`                    |
