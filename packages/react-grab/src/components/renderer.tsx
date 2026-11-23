@@ -9,6 +9,8 @@ import { Toolbar } from "./toolbar/index.js";
 import { ContextMenu } from "./context-menu.js";
 import { ToolbarMenu } from "./toolbar/toolbar-menu.js";
 import { HierarchyMenu } from "./toolbar/hierarchy-menu.js";
+import { AgentPanel } from "./agent-panel.js";
+import { AgentTaskTray } from "./agent-task-tray.js";
 
 export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
   return (
@@ -149,7 +151,26 @@ export const ReactGrabRenderer: Component<ReactGrabRendererProps> = (props) => {
         actions={props.toolbarMenuActions ?? []}
         defaultActionId={props.defaultActionId ?? DEFAULT_ACTION_ID}
         onSetDefaultAction={props.onSetDefaultAction ?? (() => {})}
+        isAgentConnected={Boolean(props.agentLogUrl)}
+        onConnectAgent={() => props.onConnectAgent?.()}
         onDismiss={props.onToolbarMenuDismiss ?? (() => {})}
+      />
+      <AgentPanel
+        position={props.agentPanelPosition ?? null}
+        logUrl={props.agentLogUrl ?? null}
+        phase={props.agentLogPhase ?? "idle"}
+        errorMessage={props.agentLogErrorMessage ?? null}
+        tasks={props.agentTasks ?? []}
+        presence={props.agentPresence ?? "none"}
+        onGenerateLink={() => props.onGenerateAgentLink?.()}
+        onCopyPrompt={() => props.onCopyAgentPrompt?.() ?? Promise.resolve(false)}
+        onDisconnect={() => props.onDisconnectAgent?.()}
+        onDismiss={() => props.onAgentPanelDismiss?.()}
+      />
+      <AgentTaskTray
+        position={props.agentTrayPosition ?? null}
+        tasks={props.agentTasks ?? []}
+        presence={props.agentPresence ?? "none"}
       />
       <HierarchyMenu position={props.hierarchyMenuPosition ?? null} state={props.hierarchyState} />
     </>

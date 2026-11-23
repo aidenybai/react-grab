@@ -414,3 +414,13 @@ export const RELEVANT_CSS_PROPERTIES = new Set([
   "object-fit",
   "object-position",
 ]);
+
+export const AGENT_LOG_DEFAULT_SERVER_URL = "https://agent.react-grab.com";
+export const AGENT_LOG_STORAGE_KEY = "react-grab-agent-log";
+export const AGENT_LOG_COPY_FEEDBACK_MS = 1500;
+export const AGENT_LOG_PANEL_WIDTH_PX = 300;
+export const AGENT_LOG_SYNC_WAIT_SECONDS = 25;
+export const AGENT_LOG_SYNC_RETRY_MS = 3000;
+export const AGENT_TRAY_LINGER_MS = 4000;
+export const AGENT_TRAY_WIDTH_PX = 260;
+export const AGENT_TRAY_MAX_TASKS = 4;

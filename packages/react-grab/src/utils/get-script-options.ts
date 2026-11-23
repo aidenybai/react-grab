@@ -1,8 +1,5 @@
 import type { Options } from "../types.js";
-
-const isObjectRecord = (value: unknown): value is Record<string, unknown> => {
-  return typeof value === "object" && value !== null;
-};
+import { isObjectRecord } from "./is-object-record.js";
 
 const parseOptionsFromJson = (rawValue: unknown): Partial<Options> | null => {
   if (!isObjectRecord(rawValue)) return null;
@@ -29,6 +26,9 @@ const parseOptionsFromJson = (rawValue: unknown): Partial<Options> | null => {
   }
   if (typeof rawValue.freezeReactUpdates === "boolean") {
     parsedOptions.freezeReactUpdates = rawValue.freezeReactUpdates;
+  }
+  if (typeof rawValue.agentLogServerUrl === "string") {
+    parsedOptions.agentLogServerUrl = rawValue.agentLogServerUrl;
   }
   if (typeof rawValue.telemetry === "boolean") {
     parsedOptions.telemetry = rawValue.telemetry;

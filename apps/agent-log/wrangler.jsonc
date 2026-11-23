@@ -1,0 +1,12 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "react-grab-agent-log",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-11-01",
+  "workers_dev": true,
+  "vars": { "PUBLIC_URL": "https://agent.react-grab.com" },
+  "durable_objects": {
+    "bindings": [{ "name": "AGENT_LOG", "class_name": "AgentLog" }],
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["AgentLog"] }],
+}

@@ -21,7 +21,11 @@ import type {
   ActionContext,
 } from "../types.js";
 import { DEFAULT_THEME, deepMergeTheme } from "./theme.js";
-import { DEFAULT_KEY_HOLD_DURATION_MS, DEFAULT_MAX_CONTEXT_LINES } from "../constants.js";
+import {
+  AGENT_LOG_DEFAULT_SERVER_URL,
+  DEFAULT_KEY_HOLD_DURATION_MS,
+  DEFAULT_MAX_CONTEXT_LINES,
+} from "../constants.js";
 import { PluginCleanupError, PluginHookError, PluginSetupError } from "../errors.js";
 import { reportRecoverableError } from "../utils/report-recoverable-error.js";
 
@@ -38,6 +42,7 @@ interface OptionsState {
   getContent: ((elements: Element[]) => Promise<string> | string) | undefined;
   maxContextLines: number;
   freezeReactUpdates: boolean;
+  agentLogServerUrl: string;
 }
 
 const DEFAULT_OPTIONS: OptionsState = {
@@ -48,6 +53,7 @@ const DEFAULT_OPTIONS: OptionsState = {
   getContent: undefined,
   maxContextLines: DEFAULT_MAX_CONTEXT_LINES,
   freezeReactUpdates: true,
+  agentLogServerUrl: AGENT_LOG_DEFAULT_SERVER_URL,
 };
 
 interface PluginStoreState {
@@ -126,6 +132,7 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
     "getContent",
     "maxContextLines",
     "freezeReactUpdates",
+    "agentLogServerUrl",
   ];
 
   const setOptions = (optionUpdates: SettableOptions) => {
