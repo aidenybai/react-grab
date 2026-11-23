@@ -4,10 +4,12 @@ import { normalizeError } from "../utils/normalize-error.js";
 import { getTagName } from "../utils/get-tag-name.js";
 import { ABORTED_PROMISE_RESULT, racePromiseWithAbort } from "../utils/race-promise-with-abort.js";
 import type { StackFrame } from "bippy/source";
-import type { ReactGrabEntry, ReactGrabStackFrame } from "../types.js";
+import type { CommentSubmission, ReactGrabEntry, ReactGrabStackFrame } from "../types.js";
 
 interface CopyFlowOptions {
   getContent?: (elements: Element[]) => Promise<string> | string;
+  // When set, commented grabs go to this sink instead of the clipboard.
+  deliverComment?: (submission: CommentSubmission) => Promise<void>;
   componentName?: string;
   maxContextLines?: number;
   signal?: AbortSignal;
@@ -28,6 +30,8 @@ interface CopyPayload {
 
 export interface CopyFlowResult {
   readonly status: "cancelled" | "failed" | "succeeded";
+  readonly statusText?: string;
+  readonly errorMessage?: string;
 }
 
 const CANCELLED_COPY_FLOW_RESULT: CopyFlowResult = {
@@ -109,6 +113,8 @@ export const runCopyFlow = async (
   let didCopy = false;
   let didStartClipboardWrite = false;
   let finalContent = "";
+  let deliveryStatusText: string | undefined;
+  let deliveryErrorMessage: string | undefined;
 
   try {
     const pendingPayload: Promise<CopyPayload | null> = options.getContent
@@ -131,10 +137,25 @@ export const runCopyFlow = async (
         : transformedContent;
       if (finalContent.trim()) {
         didStartClipboardWrite = true;
-        didCopy = copyContent(finalContent, {
-          componentName: options.componentName,
-          entries: getMetadataEntries(payload, finalContent, prependedPrompt),
-        });
+        const metadataEntries = getMetadataEntries(payload, finalContent, prependedPrompt);
+        if (prependedPrompt && options.deliverComment) {
+          try {
+            await options.deliverComment({
+              comment: prependedPrompt,
+              content: finalContent,
+              entries: metadataEntries ?? [],
+            });
+            didCopy = true;
+            deliveryStatusText = "Sent to agent";
+          } catch (error) {
+            deliveryErrorMessage = normalizeError(error).message || "Failed to send to agent";
+          }
+        } else {
+          didCopy = copyContent(finalContent, {
+            componentName: options.componentName,
+            entries: metadataEntries,
+          });
+        }
       }
     }
   } catch (error) {
@@ -146,5 +167,7 @@ export const runCopyFlow = async (
   if (didCopy) hooks.onCopySuccess(elements, finalContent);
   hooks.onAfterCopy(elements, didCopy);
 
-  return { status: didCopy ? "succeeded" : "failed" };
+  return didCopy
+    ? { status: "succeeded", statusText: deliveryStatusText }
+    : { status: "failed", errorMessage: deliveryErrorMessage };
 };

@@ -13,6 +13,8 @@ interface ToolbarMenuProps {
   actions: ContextMenuAction[];
   defaultActionId: string;
   onSetDefaultAction: (actionId: string) => void;
+  isAgentConnected: boolean;
+  onConnectAgent: () => void;
   onDismiss: () => void;
 }
 
@@ -69,6 +71,19 @@ export const ToolbarMenu: Component<ToolbarMenuProps> = (props) => {
                 );
               }}
             </For>
+            <div
+              role="separator"
+              class="mx-2 my-1 [border-top-width:0.5px] border-t-[var(--rg-border-subtle)]"
+            />
+            <Menu.Item value="connect-agent" onSelect={() => props.onConnectAgent()}>
+              <Menu.Label
+                class="text-[var(--rg-text-secondary)]"
+                textContent={props.isAgentConnected ? "Agent connected" : "Connect agent"}
+              />
+              <Show when={props.isAgentConnected}>
+                <span class="ml-2 size-1.5 rounded-full bg-[#22c55e]" aria-hidden="true" />
+              </Show>
+            </Menu.Item>
           </Menu.List>
         </Menu.Provider>
       </Menu.Panel>

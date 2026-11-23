@@ -261,6 +261,26 @@ export interface PluginHooks {
   transformOpenFileUrl?: (url: string, filePath: string, lineNumber?: number) => string;
 }
 
+export interface CommentSubmission {
+  comment: string;
+  content: string;
+  entries: ReactGrabEntry[];
+}
+
+export type AgentLogPhase = "idle" | "generating" | "failed";
+
+export type AgentTaskStatus = "todo" | "in_progress" | "done" | "error" | "canceled";
+
+export type AgentPresenceState = "none" | "listening" | "working" | "offline";
+
+export interface AgentTask {
+  seqNum: number;
+  status: AgentTaskStatus;
+  comment: string;
+  componentName?: string;
+  note?: string;
+}
+
 export interface PluginConfig {
   theme?: DeepPartial<Theme>;
   options?: SettableOptions;
@@ -313,6 +333,11 @@ export interface Options {
    * @default true
    */
   telemetry?: boolean;
+  /**
+   * Base URL of the agent log server that "Connect agent" creates logs on.
+   * @default "https://agent.react-grab.com"
+   */
+  agentLogServerUrl?: string;
 }
 
 export interface SettableOptions extends Options {
@@ -497,6 +522,18 @@ export interface ReactGrabRendererProps {
   onSetDefaultAction?: (actionId: string) => void;
   onToggleToolbarMenu?: () => void;
   onToolbarMenuDismiss?: () => void;
+  onConnectAgent?: () => void;
+  agentPanelPosition?: DropdownAnchor | null;
+  agentLogUrl?: string | null;
+  agentLogPhase?: AgentLogPhase;
+  agentLogErrorMessage?: string | null;
+  agentTasks?: AgentTask[];
+  agentPresence?: AgentPresenceState;
+  agentTrayPosition?: DropdownAnchor | null;
+  onGenerateAgentLink?: () => void;
+  onCopyAgentPrompt?: () => Promise<boolean>;
+  onDisconnectAgent?: () => void;
+  onAgentPanelDismiss?: () => void;
 }
 
 export interface GrabbedBox {

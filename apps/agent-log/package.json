@@ -1,0 +1,15 @@
+{
+  "name": "@react-grab/agent-log",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev --port 8787",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20251123.0",
+    "typescript": "^6.0.3",
+    "wrangler": "^4.50.0"
+  }
+}

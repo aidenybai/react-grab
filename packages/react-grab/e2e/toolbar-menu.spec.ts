@@ -35,7 +35,7 @@ test.describe("Toolbar Menu", () => {
         .evaluateAll((elements) =>
           elements.map((element) => element.getAttribute("data-react-grab-menu-item")),
         );
-      expect(actionIds).toEqual(["copy", "comment"]);
+      expect(actionIds).toEqual(["copy", "comment", "connect-agent"]);
     });
 
     test("clicking a menu item should close the menu", async ({ reactGrab }) => {

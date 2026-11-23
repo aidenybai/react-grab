@@ -189,6 +189,7 @@ interface GrabActions {
     instanceId: string,
     status: SelectionLabelInstance["status"],
     errorMessage?: string,
+    statusText?: string,
   ) => void;
   removeLabelInstance: (instanceId: string) => void;
   clearLabelInstances: () => void;
@@ -602,11 +603,16 @@ const createGrabStore = (input: GrabStoreInput) => {
       instanceId: string,
       status: SelectionLabelInstance["status"],
       errorMessage?: string,
+      statusText?: string,
     ) => {
       const index = store.labelInstances.findIndex((instance) => instance.id === instanceId);
       if (index !== -1) {
         batch(() => {
           setStore("labelInstances", index, "status", status);
+          // Fading and hover-restore keep the text set when the copy finished.
+          if (statusText !== undefined || status === "copying") {
+            setStore("labelInstances", index, "statusText", statusText);
+          }
           if (errorMessage !== undefined) {
             setStore("labelInstances", index, "errorMessage", errorMessage);
           } else if (status !== "error") {

@@ -10,6 +10,7 @@ interface LabelStoreBridge {
     instanceId: string,
     status: SelectionLabelInstance["status"],
     errorMessage?: string,
+    statusText?: string,
   ) => void;
   removeLabelInstance: (instanceId: string) => void;
 }
@@ -53,7 +54,12 @@ interface LabelController {
     entries: PerElementLabelEntry[],
     status: SelectionLabelInstance["status"],
   ) => string[];
-  updateAfterCopy: (instanceId: string, didSucceed: boolean, errorMessage?: string) => void;
+  updateAfterCopy: (
+    instanceId: string,
+    didSucceed: boolean,
+    errorMessage?: string,
+    statusText?: string,
+  ) => void;
   markRetrying: (instanceId: string) => void;
   dismissInstance: (instanceId: string) => void;
   cancelAllFades: () => void;
@@ -170,9 +176,14 @@ export const createLabelController = (
     return instanceIds;
   };
 
-  const updateAfterCopy = (instanceId: string, didSucceed: boolean, errorMessage?: string) => {
+  const updateAfterCopy = (
+    instanceId: string,
+    didSucceed: boolean,
+    errorMessage?: string,
+    statusText?: string,
+  ) => {
     if (didSucceed) {
-      store.updateLabelInstance(instanceId, "copied");
+      store.updateLabelInstance(instanceId, "copied", undefined, statusText);
       scheduleFade(instanceId);
     } else {
       // Errors are actionable (Retry/Ok), so the label persists until it is

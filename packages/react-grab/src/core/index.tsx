@@ -150,6 +150,9 @@ import { createModifierTracker } from "../utils/modifier-tracker.js";
 import { copyPlugin } from "./plugins/copy.js";
 import { commentPlugin } from "./plugins/comment.js";
 import { openPlugin } from "./plugins/open.js";
+import { createAgentLogController } from "./agent-log.js";
+import { buildAgentLogPrompt } from "../utils/build-agent-log-prompt.js";
+import { copyPlainText } from "../utils/copy-plain-text.js";
 import { freezeAnimations, freezeAllAnimations } from "../utils/freeze-animations.js";
 import {
   freezeGlobalInteractions,
@@ -273,6 +276,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const toolbarStateChangeCallbacks = new Set<(state: ToolbarState) => void>();
 
     const pluginRegistry = createPluginRegistry(settableOptions);
+    const agentLog = createAgentLogController({
+      getServerUrl: () => pluginRegistry.store.options.agentLogServerUrl,
+    });
 
     const { store, actions, pointer, viewportVersion, current } = createGrabStore({
       keyHoldDuration: pluginRegistry.store.options.keyHoldDuration ?? DEFAULT_KEY_HOLD_DURATION_MS,
@@ -373,13 +379,16 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     const [hierarchyMenuPosition, setHierarchyMenuPosition] = createSignal<DropdownAnchor | null>(
       null,
     );
+    const [agentPanelPosition, setAgentPanelPosition] = createSignal<DropdownAnchor | null>(null);
+    const [agentTrayPosition, setAgentTrayPosition] = createSignal<DropdownAnchor | null>(null);
 
     const isModalPopoverOpen = createMemo(() => store.contextMenuPosition !== null);
     const isAnyPopoverOpen = createMemo(
-      () => isModalPopoverOpen() || toolbarMenuPosition() !== null,
+      () => isModalPopoverOpen() || toolbarMenuPosition() !== null || agentPanelPosition() !== null,
     );
     let toolbarElement: HTMLDivElement | undefined;
     let stopToolbarMenuTracking: (() => void) | null = null;
+    let stopAgentPanelTracking: (() => void) | null = null;
 
     let shiftSelectionLabelAnchorRatioByElement = new WeakMap<Element, number>();
     const keyboardSelection = createKeyboardSelectionController();
@@ -761,7 +770,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       try {
         copyResult = await clipboardOperation(signal);
         if (copyResult.status === "cancelled") return copyResult;
-        if (copyResult.status === "failed") errorMessage = "Failed to copy";
+        if (copyResult.status === "failed")
+          errorMessage = copyResult.errorMessage ?? "Failed to copy";
       } catch (error) {
         if (signal.aborted) return CANCELLED_COPY_RESULT;
         copyResult = { status: "failed" };
@@ -774,6 +784,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
             labelInstanceId,
             copyResult.status === "succeeded",
             errorMessage,
+            copyResult.statusText,
           );
         }
       }
@@ -893,6 +904,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       return runCopyFlow(
         {
           getContent: pluginRegistry.store.options.getContent,
+          deliverComment: agentLog.logUrl() ? agentLog.deliverComment : undefined,
           componentName: elementName,
           maxContextLines: pluginRegistry.store.options.maxContextLines,
           signal,
@@ -3433,6 +3445,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         collectCleanupError(stopToolbarMenuTracking, cleanupErrors);
       }
       stopToolbarMenuTracking = null;
+      if (stopAgentPanelTracking) collectCleanupError(stopAgentPanelTracking, cleanupErrors);
+      stopAgentPanelTracking = null;
       grabbedBoxTimeouts.forEach((timeoutId) => window.clearTimeout(timeoutId));
       grabbedBoxTimeouts.clear();
       collectCleanupError(labelController.cancelAllFades, cleanupErrors);
@@ -3959,15 +3973,51 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       });
     });
 
+    const shouldShowAgentTray = createMemo(
+      () =>
+        agentLog.shouldShowTray() &&
+        isEnabled() &&
+        pluginRegistry.store.theme.toolbar.enabled &&
+        !isAnyPopoverOpen() &&
+        !hasHierarchySource(),
+    );
+
+    createEffect(() => {
+      if (!shouldShowAgentTray()) return;
+      const stopTracking = trackDropdownPosition(computeDropdownAnchor, setAgentTrayPosition);
+      onCleanup(() => {
+        stopTracking();
+        setAgentTrayPosition(null);
+      });
+    });
+
     const dismissToolbarMenu = () => {
       stopToolbarMenuTracking?.();
       stopToolbarMenuTracking = null;
       setToolbarMenuPosition(null);
     };
 
+    const dismissAgentPanel = () => {
+      stopAgentPanelTracking?.();
+      stopAgentPanelTracking = null;
+      setAgentPanelPosition(null);
+    };
+
     const dismissAllPopups = () => {
       actions.hideContextMenu();
       dismissToolbarMenu();
+      dismissAgentPanel();
+    };
+
+    const handleConnectAgent = () => {
+      dismissToolbarMenu();
+      stopAgentPanelTracking?.();
+      stopAgentPanelTracking = trackDropdownPosition(computeDropdownAnchor, setAgentPanelPosition);
+    };
+
+    const copyAgentPrompt = () => {
+      const logUrl = agentLog.logUrl();
+      return logUrl ? copyPlainText(buildAgentLogPrompt(logUrl)) : Promise.resolve(false);
     };
 
     const handleToggleToolbarMenu = () => {
@@ -3975,6 +4025,7 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         dismissToolbarMenu();
       } else {
         actions.hideContextMenu();
+        dismissAgentPanel();
         stopToolbarMenuTracking?.();
         stopToolbarMenuTracking = trackDropdownPosition(
           computeDropdownAnchor,
@@ -4140,6 +4191,18 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
                 onSetDefaultAction={handleSetDefaultAction}
                 onToggleToolbarMenu={handleToggleToolbarMenu}
                 onToolbarMenuDismiss={dismissToolbarMenu}
+                onConnectAgent={handleConnectAgent}
+                agentPanelPosition={agentPanelPosition()}
+                agentLogUrl={agentLog.logUrl()}
+                agentLogPhase={agentLog.phase()}
+                agentLogErrorMessage={agentLog.errorMessage()}
+                agentTasks={agentLog.tasks()}
+                agentPresence={agentLog.presence()}
+                agentTrayPosition={agentTrayPosition()}
+                onGenerateAgentLink={() => void agentLog.generateLink()}
+                onCopyAgentPrompt={copyAgentPrompt}
+                onDisconnectAgent={agentLog.disconnect}
+                onAgentPanelDismiss={dismissAgentPanel}
               />
             );
           }, rendererRoot);
@@ -4243,6 +4306,8 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
           collectCleanupError(stopToolbarMenuTracking, cleanupErrors);
         }
         stopToolbarMenuTracking = null;
+        if (stopAgentPanelTracking) collectCleanupError(stopAgentPanelTracking, cleanupErrors);
+        stopAgentPanelTracking = null;
         toolbarStateChangeCallbacks.clear();
         collectCleanupError(dispose, cleanupErrors);
         collectCleanupError(() => clearGlobalApi(api), cleanupErrors);

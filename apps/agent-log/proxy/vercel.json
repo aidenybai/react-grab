@@ -1,0 +1,9 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "rewrites": [
+    {
+      "source": "/:path*",
+      "destination": "https://react-grab-agent-log.aidenbai.workers.dev/:path*"
+    }
+  ]
+}

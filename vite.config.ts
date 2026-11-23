@@ -5,7 +5,7 @@ export default defineConfig({
     "*.{js,ts,tsx}": "vp check --fix",
   },
   lint: {
-    ignorePatterns: [".next", "dist", "build", "bundled_*.mjs", "bin"],
+    ignorePatterns: [".next", "dist", "build", "bundled_*.mjs", "bin", ".wrangler"],
     plugins: ["typescript"],
     rules: {
       "@typescript-eslint/ban-ts-comment": "error",
@@ -49,6 +49,6 @@ export default defineConfig({
   fmt: {
     semi: true,
     singleQuote: false,
-    ignorePatterns: [".next", "node_modules", "dist", "build", "pnpm-lock.yaml"],
+    ignorePatterns: [".next", "node_modules", "dist", "build", "pnpm-lock.yaml", ".wrangler"],
   },
 });
